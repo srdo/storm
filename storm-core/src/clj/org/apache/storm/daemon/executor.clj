@@ -171,7 +171,7 @@
                         TOPOLOGY-TRANSACTIONAL-ID
                         TOPOLOGY-TICK-TUPLE-FREQ-SECS
                         TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS
-                        TOPOLOGY-CHECK-HANG-TICK-TUPLE-FREQ-SECS
+                        TOPOLOGY-EXECUTOR-CHECK-HANG-TUPLE-FREQ-SECS
                         TOPOLOGY-SLEEP-SPOUT-WAIT-STRATEGY-TIME-MS
                         TOPOLOGY-SPOUT-WAIT-STRATEGY
                         TOPOLOGY-BOLTS-WINDOW-LENGTH-COUNT
@@ -337,16 +337,16 @@
           (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. worker-context [interval] Constants/SYSTEM_TASK_ID Constants/METRICS_TICK_STREAM_ID))]]
             (.publish ^DisruptorQueue receive-queue val)))))))
 
-(defn setup-check-tick! [executor-data]
+(defn setup-hang-checks! [executor-data]
   (let [{:keys [storm-conf receive-queue worker-context worker]} executor-data
-        tick-interval-secs (storm-conf TOPOLOGY-CHECK-HANG-TICK-TUPLE-FREQ-SECS)]
+        tick-interval-secs (storm-conf TOPOLOGY-EXECUTOR-CHECK-HANG-TUPLE-FREQ-SECS)]
     (when tick-interval-secs
       (.scheduleRecurring
         (:user-timer worker)
         tick-interval-secs
         tick-interval-secs
         (fn []
-          (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. worker-context [tick-interval-secs] Constants/SYSTEM_TASK_ID Constants/HANG_CHECK_TICK_STREAM_ID))]]
+          (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. worker-context [tick-interval-secs] Constants/SYSTEM_TASK_ID Constants/HANG_CHECK_STREAM_ID))]]
             (.publish ^DisruptorQueue receive-queue val)))))))
 
 (defn metrics-tick
@@ -431,7 +431,7 @@
         ((:storm-conf executor-data) TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS))
       (is-hanging? [this]
         (let [storm-conf (:storm-conf executor-data)]
-          (if-not (storm-conf TOPOLOGY-CHECK-HANG-TICK-TUPLE-FREQ-SECS)
+          (if-not (storm-conf TOPOLOGY-EXECUTOR-CHECK-HANG-TUPLE-FREQ-SECS)
             false
             (if (= executor-id Constants/SYSTEM_EXECUTOR_ID)
               false
@@ -558,7 +558,7 @@
                             (condp = stream-id
                               Constants/SYSTEM_TICK_STREAM_ID (.rotate pending)
                               Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data (get task-datas task-id) tuple)
-                              Constants/HANG_CHECK_TICK_STREAM_ID (update-last-hang-check-time! executor-data)
+                              Constants/HANG_CHECK_STREAM_ID (update-last-hang-check-time! executor-data)
                               Constants/CREDENTIALS_CHANGED_STREAM_ID 
                                 (let [task-data (get task-datas task-id)
                                       spout-obj (:object task-data)]
@@ -760,7 +760,7 @@
                                   (when (instance? ICredentialsListener bolt-obj)
                                     (.setCredentials bolt-obj (.getValue tuple 0))))
                               Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data (get task-datas task-id) tuple)
-                              Constants/HANG_CHECK_TICK_STREAM_ID (update-last-hang-check-time! executor-data)
+                              Constants/HANG_CHECK_STREAM_ID (update-last-hang-check-time! executor-data)
                               (let [task-data (get task-datas task-id)
                                     ^IBolt bolt-obj (:object task-data)
                                     user-context (:user-context task-data)

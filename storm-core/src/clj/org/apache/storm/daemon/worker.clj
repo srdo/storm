@@ -86,8 +86,6 @@
                                 nil
                                 (->> executors
                                   (filter (fn [executor] (executor/is-hanging? executor)))))]
-    (doseq [executor executors]
-      (log-message "Executor " (executor/get-executor-id executor) "hanging?" (executor/is-hanging? executor)))
     (when (and (:worker-active-flag worker) (seq hanging-executors))
       (doseq [executor hanging-executors]
         (executor/report-hang executor))
@@ -99,7 +97,9 @@
                                           (distinct))]
         (log-warn "Detected hanging executors: " (pr-str hanging-executor-ids) " for components " (pr-str hanging-executor-components)))
         ;;TODO: Log to metrics
-      (when ((:conf worker) TOPOLOGY-EXECUTOR-REBOOT-ON-HANG)
+      (when ((:storm-conf worker) TOPOLOGY-WORKER-REBOOT-ON-HANG)
+        ;; Suicide may be safer than shutdown in case hanging threads don't respond to interrupts
+        (log-warn "Killing worker due to hanging executors")
         ((:suicide-fn worker))))))
 
 (defn do-heartbeat [worker]
@@ -752,6 +752,7 @@
                     (.close (:refresh-active-timer worker))
                     (.close (:executor-heartbeat-timer worker))
                     (.close (:user-timer worker))
+                    (.close (:executor-hang-check-timer worker))
                     (.close (:refresh-load-timer worker))
                     (.close (:reset-log-levels-timer worker))
                     (close-resources worker)
@@ -779,6 +780,8 @@
                  (.isTimerWaiting (:refresh-active-timer worker))
                  (.isTimerWaiting (:executor-heartbeat-timer worker))
                  (.isTimerWaiting (:user-timer worker))
+                 (.isTimerWaiting (:reset-log-levels-timer worker))
+                 (.isTimerWaiting (:executor-hang-check-timer worker))
                  ))
              )
         credentials (atom initial-credentials)

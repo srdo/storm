@@ -15,6 +15,7 @@
 ;; limitations under the License.
 (ns integration.org.apache.storm.integration-test
   (:use [clojure test])
+  (:require [org.apache.storm.daemon [worker :as worker]])
   (:import [org.apache.storm Config Thrift])
   (:import [org.apache.storm.topology TopologyBuilder])
   (:import [org.apache.storm.generated InvalidTopologyException SubmitOptions TopologyInitialStatus RebalanceOptions])
@@ -24,7 +25,8 @@
   (:import [org.apache.storm.tuple Fields])
   (:import [org.apache.storm.cluster StormClusterStateImpl])
   (:use [org.apache.storm.internal clojure])
-  (:use [org.apache.storm testing config util log])
+  (:use [org.apache.storm testing config util])
+  (:use [conjure core])
   (:import [org.apache.storm Thrift])
   (:import [org.apache.storm.utils Utils]) 
   (:import [org.apache.storm.daemon StormCommon]))
@@ -167,9 +169,9 @@
                             {(Utils/getGlobalStreamId "1" nil)
                              (Thrift/prepareGlobalGrouping)} extend-timeout-twice)})]
       (submit-local-topology (:nimbus cluster)
-        "timeout-tester"
-        {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10}
-        topology)
+                             "timeout-tester"
+                             {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10}
+                             topology)
       (advance-cluster-time cluster 11)
       (.feed feeder ["a"] 1)
       (advance-cluster-time cluster 21)
@@ -188,26 +190,27 @@
           (Time/sleep (* 300 1000))
         )))))
 
-(deftest test-worker-hang-timeout
-  (with-simulated-time-local-cluster [cluster]
-    (let [feeder (feeder-spout ["field1"])
-          daemon-conf (:daemon-conf cluster)
-          topology (Thrift/buildTopology
-                     {"1" (Thrift/prepareSpoutDetails feeder)}
-                     {"2" (Thrift/prepareBoltDetails 
-                            {(Utils/getGlobalStreamId "1" nil)
-                             (Thrift/prepareGlobalGrouping)} hanging-bolt)})]
-    (submit-local-topology (:nimbus cluster)
-                           "hanging-tester"
-                           {TOPOLOGY-EXECUTOR-REBOOT-ON-HANG true
-                            TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS 10
-                            TOPOLOGY-CHECK-HANG-TICK-TUPLE-FREQ-SECS 5}
-                           topology)
-    (.feed feeder ["a"] 1)
-    (advance-cluster-time cluster (+ 10 5))
-    (.feed feeder ["b"] 2)
-    (advance-cluster-time cluster 15)
-    )))
+(deftest test-worker-hang-timeout-shutdown-worker
+  (let [suicide-called (atom false)]
+    (stubbing [worker/mk-suicide-fn (fn [cluster-mode] (fn [] (reset! suicide-called true)))]
+      (with-simulated-time-local-cluster [cluster]
+        (let [feeder (feeder-spout ["field1"])
+              daemon-conf (:daemon-conf cluster)
+              topology (Thrift/buildTopology
+                         {"1" (Thrift/prepareSpoutDetails feeder)}
+                         {"2" (Thrift/prepareBoltDetails 
+                                {(Utils/getGlobalStreamId "1" nil)
+                                 (Thrift/prepareGlobalGrouping)} hanging-bolt)})]
+          (submit-local-topology (:nimbus cluster)
+                                 "hanging-tester"
+                                 {TOPOLOGY-WORKER-REBOOT-ON-HANG true
+                                  TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS 10
+                                  TOPOLOGY-EXECUTOR-CHECK-HANG-TUPLE-FREQ-SECS 5}
+                                  topology)
+          (.feed feeder ["a"] 1)
+          (advance-cluster-time cluster (+ 10 5))
+          (is @suicide-called)
+    )))))
 
 (defn mk-validate-topology-1 []
   (Thrift/buildTopology
