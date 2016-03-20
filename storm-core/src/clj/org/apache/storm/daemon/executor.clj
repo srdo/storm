@@ -440,7 +440,7 @@
                 (log-message "Current time " (Time/currentTimeSecs) " last hang check " @(:last-hang-check-time-secs executor-data) " limit " (storm-conf TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS))
               (> (- (Time/currentTimeSecs) @(:last-hang-check-time-secs executor-data)) (storm-conf TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS)))))))
       (report-hang [this]
-        (:report-error (RuntimeException. "Executor exceeded hang check timeout, and may be hanging")))
+        ((:report-error executor-data) (RuntimeException. "Executor exceeded hang check timeout, and may be hanging")))
       (credentials-changed [this creds]
         (let [receive-queue (:receive-queue executor-data)
               context (:worker-context executor-data)

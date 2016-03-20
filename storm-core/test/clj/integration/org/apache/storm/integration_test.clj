@@ -181,18 +181,8 @@
       (assert-acked tracker 1)
     )))
 
-(defbolt hanging-bolt {} {:prepare true}
-  [conf context collector]
-  (let [state (atom -1)]
-    (bolt
-      (execute [tuple]
-        (do
-          (Time/sleep (* 300 1000))
-        )))))
-
 (defn test-worker-hang-timeout [cluster reboot-enabled bolt topology-name]
   (let [feeder (feeder-spout ["field1"])
-        daemon-conf (:daemon-conf cluster)
         topology (Thrift/buildTopology
                    {"1" (Thrift/prepareSpoutDetails feeder)}
                    {"2" (Thrift/prepareBoltDetails 
@@ -209,32 +199,55 @@
     (advance-cluster-time cluster 10)
     (advance-cluster-time cluster (* 2 60))))
 
+(defbolt hanging-bolt {} {:prepare true}
+  [conf context collector]
+  (let [state (atom -1)]
+    (bolt
+      (execute [tuple]
+        (do
+          (Time/sleep (* 300 1000)))))))
+
 (deftest test-worker-hang-timeout-when-shutdown-enabled
-  (let [suicide-called (atom false)]
+  (let [suicide-called (atom false)
+        topology-name "hanging-shutdown-tester"]
     (stubbing [worker/mk-suicide-fn (fn [cluster-mode] (fn [] (reset! suicide-called true)))]
       (with-simulated-time-local-cluster [cluster]
-        (test-worker-hang-timeout cluster true hanging-bolt "hanging-shutdown-tester")
+        (test-worker-hang-timeout cluster true hanging-bolt topology-name)
         (is @suicide-called)
-        ;;TODO: Check zookeeper for error report
-    ))))
+        (let [storm-cluster-state (:storm-cluster-state cluster)
+              topology-id (StormCommon/getStormId storm-cluster-state topology-name)
+              topology-errors (seq (.errors storm-cluster-state topology-id "2"))]
+          (is (= (count topology-errors) 1))
+          (is (-> (first topology-errors)
+                (.get_error)
+                (.contains "Executor exceeded hang check timeout, and may be hanging"))))))))
 
 (deftest test-worker-hang-timeout-when-shutdown-disabled
-  (let [suicide-called (atom false)]
+  (let [suicide-called (atom false)
+        topology-name "hanging-no-shutdown-tester"]
     (stubbing [worker/mk-suicide-fn (fn [cluster-mode] (fn [] (reset! suicide-called true)))]
       (with-simulated-time-local-cluster [cluster]
-        (test-worker-hang-timeout cluster false hanging-bolt "hanging-no-shutdown-tester")
+        (test-worker-hang-timeout cluster false hanging-bolt topology-name)
         (is (not @suicide-called))
-        ;;TODO: Check zookeeper for error report
-    ))))
+        (let [storm-cluster-state (:storm-cluster-state cluster)
+              topology-id (StormCommon/getStormId storm-cluster-state topology-name)
+              topology-errors (seq (.errors storm-cluster-state topology-id "2"))]
+          (is (= (count topology-errors) 1))
+          (is (-> (first topology-errors)
+                (.get_error)
+                (.contains "Executor exceeded hang check timeout, and may be hanging"))))))))
 
 (deftest test-worker-hang-timeout-automatic-extension
-  (let [suicide-called (atom false)]
+  (let [suicide-called (atom false)
+        topology-name "hanging-auto-extension-tester"]
     (stubbing [worker/mk-suicide-fn (fn [cluster-mode] (fn [] (reset! suicide-called true)))]
       (with-simulated-time-local-cluster [cluster]
-        (test-worker-hang-timeout cluster true (TestWordCounter.) "hanging-auto-extension-tester")
+        (test-worker-hang-timeout cluster true (TestWordCounter.) topology-name)
         (is (not @suicide-called))
-        ;;TODO: Check zookeeper for error report
-    ))))
+        (let [storm-cluster-state (:storm-cluster-state cluster)
+              topology-id (StormCommon/getStormId storm-cluster-state topology-name)
+              topology-errors (seq (.errors storm-cluster-state topology-id "2"))]
+          (is (= (count topology-errors) 0)))))))
 
 (defn mk-validate-topology-1 []
   (Thrift/buildTopology

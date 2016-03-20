@@ -86,7 +86,7 @@
                                 nil
                                 (->> executors
                                   (filter (fn [executor] (executor/is-hanging? executor)))))]
-    (when (and (:worker-active-flag worker) (seq hanging-executors))
+    (when (and (:storm-active-atom worker) (seq hanging-executors))
       (doseq [executor hanging-executors]
         (executor/report-hang executor))
       (let [hanging-executor-ids (->> hanging-executors
