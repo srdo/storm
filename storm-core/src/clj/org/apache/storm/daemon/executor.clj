@@ -346,7 +346,7 @@
         tick-interval-secs
         tick-interval-secs
         (fn []
-          (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. worker-context [tick-interval-secs] Constants/SYSTEM_TASK_ID Constants/HANG_CHECK_STREAM_ID))]]
+          (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. worker-context [] Constants/SYSTEM_TASK_ID Constants/HANG_CHECK_STREAM_ID))]]
             (.publish ^DisruptorQueue receive-queue val)))))))
 
 (defn metrics-tick
@@ -418,6 +418,7 @@
                    (catch Throwable t (.uncaughtException report-error-and-die nil t)))
         threads (concat handlers system-threads)]    
     (setup-ticks! worker executor-data)
+    (setup-hang-checks! executor-data)
 
     (log-message "Finished loading executor " component-id ":" (pr-str executor-id))
     ;; TODO: add method here to get rendered stats... have worker call that when heartbeating
@@ -436,7 +437,7 @@
             (if (= executor-id Constants/SYSTEM_EXECUTOR_ID)
               false
               (do
-                (log-message "Current time " (Time/currentTimeSecs) " last processed tuple " @(:last-hang-check-time-secs executor-data) " limit " (storm-conf TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS))
+                (log-message "Current time " (Time/currentTimeSecs) " last hang check " @(:last-hang-check-time-secs executor-data) " limit " (storm-conf TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS))
               (> (- (Time/currentTimeSecs) @(:last-hang-check-time-secs executor-data)) (storm-conf TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS)))))))
       (report-hang [this]
         (:report-error (RuntimeException. "Executor exceeded hang check timeout, and may be hanging")))

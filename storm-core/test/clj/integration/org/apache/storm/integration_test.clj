@@ -25,7 +25,7 @@
   (:import [org.apache.storm.tuple Fields])
   (:import [org.apache.storm.cluster StormClusterStateImpl])
   (:use [org.apache.storm.internal clojure])
-  (:use [org.apache.storm testing config util])
+  (:use [org.apache.storm testing config util log])
   (:use [conjure core])
   (:import [org.apache.storm Thrift])
   (:import [org.apache.storm.utils Utils]) 
@@ -190,27 +190,51 @@
           (Time/sleep (* 300 1000))
         )))))
 
-(deftest test-worker-hang-timeout-shutdown-worker
+(defn test-worker-hang-timeout [cluster reboot-enabled bolt topology-name]
+  (let [feeder (feeder-spout ["field1"])
+        daemon-conf (:daemon-conf cluster)
+        topology (Thrift/buildTopology
+                   {"1" (Thrift/prepareSpoutDetails feeder)}
+                   {"2" (Thrift/prepareBoltDetails 
+                          {(Utils/getGlobalStreamId "1" nil)
+                           (Thrift/prepareGlobalGrouping)} bolt)})]
+    (submit-local-topology (:nimbus cluster)
+                           topology-name
+                           {TOPOLOGY-WORKER-REBOOT-ON-HANG reboot-enabled
+                            TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS 60
+                            TOPOLOGY-EXECUTOR-CHECK-HANG-TUPLE-FREQ-SECS 10}
+                            topology)
+    (.feed feeder ["a"] 1)
+    ;;Allow a little time for topology init
+    (advance-cluster-time cluster 10)
+    (advance-cluster-time cluster (* 2 60))))
+
+(deftest test-worker-hang-timeout-when-shutdown-enabled
   (let [suicide-called (atom false)]
     (stubbing [worker/mk-suicide-fn (fn [cluster-mode] (fn [] (reset! suicide-called true)))]
       (with-simulated-time-local-cluster [cluster]
-        (let [feeder (feeder-spout ["field1"])
-              daemon-conf (:daemon-conf cluster)
-              topology (Thrift/buildTopology
-                         {"1" (Thrift/prepareSpoutDetails feeder)}
-                         {"2" (Thrift/prepareBoltDetails 
-                                {(Utils/getGlobalStreamId "1" nil)
-                                 (Thrift/prepareGlobalGrouping)} hanging-bolt)})]
-          (submit-local-topology (:nimbus cluster)
-                                 "hanging-tester"
-                                 {TOPOLOGY-WORKER-REBOOT-ON-HANG true
-                                  TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS 10
-                                  TOPOLOGY-EXECUTOR-CHECK-HANG-TUPLE-FREQ-SECS 5}
-                                  topology)
-          (.feed feeder ["a"] 1)
-          (advance-cluster-time cluster (+ 10 5))
-          (is @suicide-called)
-    )))))
+        (test-worker-hang-timeout cluster true hanging-bolt "hanging-shutdown-tester")
+        (is @suicide-called)
+        ;;TODO: Check zookeeper for error report
+    ))))
+
+(deftest test-worker-hang-timeout-when-shutdown-disabled
+  (let [suicide-called (atom false)]
+    (stubbing [worker/mk-suicide-fn (fn [cluster-mode] (fn [] (reset! suicide-called true)))]
+      (with-simulated-time-local-cluster [cluster]
+        (test-worker-hang-timeout cluster false hanging-bolt "hanging-no-shutdown-tester")
+        (is (not @suicide-called))
+        ;;TODO: Check zookeeper for error report
+    ))))
+
+(deftest test-worker-hang-timeout-automatic-extension
+  (let [suicide-called (atom false)]
+    (stubbing [worker/mk-suicide-fn (fn [cluster-mode] (fn [] (reset! suicide-called true)))]
+      (with-simulated-time-local-cluster [cluster]
+        (test-worker-hang-timeout cluster true (TestWordCounter.) "hanging-auto-extension-tester")
+        (is (not @suicide-called))
+        ;;TODO: Check zookeeper for error report
+    ))))
 
 (defn mk-validate-topology-1 []
   (Thrift/buildTopology

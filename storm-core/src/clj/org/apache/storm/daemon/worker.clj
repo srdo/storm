@@ -831,7 +831,7 @@
                                  (map (fn [executor] (executor/get-hang-timeout executor)))
                                  (reduce min))]
       (when (pos? min-executor-timeout)
-        (.scheduleRecurring (:executor-hang-check-timer worker) 0 min-executor-timeout
+        (.scheduleRecurring (:executor-hang-check-timer worker) min-executor-timeout min-executor-timeout
                 (fn [] (do-executor-hang-check worker @executors)))))
     (log-message "Worker has topology config " (Utils/redactValue (:storm-conf worker) STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD))
     (log-message "Worker " worker-id " for storm " storm-id " on " assignment-id ":" port " has finished loading")
