@@ -86,6 +86,8 @@
                                 nil
                                 (->> executors
                                   (filter (fn [executor] (executor/is-hanging? executor)))))]
+    (doseq [executor executors]
+      (log-message "Executor " (executor/get-executor-id executor) "hanging?" (executor/is-hanging? executor)))
     (when (and (:worker-active-flag worker) (seq hanging-executors))
       (doseq [executor hanging-executors]
         (executor/report-hang executor))
@@ -825,9 +827,8 @@
     (let [min-executor-timeout (->> @executors
                                  (map (fn [executor] (executor/get-hang-timeout executor)))
                                  (reduce min))]
-      (log-message (pr-str min-executor-timeout))
       (when (pos? min-executor-timeout)
-        (.scheduleRecurring (:executor-hang-check-timer worker) min-executor-timeout min-executor-timeout
+        (.scheduleRecurring (:executor-hang-check-timer worker) 0 min-executor-timeout
                 (fn [] (do-executor-hang-check worker @executors)))))
     (log-message "Worker has topology config " (Utils/redactValue (:storm-conf worker) STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD))
     (log-message "Worker " worker-id " for storm " storm-id " on " assignment-id ":" port " has finished loading")

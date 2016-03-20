@@ -24,7 +24,7 @@
   (:import [org.apache.storm.tuple Fields])
   (:import [org.apache.storm.cluster StormClusterStateImpl])
   (:use [org.apache.storm.internal clojure])
-  (:use [org.apache.storm testing config util])
+  (:use [org.apache.storm testing config util log])
   (:import [org.apache.storm Thrift])
   (:import [org.apache.storm.utils Utils]) 
   (:import [org.apache.storm.daemon StormCommon]))
@@ -166,17 +166,47 @@
                      {"2" (Thrift/prepareBoltDetails 
                             {(Utils/getGlobalStreamId "1" nil)
                              (Thrift/prepareGlobalGrouping)} extend-timeout-twice)})]
+      (submit-local-topology (:nimbus cluster)
+        "timeout-tester"
+        {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10}
+        topology)
+      (advance-cluster-time cluster 11)
+      (.feed feeder ["a"] 1)
+      (advance-cluster-time cluster 21)
+      (is (not (.isFailed tracker 1)))
+      (is (not (.isAcked tracker 1)))
+      (advance-cluster-time cluster 5)
+      (assert-acked tracker 1)
+    )))
+
+(defbolt hanging-bolt {} {:prepare true}
+  [conf context collector]
+  (let [state (atom -1)]
+    (bolt
+      (execute [tuple]
+        (do
+          (Time/sleep (* 300 1000))
+        )))))
+
+(deftest test-worker-hang-timeout
+  (with-simulated-time-local-cluster [cluster]
+    (let [feeder (feeder-spout ["field1"])
+          daemon-conf (:daemon-conf cluster)
+          topology (Thrift/buildTopology
+                     {"1" (Thrift/prepareSpoutDetails feeder)}
+                     {"2" (Thrift/prepareBoltDetails 
+                            {(Utils/getGlobalStreamId "1" nil)
+                             (Thrift/prepareGlobalGrouping)} hanging-bolt)})]
     (submit-local-topology (:nimbus cluster)
-                           "timeout-tester"
-                           {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10}
+                           "hanging-tester"
+                           {TOPOLOGY-EXECUTOR-REBOOT-ON-HANG true
+                            TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS 10
+                            TOPOLOGY-CHECK-HANG-TICK-TUPLE-FREQ-SECS 5}
                            topology)
-    (advance-cluster-time cluster 11)
     (.feed feeder ["a"] 1)
-    (advance-cluster-time cluster 21)
-    (is (not (.isFailed tracker 1)))
-    (is (not (.isAcked tracker 1)))
-    (advance-cluster-time cluster 5)
-    (assert-acked tracker 1)
+    (advance-cluster-time cluster (+ 10 5))
+    (.feed feeder ["b"] 2)
+    (advance-cluster-time cluster 15)
     )))
 
 (defn mk-validate-topology-1 []
