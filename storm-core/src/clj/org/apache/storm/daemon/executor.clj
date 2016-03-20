@@ -196,8 +196,9 @@
   (render-stats [this])
   (get-executor-id [this])
   (get-hang-timeout [this])
+  (reset-hang-timeout! [this])
   (is-hanging? [this])
-  (report-hang [this])
+  (report-hang! [this])
   (credentials-changed [this creds])
   (get-backpressure-flag [this]))
 
@@ -390,6 +391,9 @@
             (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. context [tick-time-secs] Constants/SYSTEM_TASK_ID Constants/SYSTEM_TICK_STREAM_ID))]]
               (.publish ^DisruptorQueue receive-queue val))))))))
 
+(defn- update-last-hang-check-time! [executor-data]
+  (reset! (:last-hang-check-time-secs executor-data) (Time/currentTimeSecs)))
+
 (defn mk-executor [worker executor-id initial-credentials]
   (let [executor-data (mk-executor-data worker executor-id)
         _ (log-message "Loading executor " (:component-id executor-data) ":" (pr-str executor-id))
@@ -430,6 +434,8 @@
         executor-id)
       (get-hang-timeout [this]
         ((:storm-conf executor-data) TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS))
+      (reset-hang-timeout! [this]
+        (update-last-hang-check-time! executor-data))
       (is-hanging? [this]
         (let [storm-conf (:storm-conf executor-data)]
           (if-not (storm-conf TOPOLOGY-EXECUTOR-CHECK-HANG-TUPLE-FREQ-SECS)
@@ -439,8 +445,8 @@
               (do
                 (log-message "Current time " (Time/currentTimeSecs) " last hang check " @(:last-hang-check-time-secs executor-data) " limit " (storm-conf TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS))
               (> (- (Time/currentTimeSecs) @(:last-hang-check-time-secs executor-data)) (storm-conf TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS)))))))
-      (report-hang [this]
-        ((:report-error executor-data) (RuntimeException. "Executor exceeded hang check timeout, and may be hanging")))
+      (report-hang! [this]
+        ((:report-error executor-data) (RuntimeException. (str "Executor " executor-id " for component " (:component-id executor-data) " exceeded hang check timeout, and may be hanging"))))
       (credentials-changed [this creds]
         (let [receive-queue (:receive-queue executor-data)
               context (:worker-context executor-data)
@@ -532,9 +538,6 @@
           task-data
           StormCommon/EVENTLOGGER_STREAM_ID
           [component-id message-id (System/currentTimeMillis) values]))))
-
-(defn- update-last-hang-check-time! [executor-data]
-  (reset! (:last-hang-check-time-secs executor-data) (Time/currentTimeSecs)))
 
 (defmethod mk-threads :spout [executor-data task-datas initial-credentials]
   (let [{:keys [storm-conf component-id worker-context transfer-fn report-error sampler open-or-prepare-was-called?]} executor-data
