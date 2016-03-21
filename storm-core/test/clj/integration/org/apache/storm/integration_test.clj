@@ -257,7 +257,7 @@
 
 (deftest test-worker-hang-timeout-reset-when-reactivated
   (let [suicide-called (atom false)
-        topology-name "hanging-auto-extension-tester"]
+        topology-name "hanging-reactivation-tester"]
     (stubbing [worker/mk-suicide-fn (fn [cluster-mode] (fn [] (reset! suicide-called true)))]
       (with-simulated-time-local-cluster [cluster]
         (setup-hang-check-topology! cluster true (TestWordCounter.) topology-name)
@@ -266,6 +266,31 @@
         (advance-cluster-time cluster (* 10 60))
         (.activate (:nimbus cluster) topology-name)
         (advance-cluster-time cluster 1)
+        (is (not @suicide-called))
+        (let [storm-cluster-state (:storm-cluster-state cluster)
+              topology-id (StormCommon/getStormId storm-cluster-state topology-name)
+              topology-errors (seq (.errors storm-cluster-state topology-id "2"))]
+          (is (= (count topology-errors) 0)))))))
+
+(defbolt hanging-bolt-with-collector-interaction ["num"] {:prepare true}
+  [conf context collector]
+  (let [state (atom -1)]
+    (bolt
+      (execute [tuple]
+        (do
+          (doseq [_ (range 1 100)]
+            (emit-bolt! collector [1])
+            (Time/sleep (* 10 1000))))))))
+
+(deftest test-worker-hang-timeout-with-collector-interaction
+  (let [suicide-called (atom false)
+        topology-name "hanging-collector-interaction-tester"]
+    (stubbing [worker/mk-suicide-fn (fn [cluster-mode] (fn [] (reset! suicide-called true)))]
+      (with-simulated-time-local-cluster [cluster]
+        (setup-hang-check-topology! cluster true hanging-bolt-with-collector-interaction topology-name)
+        ;;Allow a little time for topology init
+        (advance-cluster-time cluster 1)
+        (advance-cluster-time cluster (* 2 60))
         (is (not @suicide-called))
         (let [storm-cluster-state (:storm-cluster-state cluster)
               topology-id (StormCommon/getStormId storm-cluster-state topology-name)

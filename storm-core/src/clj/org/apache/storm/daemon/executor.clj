@@ -650,15 +650,25 @@
                                      (:user-context task-data)
                                      (SpoutOutputCollector.
                                       (reify ISpoutOutputCollector
+                                        (^void notifyNotHanging [this]
+                                          (update-last-hang-check-time! executor-data))
                                         (^long getPendingCount[this]
-                                          (.size pending))
+                                          (do
+                                            (.notifyNotHanging this)
+                                            (.size pending)))
                                         (^List emit [this ^String stream-id ^List tuple ^Object message-id]
-                                          (send-spout-msg stream-id tuple message-id nil))
+                                          (do
+                                            (.notifyNotHanging this)
+                                            (send-spout-msg stream-id tuple message-id nil)))
                                         (^void emitDirect [this ^int out-task-id ^String stream-id
                                                            ^List tuple ^Object message-id]
-                                          (send-spout-msg stream-id tuple message-id out-task-id))
+                                          (do
+                                            (.notifyNotHanging this)
+                                            (send-spout-msg stream-id tuple message-id out-task-id)))
                                         (reportError [this error]
-                                          (report-error error))))))
+                                          (do
+                                            (.notifyNotHanging this)
+                                            (report-error error)))))))
 
                             (reset! open-or-prepare-was-called? true) 
                             (log-message "Opened spout " component-id ":" (keys task-datas))
@@ -839,13 +849,20 @@
                                        user-context
                                        (OutputCollector.
                                         (reify IOutputCollector
+                                          (^void notifyNotHanging [this]
+                                            (update-last-hang-check-time! executor-data))
                                           (emit [this stream anchors values]
-                                            (bolt-emit stream anchors values nil))
+                                            (do
+                                              (.notifyNotHanging this)
+                                              (bolt-emit stream anchors values nil)))
                                           (emitDirect [this task stream anchors values]
-                                            (bolt-emit stream anchors values task))
+                                            (do
+                                              (.notifyNotHanging this)
+                                              (bolt-emit stream anchors values task)))
                                           (^void ack [this ^Tuple tuple]
                                             (let [^TupleImpl tuple tuple
                                                   ack-val (.getAckVal tuple)]
+                                              (.notifyNotHanging this)
                                               (fast-map-iter [[root id] (.. tuple getMessageId getAnchorsToIds)]
                                                              (task/send-unanchored task-data
                                                                                    Acker/ACKER_ACK_STREAM_ID
@@ -861,6 +878,7 @@
                                                                          (.getSourceStreamId tuple)
                                                                          delta))))
                                           (^void fail [this ^Tuple tuple]
+                                            (.notifyNotHanging this)
                                             (fast-list-iter [root (.. tuple getMessageId getAnchors)]
                                                             (task/send-unanchored task-data
                                                                                   Acker/ACKER_FAIL_STREAM_ID
@@ -876,12 +894,16 @@
                                                                           (.getSourceStreamId tuple)
                                                                           delta))))
                                           (^void resetTimeout [this ^Tuple tuple]
-                                            (fast-list-iter [root (.. tuple getMessageId getAnchors)]
-                                                            (task/send-unanchored task-data
-                                                                                  Acker/ACKER_RESET_TIMEOUT_STREAM_ID
-                                                                                  [root])))
+                                            (do
+                                              (.notifyNotHanging this)
+                                              (fast-list-iter [root (.. tuple getMessageId getAnchors)]
+                                                              (task/send-unanchored task-data
+                                                                                    Acker/ACKER_RESET_TIMEOUT_STREAM_ID
+                                                                                    [root]))))
                                           (reportError [this error]
-                                            (report-error error))))))
+                                            (do
+                                              (.notifyNotHanging this)
+                                              (report-error error)))))))
                            (reset! open-or-prepare-was-called? true)
                            (log-message "Prepared bolt " component-id ":" (keys task-datas))
                            (setup-metrics! executor-data)
