@@ -243,7 +243,7 @@ topology.transfer.buffer.size: 1024 # batched
 topology.tick.tuple.freq.secs: null
 topology.worker.reboot.on.hang: false
 topology.executor.hang.time.limit.secs: 300
-topology.executor.check.hang.tick.freq.secs: 10
+topology.executor.check.hang.tick.freq.secs: 30
 topology.worker.shared.thread.pool.size: 4
 topology.spout.wait.strategy: "org.apache.storm.spout.SleepSpoutWaitStrategy"
 topology.sleep.spout.wait.strategy.time.ms: 1
