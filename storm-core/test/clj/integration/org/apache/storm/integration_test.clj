@@ -181,7 +181,7 @@
       (assert-acked tracker 1)
     )))
 
-(defn setup-hang-check-topology! [cluster reboot-enabled bolt topology-name]
+(defn setup-hang-check-topology! [cluster reboot-enabled time-limit check-freq bolt topology-name]
   (let [feeder (feeder-spout ["field1"])
         topology (Thrift/buildTopology
                    {"1" (Thrift/prepareSpoutDetails feeder)}
@@ -191,8 +191,8 @@
     (submit-local-topology (:nimbus cluster)
                            topology-name
                            {TOPOLOGY-WORKER-REBOOT-ON-HANG reboot-enabled
-                            TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS 60
-                            TOPOLOGY-EXECUTOR-CHECK-HANG-TUPLE-FREQ-SECS 10}
+                            TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS time-limit
+                            TOPOLOGY-EXECUTOR-CHECK-HANG-TUPLE-FREQ-SECS check-freq}
                             topology)
     (.feed feeder ["a"] 1)))
 
@@ -209,7 +209,7 @@
         topology-name "hanging-shutdown-tester"]
     (stubbing [worker/mk-suicide-fn (fn [cluster-mode] (fn [] (reset! suicide-called true)))]
       (with-simulated-time-local-cluster [cluster]
-        (setup-hang-check-topology! cluster true hanging-bolt topology-name)
+        (setup-hang-check-topology! cluster true 60 10 hanging-bolt topology-name)
         ;;Allow a little time for topology init
         (advance-cluster-time cluster 1)
         (advance-cluster-time cluster (* 2 60))
@@ -227,7 +227,7 @@
         topology-name "hanging-no-shutdown-tester"]
     (stubbing [worker/mk-suicide-fn (fn [cluster-mode] (fn [] (reset! suicide-called true)))]
       (with-simulated-time-local-cluster [cluster]
-        (setup-hang-check-topology! cluster false hanging-bolt topology-name)
+        (setup-hang-check-topology! cluster false 60 10 hanging-bolt topology-name)
         ;;Allow a little time for topology init
         (advance-cluster-time cluster 1)
         (advance-cluster-time cluster (* 2 60))
@@ -240,12 +240,27 @@
                 (.get_error)
                 (.contains "exceeded hang check timeout"))))))))
 
+(deftest test-worker-hang-timeout-can-be-disabled
+  (let [suicide-called (atom false)
+        topology-name "hang-check-disabled-tester"]
+    (stubbing [worker/mk-suicide-fn (fn [cluster-mode] (fn [] (reset! suicide-called true)))]
+      (with-simulated-time-local-cluster [cluster]
+        (setup-hang-check-topology! cluster false nil nil hanging-bolt topology-name)
+        ;;Allow a little time for topology init
+        (advance-cluster-time cluster 1)
+        (advance-cluster-time cluster (* 2 60))
+        (is (not @suicide-called))
+        (let [storm-cluster-state (:storm-cluster-state cluster)
+              topology-id (StormCommon/getStormId storm-cluster-state topology-name)
+              topology-errors (seq (.errors storm-cluster-state topology-id "2"))]
+          (is (= (count topology-errors) 0)))))))
+
 (deftest test-worker-hang-timeout-automatic-extension
   (let [suicide-called (atom false)
         topology-name "hanging-auto-extension-tester"]
     (stubbing [worker/mk-suicide-fn (fn [cluster-mode] (fn [] (reset! suicide-called true)))]
       (with-simulated-time-local-cluster [cluster]
-        (setup-hang-check-topology! cluster true (TestWordCounter.) topology-name)
+        (setup-hang-check-topology! cluster true 60 10 (TestWordCounter.) topology-name)
         ;;Allow a little time for topology init
         (advance-cluster-time cluster 1)
         (advance-cluster-time cluster (* 2 60))
@@ -260,7 +275,7 @@
         topology-name "hanging-reactivation-tester"]
     (stubbing [worker/mk-suicide-fn (fn [cluster-mode] (fn [] (reset! suicide-called true)))]
       (with-simulated-time-local-cluster [cluster]
-        (setup-hang-check-topology! cluster true (TestWordCounter.) topology-name)
+        (setup-hang-check-topology! cluster true 60 10 (TestWordCounter.) topology-name)
         (advance-cluster-time cluster 1)
         (.deactivate (:nimbus cluster) topology-name)
         (advance-cluster-time cluster (* 10 60))
@@ -287,7 +302,7 @@
         topology-name "hanging-collector-interaction-tester"]
     (stubbing [worker/mk-suicide-fn (fn [cluster-mode] (fn [] (reset! suicide-called true)))]
       (with-simulated-time-local-cluster [cluster]
-        (setup-hang-check-topology! cluster true hanging-bolt-with-collector-interaction topology-name)
+        (setup-hang-check-topology! cluster true 60 10 hanging-bolt-with-collector-interaction topology-name)
         ;;Allow a little time for topology init
         (advance-cluster-time cluster 1)
         (advance-cluster-time cluster (* 2 60))
@@ -296,6 +311,53 @@
               topology-id (StormCommon/getStormId storm-cluster-state topology-name)
               topology-errors (seq (.errors storm-cluster-state topology-id "2"))]
           (is (= (count topology-errors) 0)))))))
+
+(deftest test-worker-hang-timeout-with-different-component-configurations
+  (let [suicide-called (atom false)
+        topology-name "hanging-heterogeneous-component-configurations-tester"]
+    (stubbing [worker/mk-suicide-fn (fn [cluster-mode] (fn [] (reset! suicide-called true)))]
+      (with-simulated-time-local-cluster [cluster]
+        (let [feeder (feeder-spout ["field1"])
+              topology (Thrift/buildTopology
+                         {"1" (Thrift/prepareSpoutDetails feeder)}
+                         {"2" (Thrift/prepareBoltDetails 
+                                {(Utils/getGlobalStreamId "1" nil)
+                                 (Thrift/prepareGlobalGrouping)}
+                                 hanging-bolt
+                                 (Integer. 1)
+                                 {TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS 30
+                                  TOPOLOGY-EXECUTOR-CHECK-HANG-TUPLE-FREQ-SECS 5})
+                          "3" (Thrift/prepareBoltDetails
+                                 {(Utils/getGlobalStreamId "1" nil)
+                                  (Thrift/prepareGlobalGrouping)}
+                                  hanging-bolt
+                                  (Integer. 1)
+                                  {TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS 45
+                                   TOPOLOGY-EXECUTOR-CHECK-HANG-TUPLE-FREQ-SECS 3})})]
+        (submit-local-topology (:nimbus cluster)
+                           topology-name
+                           {TOPOLOGY-WORKER-REBOOT-ON-HANG false
+                            TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS 20
+                            TOPOLOGY-EXECUTOR-CHECK-HANG-TUPLE-FREQ-SECS 10}
+                            topology)
+        (.feed feeder ["a"] 1)
+        ;;Allow a little time for topology init
+        (advance-cluster-time cluster 1)
+        ;;Checks on smallest time limit, meaning every 20 seconds here
+        (advance-cluster-time cluster (+ 40))
+        (is (not @suicide-called))
+        (let [storm-cluster-state (:storm-cluster-state cluster)
+              topology-id (StormCommon/getStormId storm-cluster-state topology-name)]
+          (let [first-bolt-errors (seq (.errors storm-cluster-state topology-id "2"))
+                second-bolt-errors (seq (.errors storm-cluster-state topology-id "3"))]
+            (is (= (count first-bolt-errors) 1))
+            (is (= (count second-bolt-errors) 0)))
+          (advance-cluster-time cluster 20)
+          (let [first-bolt-errors (seq (.errors storm-cluster-state topology-id "2"))
+                second-bolt-errors (seq (.errors storm-cluster-state topology-id "3"))]
+            (is (= (count first-bolt-errors) 2) "Worker should keep logging errors for continually hanging executors")
+            (is (= (count second-bolt-errors) 1))
+            (is (not @suicide-called)))))))))
 
 (defn mk-validate-topology-1 []
   (Thrift/buildTopology

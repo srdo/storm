@@ -438,7 +438,7 @@
         (update-last-hang-check-time! executor-data))
       (is-hanging? [this]
         (let [storm-conf (:storm-conf executor-data)]
-          (if-not (storm-conf TOPOLOGY-EXECUTOR-CHECK-HANG-TUPLE-FREQ-SECS)
+          (if-not (and (storm-conf TOPOLOGY-EXECUTOR-CHECK-HANG-TUPLE-FREQ-SECS) (storm-conf TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS))
             false
             (if (= executor-id Constants/SYSTEM_EXECUTOR_ID)
               false

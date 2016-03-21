@@ -825,12 +825,14 @@
         (fn [] (reset-log-levels latest-log-config)))
     (.scheduleRecurring
       (:refresh-active-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker @executors))
-    (let [min-executor-timeout (->> @executors
+    (let [executor-timeouts (->> @executors
                                  (map (fn [executor] (executor/get-hang-timeout executor)))
-                                 (reduce min))]
-      (when (pos? min-executor-timeout)
-        (.scheduleRecurring (:executor-hang-check-timer worker) min-executor-timeout min-executor-timeout
-                (fn [] (do-executor-hang-check worker @executors)))))
+                                 (filter (fn [executor-timeout] executor-timeout)))]
+      (when (seq executor-timeouts)
+        (let [min-executor-timeout (reduce min executor-timeouts)]
+          (when (pos? min-executor-timeout)
+            (.scheduleRecurring (:executor-hang-check-timer worker) min-executor-timeout min-executor-timeout
+                    (fn [] (do-executor-hang-check worker @executors)))))))
     (log-message "Worker has topology config " (Utils/redactValue (:storm-conf worker) STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD))
     (log-message "Worker " worker-id " for storm " storm-id " on " assignment-id ":" port " has finished loading")
     ret

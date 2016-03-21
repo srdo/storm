@@ -1942,7 +1942,8 @@ public class Config extends HashMap<String, Object> {
     /**
     * The amount of time an executor is allowed to not process liveness check tuples. If this limit is
     * exceeded, the worker will log an error for the executor. If TOPOLOGY_REBOOT_EXECUTOR_ON_HANG
-    * is true, the worker will additionally restart.
+    * is true, the worker will additionally restart. It may take up to two times this limit for the worker
+    * to detect the hanging executor.
     */
     @isInteger
     public static final String TOPOLOGY_EXECUTOR_HANG_TIME_LIMIT_SECS="topology.executor.hang.time.limit.secs";
