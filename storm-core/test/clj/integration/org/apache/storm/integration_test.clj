@@ -25,7 +25,7 @@
   (:import [org.apache.storm.tuple Fields])
   (:import [org.apache.storm.cluster StormClusterStateImpl])
   (:use [org.apache.storm.internal clojure])
-  (:use [org.apache.storm testing config util log])
+  (:use [org.apache.storm testing config util])
   (:use [conjure core])
   (:import [org.apache.storm Thrift])
   (:import [org.apache.storm.utils Utils]) 

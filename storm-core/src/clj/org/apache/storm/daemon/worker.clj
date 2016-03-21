@@ -89,7 +89,6 @@
     (when (and @(:storm-active-atom worker) (seq hanging-executors))
       (doseq [executor hanging-executors]
         (executor/report-hang! executor))
-        ;;TODO: Log to metrics
       (when ((:storm-conf worker) TOPOLOGY-WORKER-REBOOT-ON-HANG)
         (log-warn "Killing worker due to hanging executors")
         ;; Suicide may be safer than shutdown in case hanging threads don't respond to interrupts

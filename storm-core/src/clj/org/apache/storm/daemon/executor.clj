@@ -442,9 +442,7 @@
             false
             (if (= executor-id Constants/SYSTEM_EXECUTOR_ID)
               false
-              (do
-                (log-message "Current time " (Time/currentTimeSecs) " last hang check " @(:last-hang-check-time-secs executor-data) " limit " (storm-conf TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS))
-              (> (- (Time/currentTimeSecs) @(:last-hang-check-time-secs executor-data)) (storm-conf TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS)))))))
+              (> (- (Time/currentTimeSecs) @(:last-hang-check-time-secs executor-data)) (storm-conf TOPOLOGY-EXECUTOR-HANG-TIME-LIMIT-SECS))))))
       (report-hang! [this]
         ((:report-error executor-data) (RuntimeException. (str "Executor " executor-id " for component " (:component-id executor-data) " exceeded hang check timeout, and may be hanging"))))
       (credentials-changed [this creds]
