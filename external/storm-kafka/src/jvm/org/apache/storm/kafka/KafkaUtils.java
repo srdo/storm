@@ -209,6 +209,9 @@ public class KafkaUtils {
                 throw new TopicOffsetOutOfRangeException(msg);
             } else {
                 String message = "Error fetching data from [" + partition + "] for topic [" + topic + "]: [" + error + "]";
+                if (!error.equals(KafkaError.NOT_LEADER_FOR_PARTITION)) {
+                    LOG.error(message);
+                }
                 throw new FailedFetchException(message);
             }
         } else {
