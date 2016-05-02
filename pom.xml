@@ -196,6 +196,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <test.extra.args>-Djava.net.preferIPv4Stack=true</test.extra.args>
+        <storm.kafka.version>1.0.1-ivan-1</storm.kafka.version>
 
         <!-- dependency versions -->
         <clojure.version>1.7.0</clojure.version>
