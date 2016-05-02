@@ -73,8 +73,12 @@ public class KafkaTestBroker {
     }
 
     public void shutdown() {
-        kafka.shutdown();
-        kafka.awaitShutdown();
+        if (kafka != null) {
+            kafka.shutdown();
+            kafka.awaitShutdown();
+        }
+        //Ensure kafka resources can be garbage collected immediately
+        kafka = null;
         FileUtils.deleteQuietly(logDir);
     }
 
