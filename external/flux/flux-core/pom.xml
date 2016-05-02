@@ -39,7 +39,7 @@
         <dependency>
             <groupId>org.apache.storm</groupId>
             <artifactId>storm-kafka</artifactId>
-            <version>${project.version}</version>
+            <version>1.0.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

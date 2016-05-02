@@ -28,6 +28,7 @@
     <packaging>jar</packaging>
     <artifactId>storm-kafka</artifactId>
     <name>storm-kafka</name>
+    <version>${project.parent.version}-ivan-1</version>
     <description>Storm Spouts for Apache Kafka</description>
     <build>
         <plugins>
@@ -63,9 +64,25 @@
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
-            <artifactId>mockito-all</artifactId>
-            <version>1.9.0</version>
+            <artifactId>mockito-core</artifactId>
+            <version>1.10.19</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.hamcrest</groupId>
+                    <artifactId>hamcrest-core</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-core</artifactId>
+            <version>1.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-library</artifactId>
+            <version>1.3</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -128,7 +145,7 @@
         <dependency>
             <groupId>org.apache.storm</groupId>
             <artifactId>storm-core</artifactId>
-            <version>${project.version}</version>
+            <version>${project.parent.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

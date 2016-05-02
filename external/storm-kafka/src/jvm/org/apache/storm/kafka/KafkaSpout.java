@@ -47,6 +47,8 @@ public class KafkaSpout extends BaseRichSpout {
     PartitionCoordinator _coordinator;
     DynamicPartitionConnections _connections;
     ZkState _state;
+    
+    private boolean _isTopologyDebugEnabled;
 
     long _lastUpdateMs = 0;
 
@@ -59,6 +61,7 @@ public class KafkaSpout extends BaseRichSpout {
     @Override
     public void open(Map conf, final TopologyContext context, final SpoutOutputCollector collector) {
         _collector = collector;
+        _isTopologyDebugEnabled = (Boolean) conf.get(Config.TOPOLOGY_DEBUG);
         String topologyInstanceId = context.getStormId();
         Map stateConf = new HashMap(conf);
         List<String> zkServers = _spoutConfig.zkServers;
@@ -127,12 +130,18 @@ public class KafkaSpout extends BaseRichSpout {
     @Override
     public void nextTuple() {
         List<PartitionManager> managers = _coordinator.getMyManagedPartitions();
+        if(_isTopologyDebugEnabled){
+            LOG.info("Kafka spout nextTuple called, managing {} partitions", managers.size());
+        }
         for (int i = 0; i < managers.size(); i++) {
 
             try {
                 // in case the number of managers decreased
                 _currPartitionIndex = _currPartitionIndex % managers.size();
                 EmitState state = managers.get(_currPartitionIndex).next(_collector);
+                if (_isTopologyDebugEnabled) {
+                    LOG.info("Manager {} emitState {}", i, state);
+                }
                 if (state != EmitState.EMITTED_MORE_LEFT) {
                     _currPartitionIndex = (_currPartitionIndex + 1) % managers.size();
                 }
