@@ -112,7 +112,7 @@ public class PartitionManager {
                     spoutConfig.maxOffsetBehind + " behind latest offset " + currentOffset + ", resetting to startOffsetTime=" + spoutConfig.startOffsetTime);
         }
 
-        LOG.info("Starting Kafka " + _consumer.host() + ":" + id + " from offset " + _committedTo);
+        LOG.info("Starting Kafka " + _consumer.host() + " " + id + " from offset " + _committedTo);
         _emittedToOffset = _committedTo;
 
         _fetchAPILatencyMax = new CombinedMetric(new MaxMetric());
