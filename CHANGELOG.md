@@ -1,4 +1,8 @@
 ## 1.0.1
+ * STORM-1741: remove unconditional setting of JAVA_HOME from storm-env.sh
+ * STORM-1739: update the minor JAVA version dependency in 0.10.0 and above
+ * STORM-1727: document 1.0 package renaming and how to use the migration tool
+ * STORM-1733: Flush stdout and stderr before calling "os.execvp" to prevent log loss.
  * STORM-1729: Get rid of reflections while recording stats
  * STORM-1731: Avoid looking up debug / backpressure enable flags within critical path
  * STORM-1535: Make sure hdfs key tab login happens only once for multiple bolts/executors.
