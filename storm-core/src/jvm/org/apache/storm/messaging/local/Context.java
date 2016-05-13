@@ -27,8 +27,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 
-import org.apache.storm.Config;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import org.apache.storm.grouping.Load;
 import org.apache.storm.messaging.IConnection;
 import org.apache.storm.messaging.TaskMessage;
@@ -82,9 +86,29 @@ public class Context implements IContext {
 
     private static class LocalClient implements IConnection {
         private final LocalServer _server;
+        //Messages sent before the server registered a callback
+        private final LinkedBlockingQueue<TaskMessage> _pendingDueToUnregisteredServer;
+        private final ScheduledExecutorService _pendingFlusher;
 
         public LocalClient(LocalServer server) {
             _server = server;
+            _pendingDueToUnregisteredServer = new LinkedBlockingQueue<>();
+            _pendingFlusher = Executors.newScheduledThreadPool(1, new ThreadFactory(){
+                @Override
+                public Thread newThread(Runnable runnable) {
+                    Thread thread = new Thread(runnable);
+                    thread.setName("LocalClientFlusher-" + thread.getId());
+                    thread.setDaemon(true);
+                    return thread;
+                }
+            });
+            _pendingFlusher.scheduleAtFixedRate(new Runnable(){
+                @Override
+                public void run(){
+                    //Ensure messages are flushed even if no more sends are performed
+                    flushPending();
+                }
+            }, 5, 5, TimeUnit.SECONDS);
         }
 
         @Override
@@ -92,21 +116,51 @@ public class Context implements IContext {
             throw new IllegalArgumentException("SHOULD NOT HAPPEN");
         }
 
+        private void addToPending(TaskMessage message) {
+            try {
+                _pendingDueToUnregisteredServer.put(message);
+            } catch (InterruptedException e) {
+                /**
+                 * Should not happen. The queue is extremely large, and the
+                 * server should register a callback before the queue gets
+                 * anywhere near full.
+                 */
+                LOG.error("Thread interrupted while inserting into client pending queue", e);
+            }
+        }
+        
+        private void flushPending(){
+            if (!_pendingDueToUnregisteredServer.isEmpty()) {
+                ArrayList<TaskMessage> ret = new ArrayList<>();
+                _pendingDueToUnregisteredServer.drainTo(ret);
+                _server._cb.recv(ret);
+            }
+        }
+        
         @Override
         public void send(int taskId,  byte[] payload) {
+            TaskMessage message = new TaskMessage(taskId, payload);
             if (_server._cb != null) {
-                _server._cb.recv(Arrays.asList(new TaskMessage(taskId, payload)));
+                flushPending();
+                _server._cb.recv(Arrays.asList(message));
+            } else {
+                addToPending(message);
             }
         }
  
         @Override
         public void send(Iterator<TaskMessage> msgs) {
             if (_server._cb != null) {
+                flushPending();
                 ArrayList<TaskMessage> ret = new ArrayList<>();
                 while (msgs.hasNext()) {
                     ret.add(msgs.next());
                 }
                 _server._cb.recv(ret);
+            } else {
+                while(msgs.hasNext()){
+                    addToPending(msgs.next());
+                }
             }
         }
 
@@ -122,7 +176,7 @@ public class Context implements IContext {
  
         @Override
         public void close() {
-            //NOOP
+            _pendingFlusher.shutdown();
         }
     };
 
