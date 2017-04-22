@@ -156,11 +156,11 @@
     (bolt
       (execute [tuple]
         (do
-          (Time/sleep (* 8 1000))
+          (Time/sleepUntil (* 9 1000))
           (reset-timeout! collector tuple)
-          (Time/sleep (* 8 1000))
+          (Time/sleepUntil (* 11 1000))
           (reset-timeout! collector tuple)
-          (Time/sleep (* 8 1000))
+          (Time/sleepUntil (* 12 1000))
           (ack! collector tuple)
         )))))
 
@@ -180,12 +180,11 @@
                            "timeout-tester"
                            {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10}
                            topology)
-    (.advanceClusterTime cluster 11)
     (.feed feeder ["a"] 1)
-    (.advanceClusterTime cluster 21)
+    (.advanceClusterTime cluster 9)
     (is (not (.isFailed tracker 1)))
     (is (not (.isAcked tracker 1)))
-    (.advanceClusterTime cluster 5)
+    (.advanceClusterTime cluster 3)
     (assert-acked tracker 1)
     )))
 
