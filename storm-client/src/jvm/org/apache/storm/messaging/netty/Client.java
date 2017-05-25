@@ -414,11 +414,6 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
         return false;
     }
 
-    @Override
-    public int getPort() {
-        return dstAddress.getPort();
-    }
-    
     /**
      * Gracefully close this client.
      */

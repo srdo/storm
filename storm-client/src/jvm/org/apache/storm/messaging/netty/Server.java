@@ -64,7 +64,6 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
     List<TaskMessage> closeMessage = Arrays.asList(new TaskMessage(-1, null));
     private KryoValuesSerializer _ser;
     private IConnectionCallback _cb = null; 
-    private final int boundPort;
     
     @SuppressWarnings("rawtypes")
     Server(Map<String, Object> topoConf, int port) {
@@ -101,7 +100,6 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
 
         // Bind and start to accept incoming connections.
         Channel channel = bootstrap.bind(new InetSocketAddress(port));
-        boundPort = ((InetSocketAddress)channel.getLocalAddress()).getPort();
         allChannels.add(channel);
     }
     
@@ -158,11 +156,6 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
         allChannels.remove(channel);
     }
 
-    @Override
-    public int getPort() {
-        return boundPort;
-    }
-    
     /**
      * close all channels, and release resources
      */

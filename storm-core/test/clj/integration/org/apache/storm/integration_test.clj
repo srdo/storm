@@ -149,19 +149,20 @@
       (.advanceClusterTime cluster 12)
       (assert-failed tracker 2)
       )))
-
+      
 (defbolt extend-timeout-twice {} {:prepare true}
   [conf context collector]
-  (let [state (atom -1)]
+  (let [tuple-counter 0
+        first-tuple (atom nil)]
     (bolt
       (execute [tuple]
-        (do
-          (Time/sleepUntil (* 9 1000))
-          (reset-timeout! collector tuple)
-          (Time/sleepUntil (* 11 1000))
-          (reset-timeout! collector tuple)
-          (Time/sleepUntil (* 12 1000))
-          (ack! collector tuple)
+        (condp = tuple-counter
+          0 (reset! first-tuple tuple)
+          1 (reset-timeout! @first-tuple)
+          (do 
+            (reset-timeout! @first-tuple)
+            (ack! collector tuple)
+          )
         )))))
 
 (deftest test-reset-timeout
@@ -180,12 +181,24 @@
                            "timeout-tester"
                            {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10}
                            topology)
+    ;The first tuple will be used to check timeout reset
     (.feed feeder ["a"] 1)
+    ;The second tuple is used to wait for the spout to rotate the pending map
+    (.feed feeder ["b"] 2)
     (.advanceClusterTime cluster 9)
+    ;The other tuples are used to reset the first tuple's timeout,
+    ;and to wait for the message to get through to the spout (acks use the same path as timeout resets)
+    (.feed feeder ["c"] 3)
+    (assert-acked tracker 3)
+    (.advanceClusterTime cluster 9)
+    (.feed feeder ["d"], 4)
+    (assert-acked tracker 4)
+    (.advanceClusterTime cluster 2)
+    ;The time is now twice the message timeout, the second tuple should expire since it was not acked
+    (assert-failed tracker 2)
+    ;The first tuple should be acked and not have failed
+    (is (.isAcked tracker 1))
     (is (not (.isFailed tracker 1)))
-    (is (not (.isAcked tracker 1)))
-    (.advanceClusterTime cluster 3)
-    (assert-acked tracker 1)
     )))
 
 (defn mk-validate-topology-1 []

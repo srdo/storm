@@ -45,11 +45,6 @@ public class Context implements IContext {
     private static class LocalServer implements IConnection {
         volatile IConnectionCallback _cb;
         final ConcurrentHashMap<Integer, Double> _load = new ConcurrentHashMap<>();
-        final int port;
-        
-        public LocalServer(int port) {
-            this.port = port;
-        }
 
         @Override
         public void registerRecv(IConnectionCallback cb) {
@@ -81,11 +76,6 @@ public class Context implements IContext {
         @Override
         public void sendLoadMetrics(Map<Integer, Double> taskToLoad) {
             _load.putAll(taskToLoad);
-        }
-
-        @Override
-        public int getPort() {
-            return port;
         }
  
         @Override
@@ -178,11 +168,6 @@ public class Context implements IContext {
         public void sendLoadMetrics(Map<Integer, Double> taskToLoad) {
             _server.sendLoadMetrics(taskToLoad);
         }
-
-        @Override
-        public int getPort() {
-            return _server.getPort();
-        }
  
         @Override
         public void close() {
@@ -200,7 +185,7 @@ public class Context implements IContext {
         String key = nodeId + "-" + port;
         LocalServer ret = _registry.get(key);
         if (ret == null) {
-            ret = new LocalServer(port);
+            ret = new LocalServer();
             LocalServer tmp = _registry.putIfAbsent(key, ret);
             if (tmp != null) {
                 ret = tmp;

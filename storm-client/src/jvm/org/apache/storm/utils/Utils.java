@@ -1166,30 +1166,18 @@ public class Utils {
         return null;
     }
 
-    /**
-     * Gets an available port. Consider if it is possible to pass port 0 to the
-     * server instead of using this method, since there is no guarantee that the
-     * port returned by this method will remain free.
-     *
-     * @param preferredPort
-     * @return The preferred port if available, or a random available port
-     */
-    public static int getAvailablePort(int preferredPort) {
+    public static int getAvailablePort(int prefferedPort) {
         int localPort = -1;
-        try(ServerSocket socket = new ServerSocket(preferredPort)) {
+        try(ServerSocket socket = new ServerSocket(prefferedPort)) {
             localPort = socket.getLocalPort();
         } catch(IOException exp) {
-            if (preferredPort > 0) {
+            if (prefferedPort > 0) {
                 return getAvailablePort(0);
             }
         }
         return localPort;
     }
 
-    /**
-     * Shortcut to calling {@link #getAvailablePort(int) } with 0 as the preferred port
-     * @return A random available port
-     */
     public static int getAvailablePort() {
         return getAvailablePort(0);
     }
