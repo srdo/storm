@@ -62,6 +62,8 @@ public class SpoutWithMockedConsumerSetupHelper {
         when(contextMock.getComponentTasks(any())).thenReturn(Collections.singletonList(0));
         when(contextMock.getThisTaskIndex()).thenReturn(0);
         
+        when(consumerMock.assignment()).thenReturn(assignedPartitions);
+        
         spout.open(topoConf, contextMock, collectorMock);
         spout.activate();
 
