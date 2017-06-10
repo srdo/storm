@@ -458,11 +458,11 @@ public class KafkaSpoutConfig<K, V> implements Serializable {
         }
 
         /**
-         * Defines the max number of polled offsets (records) that can be pending commit, before another poll can take place. Once this
-         * limit is reached, no more offsets (records) can be polled until the next successful commit(s) sets the number of pending offsets
-         * below the threshold. The default is {@link #DEFAULT_MAX_UNCOMMITTED_OFFSETS}. Note that this limit can in some cases be exceeded,
-         * but no partition will exceed this limit by more than maxPollRecords - 1.
-         *
+         * Defines the max number of polled offsets (records) that can be pending commit, before another poll can take place.
+         * Once this limit is reached, no more offsets (records) can be polled until the next successful commit(s) sets the number
+         * of pending offsets below the threshold. The default is {@link #DEFAULT_MAX_UNCOMMITTED_OFFSETS}.
+         * This limit is per partition and may in some cases be exceeded,
+         * but each partition cannot exceed this limit by more than maxPollRecords - 1.
          * @param maxUncommittedOffsets max number of records that can be be pending commit
          */
         public Builder<K, V> setMaxUncommittedOffsets(int maxUncommittedOffsets) {
