@@ -76,7 +76,7 @@ public class SingleTopicKafkaSpoutTest {
     private KafkaConsumer<String, String> consumerSpy;
     private KafkaConsumerFactory<String, String> consumerFactory;
     private KafkaSpout<String, String> spout;
-    private int maxRetries = 3;
+    private final int maxRetries = 3;
 
     @Before
     public void setUp() {

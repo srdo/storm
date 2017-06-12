@@ -134,7 +134,7 @@ public class KafkaSpoutEmitTest {
     private List<ConsumerRecord<String, String>> createRecords(TopicPartition topic, long startingOffset, int numRecords) {
         List<ConsumerRecord<String, String>> recordsForPartition = new ArrayList<>();
         for (int i = 0; i < numRecords; i++) {
-            recordsForPartition.add(new ConsumerRecord(topic.topic(), topic.partition(), startingOffset + i, "key", "value"));
+            recordsForPartition.add(new ConsumerRecord<>(topic.topic(), topic.partition(), startingOffset + i, "key", "value"));
         }
         return recordsForPartition;
     }
@@ -154,7 +154,7 @@ public class KafkaSpoutEmitTest {
             records.put(partitionTwo, createRecords(partitionTwo, 0, spoutConfig.getMaxUncommittedOffsets()));
 
             when(consumerMock.poll(anyLong()))
-                .thenReturn(new ConsumerRecords(records));
+                .thenReturn(new ConsumerRecords<>(records));
 
             for (int i = 0; i < spoutConfig.getMaxUncommittedOffsets()*2; i++) {
                 spout.nextTuple();
@@ -174,9 +174,8 @@ public class KafkaSpoutEmitTest {
             reset(collectorMock);
             
             Time.advanceTime(50);
-            
             when(consumerMock.poll(anyLong()))
-                .thenReturn(new ConsumerRecords(Collections.singletonMap(partition, createRecords(partition, failedMessageId.get().offset(), 1))));
+                .thenReturn(new ConsumerRecords<>(Collections.singletonMap(partition, createRecords(partition, failedMessageId.get().offset(), 1))));
             
             spout.nextTuple();
             
