@@ -113,7 +113,7 @@ public class MaxUncommittedOffsetTest {
         ArgumentCaptor<KafkaSpoutMessageId> messageIds = ArgumentCaptor.forClass(KafkaSpoutMessageId.class);
         for (int i = 0; i < messageCount; i++) {
             spout.nextTuple();
-        };
+        }
         verify(collector, times(maxUncommittedOffsets)).emit(
             anyString(),
             anyList(),
