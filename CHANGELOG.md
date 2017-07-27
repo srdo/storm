@@ -28,7 +28,6 @@
  * STORM-2496: Dependency artifacts should be uploaded to blobstore with READ permission for all
  * STORM-2505: Spout to support topic compaction
  * STORM-2498: Fix Download Full File link
- * STORM-2343: New Kafka spout can stop emitting tuples if more than maxUncommittedOffsets tuples fail at once.
  * STORM-2486: Prevent cd from printing target directory to avoid breaking classpath
  * STORM-2488: The UI user Must be HTTP.
  * STORM-2481: Upgrade Aether version to resolve Aether bug BUG-451566
