@@ -99,7 +99,7 @@ public class SpoutWithMockedConsumerSetupHelper {
     public static <K, V> List<ConsumerRecord<K, V>> createRecords(TopicPartition topic, long startingOffset, int numRecords) {
         List<ConsumerRecord<K, V>> recordsForPartition = new ArrayList<>();
         for (int i = 0; i < numRecords; i++) {
-            recordsForPartition.add(new ConsumerRecord<>(topic.topic(), topic.partition(), startingOffset + i, null, null));
+            recordsForPartition.add(new ConsumerRecord<K, V>(topic.topic(), topic.partition(), startingOffset + i, null, null));
         }
         return recordsForPartition;
     }

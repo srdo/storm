@@ -80,7 +80,7 @@ public class KafkaSpoutRetryLimitTest {
             Map<TopicPartition, List<ConsumerRecord<String, String>>> records = new HashMap<>();
             int lastOffset = 3;
             int numRecords = lastOffset + 1;
-            records.put(partition, SpoutWithMockedConsumerSetupHelper.createRecords(partition, 0, numRecords));
+            records.put(partition, SpoutWithMockedConsumerSetupHelper.<String, String>createRecords(partition, 0, numRecords));
             
             when(consumerMock.poll(anyLong()))
                 .thenReturn(new ConsumerRecords<>(records));

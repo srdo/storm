@@ -73,8 +73,8 @@ public class KafkaSpoutCommitTest {
             Map<TopicPartition, List<ConsumerRecord<String, String>>> records = new HashMap<>();
             List<ConsumerRecord<String, String>> recordsForPartition = new ArrayList<>();
             // Offsets emitted are 0,1,2,3,4,<void>,8,9
-            recordsForPartition.addAll(SpoutWithMockedConsumerSetupHelper.createRecords(partition, 0, 5));
-            recordsForPartition.addAll(SpoutWithMockedConsumerSetupHelper.createRecords(partition, 8, 2));
+            recordsForPartition.addAll(SpoutWithMockedConsumerSetupHelper.<String, String>createRecords(partition, 0, 5));
+            recordsForPartition.addAll(SpoutWithMockedConsumerSetupHelper.<String, String>createRecords(partition, 8, 2));
             records.put(partition, recordsForPartition);
 
             when(consumerMock.poll(anyLong()))
