@@ -36,11 +36,8 @@ import java.util.concurrent.TimeoutException;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -65,7 +62,6 @@ import org.junit.Before;
 import org.mockito.Captor;
 import org.mockito.MockitoAnnotations;
 
-import static org.apache.storm.kafka.spout.config.builder.SingleTopicKafkaSpoutConfiguration.createKafkaSpoutConfigBuilder;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyString;
 
@@ -153,7 +149,7 @@ public class SingleTopicKafkaSpoutTest {
                 spout.nextTuple();
             }
             ArgumentCaptor<KafkaSpoutMessageId> messageIdCaptor = ArgumentCaptor.forClass(KafkaSpoutMessageId.class);
-            verify(collector, times(messageCount)).emit(anyObject(), anyObject(), messageIdCaptor.capture());
+            verify(collector, times(messageCount)).emit(anyString(), anyList(), messageIdCaptor.capture());
             List<KafkaSpoutMessageId> messageIds = messageIdCaptor.getAllValues();
             for (int i = 1; i < messageIds.size(); i++) {
                 spout.ack(messageIds.get(i));
@@ -165,7 +161,7 @@ public class SingleTopicKafkaSpoutTest {
             reset(collector);
             spout.nextTuple();
             ArgumentCaptor<KafkaSpoutMessageId> failedIdReplayCaptor = ArgumentCaptor.forClass(KafkaSpoutMessageId.class);
-            verify(collector).emit(anyObject(), anyObject(), failedIdReplayCaptor.capture());
+            verify(collector).emit(anyString(), anyList(), failedIdReplayCaptor.capture());
 
             assertThat("Expected replay of failed tuple", failedIdReplayCaptor.getValue(), is(failedTuple));
 

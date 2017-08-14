@@ -79,7 +79,7 @@ public class KafkaSpoutRetryExponentialBackoffTest {
             Time.advanceTime(500);
             assertThat("The message should not be ready for retry yet since it was rescheduled", retryService.isReady(msgId), is(false));
             assertThat(retryService.isScheduled(msgId), is(true));
-            assertThat(retryService.earliestRetriableOffsets(), is(Collections.emptyMap()));
+            assertThat(retryService.earliestRetriableOffsets(), is(Collections.<TopicPartition, Long>emptyMap()));
             assertThat(retryService.readyMessageCount(), is(0));
             Time.advanceTime(500);
             assertThat("The message should be ready for retry once the full delay has passed", retryService.isReady(msgId), is(true));
@@ -122,7 +122,7 @@ public class KafkaSpoutRetryExponentialBackoffTest {
         assertThat(removed, is(true));
         assertThat(retryService.isScheduled(msgId), is(false));
         assertThat(retryService.isReady(msgId), is(false));
-        assertThat(retryService.earliestRetriableOffsets(), is(Collections.emptyMap()));
+        assertThat(retryService.earliestRetriableOffsets(), is(Collections.<TopicPartition, Long>emptyMap()));
         assertThat(retryService.readyMessageCount(), is(0));
     }
 
