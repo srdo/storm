@@ -17,10 +17,17 @@
  */
 package org.apache.storm.localizer;
 
-import static org.mockito.Matchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.endsWith;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -59,15 +66,15 @@ public class AsyncLocalizerTest {
         final String jarKey = topoId + "-stormjar.jar";
         final String codeKey = topoId + "-stormcode.ser";
         final String confKey = topoId + "-stormconf.ser";
-        final String stormLocal = "/tmp/storm-local/";
-        final String stormRoot = stormLocal+topoId+"/";
+        final Path stormLocal = new File(System.getProperty("java.io.tmpdir")).toPath().resolve("storm-local");
+        final String stormRoot = stormLocal.resolve(topoId).toString();
         final File fStormRoot = new File(stormRoot);
         ClientBlobStore blobStore = mock(ClientBlobStore.class);
         Map<String, Object> conf = new HashMap<>();
         conf.put(DaemonConfig.SUPERVISOR_BLOBSTORE, ClientBlobStore.class.getName());
         conf.put(Config.STORM_PRINCIPAL_TO_LOCAL_PLUGIN, DefaultPrincipalToLocal.class.getName());
         conf.put(Config.STORM_CLUSTER_MODE, "distributed");
-        conf.put(Config.STORM_LOCAL_DIR, stormLocal);
+        conf.put(Config.STORM_LOCAL_DIR, stormLocal.toString());
         Localizer localizer = mock(Localizer.class);
         AdvancedFSOps ops = mock(AdvancedFSOps.class);
         ConfigUtils mockedCU = mock(ConfigUtils.class);
@@ -82,7 +89,7 @@ public class AsyncLocalizerTest {
         ServerUtils origUtils = ServerUtils.setInstance(mockedU);
         try {
             when(mockedCU.supervisorStormDistRootImpl(conf, topoId)).thenReturn(stormRoot);
-            when(mockedCU.supervisorLocalDirImpl(conf)).thenReturn(stormLocal);
+            when(mockedCU.supervisorLocalDirImpl(conf)).thenReturn(stormLocal.toString());
             when(mockedRU.newInstanceImpl(ClientBlobStore.class)).thenReturn(blobStore);
             when(mockedCU.readSupervisorStormConfImpl(conf, topoId)).thenReturn(topoConf);
 
@@ -91,9 +98,9 @@ public class AsyncLocalizerTest {
             // We should be done now...
             
             verify(blobStore).prepare(conf);
-            verify(mockedU).downloadResourcesAsSupervisorImpl(eq(jarKey), startsWith(stormLocal), eq(blobStore));
-            verify(mockedU).downloadResourcesAsSupervisorImpl(eq(codeKey), startsWith(stormLocal), eq(blobStore));
-            verify(mockedU).downloadResourcesAsSupervisorImpl(eq(confKey), startsWith(stormLocal), eq(blobStore));
+            verify(mockedU).downloadResourcesAsSupervisorImpl(eq(jarKey), startsWith(stormLocal.toString()), eq(blobStore));
+            verify(mockedU).downloadResourcesAsSupervisorImpl(eq(codeKey), startsWith(stormLocal.toString()), eq(blobStore));
+            verify(mockedU).downloadResourcesAsSupervisorImpl(eq(confKey), startsWith(stormLocal.toString()), eq(blobStore));
             verify(blobStore).shutdown();
             //Extracting the dir from the jar
             verify(mockedU).extractDirFromJarImpl(endsWith("stormjar.jar"), eq("resources"), any(File.class));

@@ -24,6 +24,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -333,7 +334,7 @@ public class AdvancedFSOps implements IAdvancedFSOps {
      */
     @Override
     public String slurpString(File location) throws IOException {
-        return FileUtils.readFileToString(location, "UTF-8");
+        return FileUtils.readFileToString(location, StandardCharsets.UTF_8);
     }
 
     /**

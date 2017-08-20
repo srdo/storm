@@ -41,7 +41,7 @@ import org.apache.storm.generated.ProfileRequest;
 import org.junit.Test;
 import org.yaml.snakeyaml.Yaml;
 
-import com.google.common.base.Joiner;
+import java.nio.file.Path;
 
 public class ContainerTest {
     public static class MockContainer extends Container {
@@ -122,24 +122,16 @@ public class ContainerTest {
         mc.forceKill();
         assertEquals(Collections.EMPTY_LIST, mc.killedPids);
         assertEquals(mc.allPids, new HashSet<>(mc.forceKilledPids));
-    }
+    }  
     
-    private static final Joiner PATH_JOIN = Joiner.on(File.separator).skipNulls();
-    private static final String DOUBLE_SEP = File.separator + File.separator;    
-    static String asAbsPath(String ... parts) {
-        return (File.separator + PATH_JOIN.join(parts)).replace(DOUBLE_SEP, File.separator);
-    }
+    static Path tmpDir = new File(System.getProperty("java.io.tmpdir")).toPath();
     
-    static File asAbsFile(String ... parts) {
-        return new File(asAbsPath(parts));
-    }
-    
-    static String asPath(String ... parts) {
-        return PATH_JOIN.join(parts);
-    }
-    
-    public static File asFile(String ... parts) {
-        return new File(asPath(parts));
+    static Path resolve(Path root, String... parts) {
+        Path res = root;
+        for(String part : parts) {
+            res = res.resolve(part);
+        }
+        return res;
     }
     
     @SuppressWarnings("unchecked")
@@ -149,12 +141,12 @@ public class ContainerTest {
         final String topoId = "test_topology";
         final String workerId = "worker_id";
         final String user = "me";
-        final String stormLocal = asAbsPath("tmp", "testing");
-        final File workerArtifacts = asAbsFile(stormLocal, topoId, String.valueOf(port));
+        final Path stormLocal = tmpDir.resolve("testing");
+        final File workerArtifacts = resolve(stormLocal, topoId, String.valueOf(port)).toFile();
         final File logMetadataFile = new File(workerArtifacts, "worker.yaml");
-        final File workerUserFile = asAbsFile(stormLocal, "workers-users", workerId);
-        final File workerRoot = asAbsFile(stormLocal, "workers", workerId);
-        final File distRoot = asAbsFile(stormLocal, "supervisor", "stormdist", topoId);
+        final File workerUserFile = resolve(stormLocal, "workers-users", workerId).toFile();
+        final File workerRoot = resolve(stormLocal, "workers", workerId).toFile();
+        final File distRoot = resolve(stormLocal, "supervisor", "stormdist", topoId).toFile();
         
         final Map<String, Object> topoConf = new HashMap<>();
         final List<String> topoUsers = Arrays.asList("t-user-a", "t-user-b");
@@ -169,8 +161,8 @@ public class ContainerTest {
         topoConf.put(Config.TOPOLOGY_USERS, topoUsers);
         
         final Map<String, Object> superConf = new HashMap<>();
-        superConf.put(Config.STORM_LOCAL_DIR, stormLocal);
-        superConf.put(Config.STORM_WORKERS_ARTIFACTS_DIR, stormLocal);
+        superConf.put(Config.STORM_LOCAL_DIR, stormLocal.toString());
+        superConf.put(Config.STORM_WORKERS_ARTIFACTS_DIR, stormLocal.toString());
         
         final StringWriter yamlDump = new StringWriter();
         
@@ -227,18 +219,18 @@ public class ContainerTest {
         final String topoId = "test_topology";
         final String workerId = "worker_id";
         final String user = "me";
-        final String stormLocal = asAbsPath("tmp", "testing");
-        final File workerArtifacts = asAbsFile(stormLocal, topoId, String.valueOf(port));
+        final Path stormLocal = tmpDir.resolve("testing");
+        final File workerArtifacts = resolve(stormLocal, topoId, String.valueOf(port)).toFile();
         final File logMetadataFile = new File(workerArtifacts, "worker.yaml");
-        final File workerUserFile = asAbsFile(stormLocal, "workers-users", workerId);
-        final File workerRoot = asAbsFile(stormLocal, "workers", workerId);
+        final File workerUserFile = resolve(stormLocal, "workers-users", workerId).toFile();
+        final File workerRoot = resolve(stormLocal, "workers", workerId).toFile();
         final File workerPidsRoot = new File(workerRoot, "pids");
         
         final Map<String, Object> topoConf = new HashMap<>();
         
         final Map<String, Object> superConf = new HashMap<>();
-        superConf.put(Config.STORM_LOCAL_DIR, stormLocal);
-        superConf.put(Config.STORM_WORKERS_ARTIFACTS_DIR, stormLocal);
+        superConf.put(Config.STORM_LOCAL_DIR, stormLocal.toString());
+        superConf.put(Config.STORM_WORKERS_ARTIFACTS_DIR, stormLocal.toString());
         
         final StringWriter yamlDump = new StringWriter();
         

@@ -50,6 +50,8 @@ import static org.apache.storm.localizer.Localizer.USERCACHE;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
+import java.net.URISyntaxException;
+
 
 public class LocalizerTest {
 
@@ -75,7 +77,7 @@ public class LocalizerTest {
   }
 
   class TestInputStreamWithMeta extends InputStreamWithMeta {
-    private InputStream iostream;
+    private final InputStream iostream;
 
     public TestInputStreamWithMeta() {
       iostream = IOUtils.toInputStream("some test data for my input stream");
@@ -144,7 +146,7 @@ public class LocalizerTest {
 
   @Test
   public void testDirPaths() throws Exception {
-    Map<String, Object> conf = new HashMap();
+    Map<String, Object> conf = new HashMap<>();
     Localizer localizer = new TestLocalizer(conf, baseDir.toString());
 
     String expectedDir = constructUserCacheDir(baseDir.toString(), user1);
@@ -158,7 +160,7 @@ public class LocalizerTest {
 
   @Test
   public void testReconstruct() throws Exception {
-    Map<String, Object> conf = new HashMap();
+    Map<String, Object> conf = new HashMap<>();
 
     String expectedFileDir1 = constructExpectedFilesDir(baseDir.toString(), user1);
     String expectedArchiveDir1 = constructExpectedArchivesDir(baseDir.toString(), user1);
@@ -197,7 +199,7 @@ public class LocalizerTest {
 
     Localizer localizer = new TestLocalizer(conf, baseDir.toString());
 
-    ArrayList<LocalResource> arrUser1Keys = new ArrayList<LocalResource>();
+    ArrayList<LocalResource> arrUser1Keys = new ArrayList<>();
     arrUser1Keys.add(new LocalResource(key1, false));
     arrUser1Keys.add(new LocalResource(archive1, true));
     localizer.addReferences(arrUser1Keys, user1, "topo1");
@@ -260,9 +262,9 @@ public class LocalizerTest {
     testArchives(getFileFromResource(joinPath("localizer", "localtestwithsymlink.jar")), false, 21416);
   }
 
-  private File getFileFromResource(String archivePath) {
+  private File getFileFromResource(String archivePath) throws URISyntaxException {
     ClassLoader classLoader = getClass().getClassLoader();
-    return new File(classLoader.getResource(archivePath).getFile());
+    return new File(classLoader.getResource(archivePath).toURI());
   }
 
   // archive passed in must contain symlink named tmptestsymlink if not a zip file
@@ -272,7 +274,7 @@ public class LocalizerTest {
       supportSymlinks = false;
     }
 
-    Map<String, Object> conf = new HashMap();
+    Map<String, Object> conf = new HashMap<>();
     // set clean time really high so doesn't kick in
     conf.put(DaemonConfig.SUPERVISOR_LOCALIZER_CACHE_CLEANUP_INTERVAL_MS, 60*60*1000);
 
@@ -349,7 +351,7 @@ public class LocalizerTest {
 
   @Test
   public void testBasic() throws Exception {
-    Map<String, Object> conf = new HashMap();
+    Map<String, Object> conf = new HashMap<>();
     // set clean time really high so doesn't kick in
     conf.put(DaemonConfig.SUPERVISOR_LOCALIZER_CACHE_CLEANUP_INTERVAL_MS, 60*60*1000);
 
@@ -416,7 +418,7 @@ public class LocalizerTest {
 
   @Test
   public void testMultipleKeysOneUser() throws Exception {
-    Map<String, Object> conf = new HashMap();
+    Map<String, Object> conf = new HashMap<>();
     // set clean time really high so doesn't kick in
     conf.put(DaemonConfig.SUPERVISOR_LOCALIZER_CACHE_CLEANUP_INTERVAL_MS, 60*60*1000);
 
@@ -505,7 +507,7 @@ public class LocalizerTest {
 
   @Test(expected = AuthorizationException.class)
   public void testFailAcls() throws Exception {
-    Map<String, Object> conf = new HashMap();
+    Map<String, Object> conf = new HashMap<>();
     // set clean time really high so doesn't kick in
     conf.put(DaemonConfig.SUPERVISOR_LOCALIZER_CACHE_CLEANUP_INTERVAL_MS, 60 * 60 * 1000);
     // enable blobstore acl validation
@@ -544,7 +546,7 @@ public class LocalizerTest {
 
     @Test
   public void testMultipleUsers() throws Exception {
-    Map<String, Object> conf = new HashMap();
+    Map<String, Object> conf = new HashMap<>();
     // set clean time really high so doesn't kick in
     conf.put(DaemonConfig.SUPERVISOR_LOCALIZER_CACHE_CLEANUP_INTERVAL_MS, 60*60*1000);
 
@@ -628,7 +630,7 @@ public class LocalizerTest {
 
   @Test
   public void testUpdate() throws Exception {
-    Map<String, Object> conf = new HashMap();
+    Map<String, Object> conf = new HashMap<>();
     // set clean time really high so doesn't kick in
     conf.put(DaemonConfig.SUPERVISOR_LOCALIZER_CACHE_CLEANUP_INTERVAL_MS, 60*60*1000);
 
@@ -672,7 +674,7 @@ public class LocalizerTest {
     // now test regular updateBlob
     rbm.set_version(3);
 
-    ArrayList<LocalResource> arr = new ArrayList<LocalResource>();
+    ArrayList<LocalResource> arr = new ArrayList<>();
     arr.add(new LocalResource(key1, false));
     localizer.updateBlobs(arr, user1);
     assertTrue("blob version file not created", versionFile.exists());

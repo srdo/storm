@@ -17,11 +17,20 @@
  */
 package org.apache.storm.daemon.supervisor;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -40,6 +49,7 @@ import org.apache.storm.generated.StormTopology;
 import org.apache.storm.utils.SimpleVersion;
 import org.apache.storm.utils.Utils;
 import org.apache.storm.utils.LocalState;
+import org.apache.storm.utils.ServerUtils;
 import org.junit.Test;
 
 public class BasicContainerTest {
@@ -220,13 +230,13 @@ public class BasicContainerTest {
         final String topoId = "test_topology";
         final int port = 8080;
         final String workerId = "worker-id";
-        final String stormLocal = ContainerTest.asAbsPath("tmp", "testing");
-        final String topoRoot = ContainerTest.asAbsPath(stormLocal, topoId, String.valueOf(port));
-        final File workerArtifactsPid = ContainerTest.asAbsFile(topoRoot, "worker.pid");
+        final Path stormLocal = ContainerTest.tmpDir.resolve("testing");
+        final Path topoRoot = ContainerTest.resolve(stormLocal, topoId, String.valueOf(port));
+        final File workerArtifactsPid = ContainerTest.resolve(topoRoot, "worker.pid").toFile();
         
         final Map<String, Object> superConf = new HashMap<>();
-        superConf.put(Config.STORM_LOCAL_DIR, stormLocal);
-        superConf.put(Config.STORM_WORKERS_ARTIFACTS_DIR, stormLocal);
+        superConf.put(Config.STORM_LOCAL_DIR, stormLocal.toString());
+        superConf.put(Config.STORM_WORKERS_ARTIFACTS_DIR, stormLocal.toString());
         
         LocalAssignment la = new LocalAssignment();
         la.set_topology_id(topoId);
@@ -249,8 +259,8 @@ public class BasicContainerTest {
         assertEquals(1, mc.profileCmds.size());
         CommandRun cmd = mc.profileCmds.get(0);
         mc.profileCmds.clear();
-        assertEquals(Arrays.asList("profile", String.valueOf(pid), "jmap", topoRoot), cmd.cmd);
-        assertEquals(new File(topoRoot), cmd.pwd);
+        assertEquals(Arrays.asList("profile", String.valueOf(pid), "jmap", topoRoot.toString()), cmd.cmd);
+        assertEquals(topoRoot.toFile(), cmd.pwd);
         
         //JSTACK DUMP
         req.set_action(ProfileAction.JSTACK_DUMP);
@@ -260,8 +270,8 @@ public class BasicContainerTest {
         assertEquals(1, mc.profileCmds.size());
         cmd = mc.profileCmds.get(0);
         mc.profileCmds.clear();
-        assertEquals(Arrays.asList("profile", String.valueOf(pid), "jstack", topoRoot), cmd.cmd);
-        assertEquals(new File(topoRoot), cmd.pwd);
+        assertEquals(Arrays.asList("profile", String.valueOf(pid), "jstack", topoRoot.toString()), cmd.cmd);
+        assertEquals(topoRoot.toFile(), cmd.pwd);
         
         //RESTART
         req.set_action(ProfileAction.JVM_RESTART);
@@ -272,7 +282,7 @@ public class BasicContainerTest {
         cmd = mc.profileCmds.get(0);
         mc.profileCmds.clear();
         assertEquals(Arrays.asList("profile", String.valueOf(pid), "kill"), cmd.cmd);
-        assertEquals(new File(topoRoot), cmd.pwd);
+        assertEquals(topoRoot.toFile(), cmd.pwd);
         
         //JPROFILE DUMP
         req.set_action(ProfileAction.JPROFILE_DUMP);
@@ -282,8 +292,8 @@ public class BasicContainerTest {
         assertEquals(1, mc.profileCmds.size());
         cmd = mc.profileCmds.get(0);
         mc.profileCmds.clear();
-        assertEquals(Arrays.asList("profile", String.valueOf(pid), "dump", topoRoot), cmd.cmd);
-        assertEquals(new File(topoRoot), cmd.pwd);
+        assertEquals(Arrays.asList("profile", String.valueOf(pid), "dump", topoRoot.toString()), cmd.cmd);
+        assertEquals(topoRoot.toFile(), cmd.pwd);
         
         //JPROFILE START
         req.set_action(ProfileAction.JPROFILE_STOP);
@@ -294,7 +304,7 @@ public class BasicContainerTest {
         cmd = mc.profileCmds.get(0);
         mc.profileCmds.clear();
         assertEquals(Arrays.asList("profile", String.valueOf(pid), "start"), cmd.cmd);
-        assertEquals(new File(topoRoot), cmd.pwd);
+        assertEquals(topoRoot.toFile(), cmd.pwd);
         
         //JPROFILE STOP
         req.set_action(ProfileAction.JPROFILE_STOP);
@@ -304,8 +314,8 @@ public class BasicContainerTest {
         assertEquals(1, mc.profileCmds.size());
         cmd = mc.profileCmds.get(0);
         mc.profileCmds.clear();
-        assertEquals(Arrays.asList("profile", String.valueOf(pid), "stop", topoRoot), cmd.cmd);
-        assertEquals(new File(topoRoot), cmd.pwd);
+        assertEquals(Arrays.asList("profile", String.valueOf(pid), "stop", topoRoot.toString()), cmd.cmd);
+        assertEquals(topoRoot.toFile(), cmd.pwd);
     }
     
     private static void setSystemProp(String key, String value) {
@@ -359,17 +369,17 @@ public class BasicContainerTest {
     public void testLaunch() throws Exception {
         final String topoId = "test_topology";
         final int port = 8080;
-        final String stormHome = ContainerTest.asAbsPath("tmp", "storm-home");
-        final String stormLogDir = ContainerTest.asFile(".", "target").getCanonicalPath();
         final String workerId = "worker-id";
-        final String stormLocal = ContainerTest.asAbsPath("tmp", "storm-local");
-        final String distRoot = ContainerTest.asAbsPath(stormLocal, "supervisor", "stormdist", topoId);
-        final File stormcode = new File(distRoot, "stormcode.ser");
-        final File stormjar = new File(distRoot, "stormjar.jar");
-        final String log4jdir = ContainerTest.asAbsPath(stormHome, "conf");
-        final String workerConf = ContainerTest.asAbsPath(log4jdir, "worker.xml");
-        final String workerRoot = ContainerTest.asAbsPath(stormLocal, "workers", workerId);
-        final String workerTmpDir = ContainerTest.asAbsPath(workerRoot, "tmp");
+        final Path stormHome = ContainerTest.tmpDir.resolve("storm-home");
+        final Path stormLocal = ContainerTest.tmpDir.resolve("storm-local");
+        final Path distRoot = ContainerTest.resolve(stormLocal, "supervisor", "stormdist", topoId);
+        final Path log4jdir = ContainerTest.resolve(stormHome, "conf");
+        final Path workerRoot = ContainerTest.resolve(stormLocal, "workers", workerId);
+        final File stormcode = distRoot.resolve("stormcode.ser").toFile();
+        final File stormjar = distRoot.resolve("stormjar.jar").toFile();
+        final String stormLogDir = Paths.get(".", "target").toRealPath().toString();
+        final String workerConf = ContainerTest.resolve(log4jdir, "worker.xml").toString();
+        final String workerTmpDir = ContainerTest.resolve(workerRoot, "tmp").toString();
         
         final StormTopology st = new StormTopology();
         st.set_spouts(new HashMap<>());
@@ -378,9 +388,9 @@ public class BasicContainerTest {
         byte [] serializedState = Utils.gzip(Utils.thriftSerialize(st));
         
         final Map<String, Object> superConf = new HashMap<>();
-        superConf.put(Config.STORM_LOCAL_DIR, stormLocal);
-        superConf.put(Config.STORM_WORKERS_ARTIFACTS_DIR, stormLocal);
-        superConf.put(DaemonConfig.STORM_LOG4J2_CONF_DIR, log4jdir);
+        superConf.put(Config.STORM_LOCAL_DIR, stormLocal.toString());
+        superConf.put(Config.STORM_WORKERS_ARTIFACTS_DIR, stormLocal.toString());
+        superConf.put(DaemonConfig.STORM_LOG4J2_CONF_DIR, log4jdir.toString());
         superConf.put(Config.WORKER_CHILDOPTS, " -Dtesting=true");
         
         LocalAssignment la = new LocalAssignment();
@@ -404,33 +414,33 @@ public class BasicContainerTest {
             assertListEquals(Arrays.asList(
                     "java",
                     "-cp",
-                    "FRAMEWORK_CP:" + stormjar.getAbsolutePath(),
+                    "FRAMEWORK_CP" + ServerUtils.CLASS_PATH_SEPARATOR + stormjar.getAbsolutePath(),
                     "-Dlogging.sensitivity=S3",
                     "-Dlogfile.name=worker.log",
-                    "-Dstorm.home=" + stormHome,
-                    "-Dworkers.artifacts=" + stormLocal,
+                    "-Dstorm.home=" + stormHome.toString(),
+                    "-Dworkers.artifacts=" + stormLocal.toString(),
                     "-Dstorm.id=" + topoId,
                     "-Dworker.id=" + workerId,
                     "-Dworker.port=" + port,
                     "-Dstorm.log.dir=" + stormLogDir,
-                    "-Dlog4j.configurationFile=" + workerConf,
+                    "-Dlog4j.configurationFile=" + (ServerUtils.IS_ON_WINDOWS ? "file:///" + workerConf : workerConf),
                     "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector",
-                    "-Dstorm.local.dir=" + stormLocal,
+                    "-Dstorm.local.dir=" + stormLocal.toString(),
                     "-Dworker.memory_limit_mb=768",
                     "org.apache.storm.LogWriter",
                     "java",
                     "-server",
                     "-Dlogging.sensitivity=S3",
                     "-Dlogfile.name=worker.log",
-                    "-Dstorm.home=" + stormHome,
-                    "-Dworkers.artifacts=" + stormLocal,
+                    "-Dstorm.home=" + stormHome.toString(),
+                    "-Dworkers.artifacts=" + stormLocal.toString(),
                     "-Dstorm.id=" + topoId,
                     "-Dworker.id=" + workerId,
                     "-Dworker.port=" + port,
                     "-Dstorm.log.dir=" + stormLogDir,
-                    "-Dlog4j.configurationFile=" + workerConf,
+                    "-Dlog4j.configurationFile=" + (ServerUtils.IS_ON_WINDOWS ? "file:///" + workerConf : workerConf),
                     "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector",
-                    "-Dstorm.local.dir=" + stormLocal,
+                    "-Dstorm.local.dir=" + stormLocal.toString(),
                     "-Dworker.memory_limit_mb=768",
                     "-Dtesting=true",
                     "-Djava.library.path=JLP",
@@ -438,16 +448,16 @@ public class BasicContainerTest {
                     "-Dstorm.options=",
                     "-Djava.io.tmpdir="+workerTmpDir,
                     "-cp",
-                    "FRAMEWORK_CP:" + stormjar.getAbsolutePath(),
+                    "FRAMEWORK_CP" + ServerUtils.CLASS_PATH_SEPARATOR + stormjar.getAbsolutePath(),
                     "org.apache.storm.daemon.worker.Worker",
                     topoId, 
                     "SUPERVISOR",
                     String.valueOf(port),
                     workerId
                     ), cmd.cmd);
-            assertEquals(new File(workerRoot), cmd.pwd);
+            assertEquals(workerRoot.toFile(), cmd.pwd);
           }, 
-          "storm.home", stormHome,
+          "storm.home", stormHome.toString(),
           "storm.log.dir", stormLogDir);
     }
     
