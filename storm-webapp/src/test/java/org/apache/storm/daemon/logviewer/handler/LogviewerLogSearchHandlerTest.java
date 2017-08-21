@@ -65,10 +65,10 @@ import org.mockito.ArgumentCaptor;
 public class LogviewerLogSearchHandlerTest {
 
     public static class SearchViaRestApi {
-        private String pattern = "needle";
-        private String expectedHost = "dev.null.invalid";
-        private Integer expectedPort = 8888;
-        private String logviewerUrlPrefix = "http://" + expectedHost + ":" + expectedPort;
+        private final String pattern = "needle";
+        private final String expectedHost = "dev.null.invalid";
+        private final Integer expectedPort = 8888;
+        private final String logviewerUrlPrefix = "http://" + expectedHost + ":" + expectedPort;
 
         /*
          When we click a link to the logviewer, we expect the match line to
@@ -76,7 +76,7 @@ public class LogviewerLogSearchHandlerTest {
          the default page length from the offset at which we found the
          match.
          */
-        private Function<Integer, Integer> expOffsetFn = arg -> (LogviewerConstant.DEFAULT_BYTES_PER_PAGE / 2 - arg);
+        private final Function<Integer, Integer> expOffsetFn = arg -> (LogviewerConstant.DEFAULT_BYTES_PER_PAGE / 2 - arg);
 
         @Test(expected = RuntimeException.class)
         public void testSearchViaRestApiThrowsIfBogusFileIsGiven() throws InvalidRequestException {
@@ -96,7 +96,7 @@ public class LogviewerLogSearchHandlerTest {
 
                 when(mockedUtil.hostname()).thenReturn(expectedHost);
 
-                String actualUrl = handler.urlToMatchCenteredInLogPage(new byte[42], expectedFname, 27526, 8888);
+                String actualUrl = handler.urlToMatchCenteredInLogPage(new byte[42], new File(expectedFname).toPath(), 27526, 8888);
 
                 assertEquals("http://" + expectedHost + ":" + expectedPort + "/api/v1/log?file=" + expectedFname
                         + "&start=1947&length=" + LogviewerConstant.DEFAULT_BYTES_PER_PAGE, actualUrl);
@@ -117,7 +117,7 @@ public class LogviewerLogSearchHandlerTest {
 
                 when(mockedUtil.hostname()).thenReturn(expectedHost);
 
-                String actualUrl = handler.urlToMatchCenteredInLogPageDaemonFile(new byte[42], expectedFname, 27526, 8888);
+                String actualUrl = handler.urlToMatchCenteredInLogPageDaemonFile(new byte[42], new File(expectedFname).toPath(), 27526, 8888);
 
                 assertEquals("http://" + expectedHost + ":" + expectedPort + "/api/v1/daemonlog?file=" + expectedFname
                         + "&start=1947&length=" + LogviewerConstant.DEFAULT_BYTES_PER_PAGE, actualUrl);
