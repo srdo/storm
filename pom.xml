@@ -293,6 +293,8 @@
 
         <!-- examples -->
         <module>examples/storm-starter</module>
+        
+        <module>integration-test</module>
     </modules>
 
     <dependencies>
