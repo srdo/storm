@@ -402,24 +402,14 @@ public class Utils {
      * @return true if throwable is instance of klass, false otherwise.
      */
     public static boolean exceptionCauseIsInstanceOf(Class klass, Throwable throwable) {
-        return unwrapTo(klass, throwable) != null;
-    }
-
-    public static <T extends Throwable> T unwrapTo(Class<T> klass, Throwable t) {
+        Throwable t = throwable;
         while (t != null) {
             if (klass.isInstance(t)) {
-                return (T)t;
+                return true;
             }
             t = t.getCause();
         }
-        return null;
-    }
-
-    public static <T extends Throwable> void unwrapAndThrow(Class<T> klass, Throwable t) throws T {
-        T ret = unwrapTo(klass, t);
-        if (ret != null) {
-            throw ret;
-        }
+        return false;
     }
 
     public static RuntimeException wrapInRuntime(Exception e){
@@ -1108,6 +1098,21 @@ public class Utils {
             dump.append("\n\n");
         }
         return dump.toString();
+    }
+
+    public static long getVersionFromBlobVersionFile(File versionFile) {
+        long currentVersion = 0;
+        if (versionFile.exists() && !(versionFile.isDirectory())) {
+            try (BufferedReader br = new BufferedReader(new FileReader(versionFile))) {
+                String line = br.readLine();
+                currentVersion = Long.parseLong(line);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            return currentVersion;
+        } else {
+            return -1;
+        }
     }
 
     public static boolean checkDirExists(String dir) {

@@ -21,7 +21,7 @@ package org.apache.storm.localizer;
 import org.apache.storm.generated.LocalAssignment;
 
 /**
- * A Port and a LocalAssignment used to reference count resources.
+ * A Port and a LocalAssignment used to reference count Resources
  */
 class PortAndAssignment {
     private final int port;
@@ -45,10 +45,6 @@ class PortAndAssignment {
         return assignment.get_topology_id();
     }
 
-    public String getOwner() {
-        return assignment.get_owner();
-    }
-
     @Override
     public int hashCode() {
         return (17 * port) + assignment.hashCode();
@@ -56,7 +52,7 @@ class PortAndAssignment {
 
     @Override
     public String toString() {
-        return "{" + assignment.get_topology_id() + " on " + port + "}";
+        return "{" + port + " " + assignment + "}";
     }
 
     /**

@@ -108,7 +108,7 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
 
         try {
             this.localState = ServerConfigUtils.supervisorState(conf);
-            this.asyncLocalizer = new AsyncLocalizer(conf);
+            this.asyncLocalizer = new AsyncLocalizer(conf, currAssignment, localState.getLocalAssignmentsMap());
         } catch (IOException e) {
             throw Utils.wrapInRuntime(e);
         }
