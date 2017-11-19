@@ -1,3 +1,4 @@
+
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,6 +18,10 @@
  */
 package org.apache.storm.starter;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.Serializer;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import java.util.Map;
 
 import org.apache.storm.task.OutputCollector;
@@ -29,54 +34,103 @@ import org.apache.storm.topology.base.BaseRichBolt;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
+import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
+import org.json.simple.parser.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is a basic example of a Storm topology.
  */
 public class ExclamationTopology extends ConfigurableTopology {
 
-  public static class ExclamationBolt extends BaseRichBolt {
-    OutputCollector _collector;
+    public static class ToJsonBolt extends BaseRichBolt {
 
-    @Override
-    public void prepare(Map<String, Object> conf, TopologyContext context, OutputCollector collector) {
-      _collector = collector;
+        private OutputCollector collector;
+
+        @Override
+        public void declareOutputFields(OutputFieldsDeclarer declarer) {
+            declarer.declare(new Fields("json"));
+        }
+
+        @Override
+        public void prepare(Map<String, Object> topoConf, TopologyContext context, OutputCollector collector) {
+            this.collector = collector;
+        }
+
+        @Override
+        public void execute(Tuple input) {
+            String word = input.getStringByField("word");
+            JSONObject json = new JSONObject();
+            json.put("word", word);
+            collector.emit(new Values(json));
+        }
     }
 
-    @Override
-    public void execute(Tuple tuple) {
-      _collector.emit(tuple, new Values(tuple.getString(0) + "!!!"));
-      _collector.ack(tuple);
+    public static class FromJsonBolt extends BaseRichBolt {
+
+        private final Logger logger = LoggerFactory.getLogger(FromJsonBolt.class);
+
+        @Override
+        public void declareOutputFields(OutputFieldsDeclarer declarer) {
+        }
+
+        @Override
+        public void prepare(Map<String, Object> topoConf, TopologyContext context, OutputCollector collector) {
+        }
+
+        @Override
+        public void execute(Tuple input) {
+            JSONObject json = (JSONObject) input.getValueByField("json");
+            logger.info("Received some json {}", json.toJSONString());
+        }
+
     }
 
-    @Override
-    public void declareOutputFields(OutputFieldsDeclarer declarer) {
-      declarer.declare(new Fields("word"));
+    public static class JSONObjectSerializer extends Serializer<JSONObject> {
+
+        @Override
+        public void write(Kryo kryo, Output output, JSONObject t) {
+            output.writeString(t.toJSONString());
+        }
+
+        @Override
+        public JSONObject read(Kryo kryo, Input input, Class<JSONObject> type) {
+            try {
+                return (JSONObject) JSONValue.parseWithException(input.readString());
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
-  }
-
-  public static void main(String[] args) throws Exception {
-    ConfigurableTopology.start(new ExclamationTopology(), args);
-  }
-
-  protected int run(String[] args) {
-    TopologyBuilder builder = new TopologyBuilder();
-
-    builder.setSpout("word", new TestWordSpout(), 10);
-    builder.setBolt("exclaim1", new ExclamationBolt(), 3).shuffleGrouping("word");
-    builder.setBolt("exclaim2", new ExclamationBolt(), 2).shuffleGrouping("exclaim1");
-
-    conf.setDebug(true);
-
-    String topologyName = "test";
-
-    conf.setNumWorkers(3);
-
-    if (args != null && args.length > 0) {
-      topologyName = args[0];
+    public static void main(String[] args) throws Exception {
+        ConfigurableTopology.start(new ExclamationTopology(), args);
     }
 
-    return submit(topologyName, conf, builder);
-  }
+    protected int run(String[] args) {
+        TopologyBuilder builder = new TopologyBuilder();
+
+        builder.setSpout("word", new TestWordSpout(), 10);
+        builder.setBolt("toJson", new ToJsonBolt(), 10).shuffleGrouping("word");
+        builder.setBolt("fromJson", new FromJsonBolt(), 10).shuffleGrouping("toJson");
+
+        conf.setDebug(true);
+        conf.setFallBackOnJavaSerialization(false);
+        
+        conf.registerSerialization(JSONObject.class);
+        //Uncomment to use to-string serialization
+        //conf.registerSerialization(JSONObject.class, JSONObjectSerializer.class);
+
+        String topologyName = "test";
+
+        conf.setNumWorkers(3);
+
+        if (args != null && args.length > 0) {
+            topologyName = args[0];
+        }
+
+        return submit(topologyName, conf, builder);
+    }
 }
