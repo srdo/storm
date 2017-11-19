@@ -291,7 +291,7 @@ public class KafkaSpoutConfig<K, V> implements Serializable {
             this.valueDesClazz = valDesClazz;
             this.subscription = subscription;
             this.translator = new DefaultRecordTranslator<>();
-            
+
             if (keyDesClazz != null) {
                 this.kafkaProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDesClazz);
             }
@@ -320,20 +320,17 @@ public class KafkaSpoutConfig<K, V> implements Serializable {
             // when they change the key/value types.
             this.translator = (RecordTranslator<K, V>) builder.translator;
             this.retryService = builder.retryService;
-            
-            if (keyDesClazz != null) {
-                this.kafkaProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDesClazz);
-            }
+
             if (keyDes != null) {
                 this.kafkaProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDes.getClass());
-            }
-            if (valueDesClazz != null) {
+            } else if (keyDesClazz != null) {
+                this.kafkaProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDesClazz);
+            } else if (valueDes != null) {
+                this.kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDes.getClass());
+            } else if (valueDesClazz != null) {
                 this.kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDesClazz);
             }
-            if (valueDes != null) {
-                this.kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDes.getClass());
-            }
-            
+
             this.keyDes = keyDes;
             this.keyDesClazz = keyDesClazz;
             this.valueDes = valueDes;
@@ -348,7 +345,7 @@ public class KafkaSpoutConfig<K, V> implements Serializable {
          */
         @Deprecated
         public <NK> Builder<NK, V> setKey(SerializableDeserializer<NK> keyDeserializer) {
-            return new Builder<>(this, keyDeserializer, null, valueDes, valueDesClazz);
+            return new Builder<>(this, keyDeserializer, null, null, null);
         }
 
         /**
@@ -359,7 +356,7 @@ public class KafkaSpoutConfig<K, V> implements Serializable {
          */
         @Deprecated
         public <NK> Builder<NK, V> setKey(Class<? extends Deserializer<NK>> clazz) {
-            return new Builder<>(this, null, clazz, valueDes, valueDesClazz);
+            return new Builder<>(this, null, clazz, null, null);
         }
 
         /**
@@ -370,7 +367,7 @@ public class KafkaSpoutConfig<K, V> implements Serializable {
          */
         @Deprecated
         public <NV> Builder<K, NV> setValue(SerializableDeserializer<NV> valueDeserializer) {
-            return new Builder<>(this, keyDes, keyDesClazz, valueDeserializer, null);
+            return new Builder<>(this, null, null, valueDeserializer, null);
         }
 
         /**
@@ -381,7 +378,7 @@ public class KafkaSpoutConfig<K, V> implements Serializable {
          */
         @Deprecated
         public <NV> Builder<K, NV> setValue(Class<? extends Deserializer<NV>> clazz) {
-            return new Builder<>(this, keyDes, keyDesClazz, null, clazz);
+            return new Builder<>(this, null, null, null, clazz);
         }
 
         /**
@@ -680,7 +677,7 @@ public class KafkaSpoutConfig<K, V> implements Serializable {
      * @return The new builder
      */
     public static Builder<String, String> builder(String bootstrapServers, String... topics) {
-        return setStringDeserializers(new Builder<String, String>(bootstrapServers, topics));
+        return setStringDeserializers(new Builder<String, String>(bootstrapServers, StringDeserializer.class, StringDeserializer.class, topics));
     }
 
     /**
@@ -691,7 +688,7 @@ public class KafkaSpoutConfig<K, V> implements Serializable {
      * @return The new builder
      */
     public static Builder<String, String> builder(String bootstrapServers, Collection<String> topics) {
-        return setStringDeserializers(new Builder<String, String>(bootstrapServers, topics));
+        return setStringDeserializers(new Builder<String, String>(bootstrapServers, StringDeserializer.class, StringDeserializer.class, topics));
     }
 
     /**
@@ -702,7 +699,7 @@ public class KafkaSpoutConfig<K, V> implements Serializable {
      * @return The new builder
      */
     public static Builder<String, String> builder(String bootstrapServers, Pattern topics) {
-        return setStringDeserializers(new Builder<String, String>(bootstrapServers, topics));
+        return setStringDeserializers(new Builder<String, String>(bootstrapServers, StringDeserializer.class, StringDeserializer.class, topics));
     }
 
     private static Builder<String, String> setStringDeserializers(Builder<String, String> builder) {
