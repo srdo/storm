@@ -167,10 +167,10 @@ public class KafkaSpoutConfig<K, V> implements Serializable {
 
         private final Map<String, Object> kafkaProps;
         private final Subscription subscription;
-        private final SerializableDeserializer<K> keyDes;
-        private final Class<? extends Deserializer<K>> keyDesClazz;
-        private final SerializableDeserializer<V> valueDes;
-        private final Class<? extends Deserializer<V>> valueDesClazz;
+        private SerializableDeserializer<K> keyDes;
+        private Class<? extends Deserializer<K>> keyDesClazz;
+        private SerializableDeserializer<V> valueDes;
+        private Class<? extends Deserializer<V>> valueDesClazz;
         private RecordTranslator<K, V> translator;
         private long pollTimeoutMs = DEFAULT_POLL_TIMEOUT_MS;
         private long offsetCommitPeriodMs = DEFAULT_OFFSET_COMMIT_PERIOD_MS;
@@ -306,37 +306,6 @@ public class KafkaSpoutConfig<K, V> implements Serializable {
             }
         }
 
-        private Builder(Builder<?, ?> builder, SerializableDeserializer<K> keyDes, Class<? extends Deserializer<K>> keyDesClazz,
-            SerializableDeserializer<V> valueDes, Class<? extends Deserializer<V>> valueDesClazz) {
-            this.kafkaProps = new HashMap<>(builder.kafkaProps);
-            this.subscription = builder.subscription;
-            this.pollTimeoutMs = builder.pollTimeoutMs;
-            this.offsetCommitPeriodMs = builder.offsetCommitPeriodMs;
-            this.firstPollOffsetStrategy = builder.firstPollOffsetStrategy;
-            this.maxUncommittedOffsets = builder.maxUncommittedOffsets;
-            //this could result in a lot of class case exceptions at runtime,
-            // but because some translators will work no matter what the generics
-            // are I thought it best not to force someone to reset the translator
-            // when they change the key/value types.
-            this.translator = (RecordTranslator<K, V>) builder.translator;
-            this.retryService = builder.retryService;
-
-            if (keyDes != null) {
-                this.kafkaProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDes.getClass());
-            } else if (keyDesClazz != null) {
-                this.kafkaProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDesClazz);
-            } else if (valueDes != null) {
-                this.kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDes.getClass());
-            } else if (valueDesClazz != null) {
-                this.kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDesClazz);
-            }
-
-            this.keyDes = keyDes;
-            this.keyDesClazz = keyDesClazz;
-            this.valueDes = valueDes;
-            this.valueDesClazz = valueDesClazz;
-        }
-
         /**
          * Specifying this key deserializer overrides the property key.deserializer. If you have set a custom RecordTranslator before
          * calling this it may result in class cast exceptions at runtime.
@@ -344,8 +313,9 @@ public class KafkaSpoutConfig<K, V> implements Serializable {
          * @deprecated Please use {@link #setProp(java.lang.String, java.lang.Object) } with {@link ConsumerConfig#KEY_DESERIALIZER_CLASS_CONFIG} instead
          */
         @Deprecated
-        public <NK> Builder<NK, V> setKey(SerializableDeserializer<NK> keyDeserializer) {
-            return new Builder<>(this, keyDeserializer, null, null, null);
+        public Builder<K, V> setKey(SerializableDeserializer<K> keyDeserializer) {
+            this.keyDes = keyDeserializer;
+            return setNonNullKeyProp(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDes.getClass());
         }
 
         /**
@@ -355,8 +325,9 @@ public class KafkaSpoutConfig<K, V> implements Serializable {
          * @deprecated Please use {@link #setProp(java.lang.String, java.lang.Object) } with {@link ConsumerConfig#VALUE_DESERIALIZER_CLASS_CONFIG} instead
          */
         @Deprecated
-        public <NK> Builder<NK, V> setKey(Class<? extends Deserializer<NK>> clazz) {
-            return new Builder<>(this, null, clazz, null, null);
+        public Builder<K,V> setKey(Class<? extends Deserializer<K>> clazz) {
+            this.keyDesClazz = clazz;
+            return setNonNullKeyProp(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDesClazz);
         }
 
         /**
@@ -366,8 +337,9 @@ public class KafkaSpoutConfig<K, V> implements Serializable {
          * @deprecated Please use {@link #setProp(java.lang.String, java.lang.Object) } with {@link ConsumerConfig#KEY_DESERIALIZER_CLASS_CONFIG} instead
          */
         @Deprecated
-        public <NV> Builder<K, NV> setValue(SerializableDeserializer<NV> valueDeserializer) {
-            return new Builder<>(this, null, null, valueDeserializer, null);
+        public Builder<K, V> setValue(SerializableDeserializer<V> valueDeserializer) {
+            this.valueDes = valueDeserializer;
+            return setNonNullKeyProp(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDes.getClass());
         }
 
         /**
@@ -377,8 +349,16 @@ public class KafkaSpoutConfig<K, V> implements Serializable {
          * @deprecated Please use {@link #setProp(java.lang.String, java.lang.Object) } with {@link ConsumerConfig#VALUE_DESERIALIZER_CLASS_CONFIG} instead
          */
         @Deprecated
-        public <NV> Builder<K, NV> setValue(Class<? extends Deserializer<NV>> clazz) {
-            return new Builder<>(this, null, null, null, clazz);
+        public Builder<K, V> setValue(Class<? extends Deserializer<V>> clazz) {
+            this.valueDesClazz = clazz;
+            return setNonNullKeyProp(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDesClazz);
+        }
+
+        private Builder<K, V> setNonNullKeyProp(String key, Object val) {
+            if (key != null) {
+                this.kafkaProps.put(key, val);
+            }
+            return this;
         }
 
         /**
