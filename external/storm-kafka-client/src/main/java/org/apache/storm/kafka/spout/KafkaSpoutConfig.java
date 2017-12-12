@@ -287,26 +287,30 @@ public class KafkaSpoutConfig<K, V> implements Serializable {
             if (bootstrapServers == null || bootstrapServers.isEmpty()) {
                 throw new IllegalArgumentException("bootstrap servers cannot be null");
             } else {
-                setNonNullValProp(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers, false);
+                kafkaProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
             }
 
-            setSerDeKafkaProps(keyDes, keyDesClazz, valueDes, valueDesClazz);
+            setNonNullSerDeKafkaProp(keyDes, keyDesClazz, valueDes, valueDesClazz);
         }
 
+        /**
+         * This constructor will always be called by one of the methods {@code setKey} or {@code setVal}, which implies
+         * that only one of its SerDe parameters will be non null, for which the corresponding Kafka property will be set
+         */
+        @SuppressWarnings("unchecked")
         private Builder(final Builder<?, ?> builder, SerializableDeserializer<K> keyDes, Class<? extends Deserializer<K>> keyDesClazz,
                         SerializableDeserializer<V> valueDes, Class<? extends Deserializer<V>> valueDesClazz) {
 
             this(keyDes, keyDesClazz, valueDes, valueDesClazz, builder.subscription,
-                    (RecordTranslator<K, V>) builder.translator, new HashMap<String, Object>());
+                    (RecordTranslator<K, V>) builder.translator, new HashMap<>(builder.kafkaProps));
 
-            this.kafkaProps.putAll(builder.kafkaProps);
             this.pollTimeoutMs = builder.pollTimeoutMs;
             this.offsetCommitPeriodMs = builder.offsetCommitPeriodMs;
             this.firstPollOffsetStrategy = builder.firstPollOffsetStrategy;
             this.maxUncommittedOffsets = builder.maxUncommittedOffsets;
             this.retryService = builder.retryService;
 
-            setSerDeKafkaProps(keyDes, keyDesClazz, valueDes, valueDesClazz);
+            setNonNullSerDeKafkaProp(keyDes, keyDesClazz, valueDes, valueDesClazz);
         }
 
         private Builder(SerializableDeserializer<K> keyDes, Class<? extends Deserializer<K>> keyDesClazz,
@@ -321,20 +325,19 @@ public class KafkaSpoutConfig<K, V> implements Serializable {
             this.kafkaProps = kafkaProps;
         }
 
-        private void setSerDeKafkaProps(SerializableDeserializer<K> keyDes, Class<? extends Deserializer<K>> keyDesClazz, SerializableDeserializer<V> valueDes, Class<? extends Deserializer<V>> valueDesClazz) {
-            setNonNullValProp(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDesClazz, false);
-            setNonNullValProp(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDes, true);
-            setNonNullValProp(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDesClazz, false);
-            setNonNullValProp(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDes, true);
-        }
-
-        private void setNonNullValProp(String key, Object val, boolean isClass) {
-            if (val != null) {
-                if (isClass) {
-                    this.kafkaProps.put(key, val.getClass());
-                } else {
-                    this.kafkaProps.put(key, val);
-                }
+        private void setNonNullSerDeKafkaProp(SerializableDeserializer<K> keyDes, Class<? extends Deserializer<K>> keyDesClazz,
+                SerializableDeserializer<V> valueDes, Class<? extends Deserializer<V>> valueDesClazz) {
+            if (keyDesClazz != null) {
+                kafkaProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDesClazz);
+            }
+            if (keyDes != null) {
+                kafkaProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDes.getClass());
+            }
+            if (valueDesClazz != null) {
+                kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDesClazz);
+            }
+            if (valueDes != null) {
+                kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDes.getClass());
             }
         }
 
