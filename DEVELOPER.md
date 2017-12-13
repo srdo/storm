@@ -250,8 +250,8 @@ With `rvm` and `nvm` installed you can run
 
 ```sh
 rvm use 2.4.2 --install
-nvm install 0.12.2
-nvm use 0.12.2
+nvm install 8.9.3
+nvm use 8.9.3
 ```
 
 in order to get started as fast as possible. Users can still install a specific version of `ruby` and/or `node` manually.
