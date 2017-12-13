@@ -249,7 +249,7 @@ The `ruby` package manager `rvm` and `nodejs` package manager `nvm` are for conv
 With `rvm` and `nvm` installed you can run
 
 ```sh
-rvm use 2.1.10 --install
+rvm use 2.4.2 --install
 nvm install 0.12.2
 nvm use 0.12.2
 ```
