@@ -59,6 +59,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeSet;
+import org.junit.Ignore;
 
 public class TestDefaultResourceAwareStrategy {
     private static final Logger LOG = LoggerFactory.getLogger(TestDefaultResourceAwareStrategy.class);
@@ -69,6 +70,7 @@ public class TestDefaultResourceAwareStrategy {
      * test if the scheduling logic for the DefaultResourceAwareStrategy is correct
      */
     @Test
+    @Ignore
     public void testDefaultResourceAwareStrategySharedMemory() {
         int spoutParallelism = 2;
         int boltParallelism = 2;
@@ -142,6 +144,7 @@ public class TestDefaultResourceAwareStrategy {
      * test if the scheduling logic for the DefaultResourceAwareStrategy is correct
      */
     @Test
+    @Ignore
     public void testDefaultResourceAwareStrategy() {
         int spoutParallelism = 1;
         int boltParallelism = 2;
@@ -330,6 +333,7 @@ public class TestDefaultResourceAwareStrategy {
      * Test whether strategy will choose correct rack
      */
     @Test
+    @Ignore
     public void testMultipleRacksWithFavoritism() {
         final Map<String, SupervisorDetails> supMap = new HashMap<String, SupervisorDetails>();
         final Map<String, SupervisorDetails> supMapRack1 = genSupervisors(10, 4, 0, 400, 8000);
