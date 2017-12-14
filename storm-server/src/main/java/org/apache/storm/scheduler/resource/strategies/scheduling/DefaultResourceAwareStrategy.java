@@ -122,9 +122,13 @@ public class DefaultResourceAwareStrategy extends BaseResourceAwareStrategy impl
             final AllResources allResources, ExecutorDetails exec, TopologyDetails topologyDetails,
             final ExistingScheduleFunc existingScheduleFunc) {
 
+        LOG.debug("Sorting with params {} {}", exec, topologyDetails);
+        
         for (ObjectResources objectResources : allResources.objectResources) {
             objectResources.effectiveResources =
                 allResources.availableResourcesOverall.calculateMinPercentageUsedBy(objectResources.availableResources);
+            LOG.debug("Effective resources for {} is {}, and numExistingSchedule is {}",
+                objectResources.id, objectResources.effectiveResources, existingScheduleFunc.getNumExistingSchedule(objectResources.id));
         }
 
         TreeSet<ObjectResources> sortedObjectResources =
