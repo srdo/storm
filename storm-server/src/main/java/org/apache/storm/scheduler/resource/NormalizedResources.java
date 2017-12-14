@@ -18,7 +18,10 @@
 
 package org.apache.storm.scheduler.resource;
 
-import static org.apache.storm.Constants.*;
+import static org.apache.storm.Constants.COMMON_CPU_RESOURCE_NAME;
+import static org.apache.storm.Constants.COMMON_OFFHEAP_MEMORY_RESOURCE_NAME;
+import static org.apache.storm.Constants.COMMON_ONHEAP_MEMORY_RESOURCE_NAME;
+import static org.apache.storm.Constants.COMMON_TOTAL_MEMORY_RESOURCE_NAME;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -82,6 +85,9 @@ public abstract class NormalizedResources {
     private double[] otherResources;
     private final Map<String, Double> normalizedResources;
 
+    /**
+     * Copy constructor.
+     */
     public NormalizedResources(NormalizedResources other) {
         cpu = other.cpu;
         otherResources = Arrays.copyOf(other.otherResources, other.otherResources.length);
