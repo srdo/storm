@@ -20,9 +20,11 @@ package org.apache.storm.scheduler.resource;
 
 import static org.apache.storm.Constants.*;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -268,6 +270,15 @@ public abstract class NormalizedResources {
     public double calculateMinPercentageUsedBy(NormalizedResources used) {
         double totalMemory = getTotalMemoryMb();
         double totalCpu = getTotalCpu();
+        List<Double> usedOtherRes = new ArrayList<>();
+        for (double d : used.otherResources) {
+            usedOtherRes.add(d);
+        }
+        List<Double> myOtherRes = new ArrayList<>();
+        for (double d : otherResources) {
+            myOtherRes.add(d);
+        }
+        LOG.debug("Calculating min percentage used {} my {} mem {} cpu {}", usedOtherRes, myOtherRes, totalMemory, totalCpu);
         if (used.otherResources.length != otherResources.length
             || totalMemory == 0.0
             || totalCpu == 0.0) {
