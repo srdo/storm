@@ -80,10 +80,17 @@ public abstract class NormalizedResources {
     private static final AtomicInteger counter = new AtomicInteger(0);
     private double cpu;
     private double[] otherResources;
+    private final Map<String, Double> normalizedResources;
 
     public NormalizedResources(NormalizedResources other) {
         cpu = other.cpu;
         otherResources = Arrays.copyOf(other.otherResources, other.otherResources.length);
+        normalizedResources = new HashMap<>(other.normalizedResources);
+        List<Double> myOtherRes = new ArrayList<>();
+        for (double d : otherResources) {
+            myOtherRes.add(d);
+        }
+        LOG.debug("Copying other resources array values {}", myOtherRes);
     }
 
     /**
@@ -94,18 +101,20 @@ public abstract class NormalizedResources {
      * @param defaults the default resources that will also be normalized and combined with the real resources.
      */
     public NormalizedResources(Map<String, ? extends Number> resources, Map<String, ? extends Number> defaults) {
-        Map<String, Double> normalizedResources = normalizedResourceMap(defaults);
+        normalizedResources = normalizedResourceMap(defaults);
         normalizedResources.putAll(normalizedResourceMap(resources));
         cpu = normalizedResources.getOrDefault(Constants.COMMON_CPU_RESOURCE_NAME, 0.0);
         otherResources = makeArray(normalizedResources);
-        initializeMemory(normalizedResources);
+        List<Double> myOtherRes = new ArrayList<>();
+        for (double d : otherResources) {
+            myOtherRes.add(d);
+        }
+        LOG.debug("Created otherResources {} based on map {}", myOtherRes, normalizedResources);
     }
 
-    /**
-     * Initialize any memory usage from the normalized map.
-     * @param normalizedResources the normalized resource map.
-     */
-    protected abstract void initializeMemory(Map<String, Double> normalizedResources);
+    protected final Map<String, Double> getNormalizedResources() {
+        return this.normalizedResources;
+    }
 
     /**
      * Normalizes a supervisor resource map or topology details map's keys to universal resource names.
@@ -141,6 +150,7 @@ public abstract class NormalizedResources {
     private void add(double[] resourceArray) {
         int otherLength = resourceArray.length;
         int length = otherResources.length;
+        LOG.debug("Adding resourceArray to otherResources of length {}", otherLength);
         if (otherLength > length) {
             double [] newResources = new double[otherLength];
             System.arraycopy(newResources, 0, otherResources, 0, length);
@@ -175,6 +185,7 @@ public abstract class NormalizedResources {
         assert cpu >= 0.0;
         int otherLength = other.otherResources.length;
         int length = otherResources.length;
+        LOG.debug("Removing resourceArray from otherResources of length {}", otherLength);
         if (otherLength > length) {
             double [] newResources = new double[otherLength];
             System.arraycopy(newResources, 0, otherResources, 0, length);
