@@ -80,7 +80,6 @@ public abstract class NormalizedResources {
         cpu = other.cpu;
         otherResources = new HashMap<>(other.otherResources);
         normalizedResources = new HashMap<>(other.normalizedResources);
-        LOG.debug("Copying other resources values {}", otherResources);
     }
 
     /**
@@ -95,7 +94,6 @@ public abstract class NormalizedResources {
         normalizedResources.putAll(normalizedResourceMap(resources));
         cpu = normalizedResources.getOrDefault(Constants.COMMON_CPU_RESOURCE_NAME, 0.0);
         otherResources = filterCommonResources(normalizedResources);
-        LOG.debug("Created otherResources {} based on normalizedresources {}", otherResources, normalizedResources);
     }
 
     protected final Map<String, Double> getNormalizedResources() {
@@ -275,7 +273,7 @@ public abstract class NormalizedResources {
              */
             return 100.0;
         } else {
-            return (total * 100.0) / (2 + allResourceNames.size() - skippedResourceTypes);
+            return divisor;
         }
     }
 

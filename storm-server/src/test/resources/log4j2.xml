@@ -25,12 +25,6 @@
     <Root level="INFO">
       <appender-ref ref="console" />
     </Root>
-    <Logger name="org.apache.storm.scheduler.resource.strategies.scheduling" level="TRACE" additivity="false">
-        <appender-ref ref="console" />
-    </Logger>
-   <Logger name="org.apache.storm.scheduler.resource" level="TRACE" additivity="false">
-        <appender-ref ref="console" />
-   </Logger>
   </Loggers>
 </Configuration>
       
