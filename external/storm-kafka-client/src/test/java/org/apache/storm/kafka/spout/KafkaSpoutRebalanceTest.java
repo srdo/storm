@@ -52,11 +52,14 @@ import org.mockito.Captor;
 import org.mockito.MockitoAnnotations;
 
 import static org.apache.storm.kafka.spout.config.builder.SingleTopicKafkaSpoutConfiguration.createKafkaSpoutConfigBuilder;
+import static org.hamcrest.CoreMatchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 public class KafkaSpoutRebalanceTest {
 
@@ -239,5 +242,64 @@ public class KafkaSpoutRebalanceTest {
         verify(consumerMock, never()).seek(eq(assignedPartition), anyLong());
         //This partition is new, and should start at the committed offset
         verify(consumerMock).seek(newPartition, committedOffset);
+    }
+    
+    @Test
+    public void testReassignPartitionsCleansUpPendingTupleCache() {
+        /*
+         * When partitions are reassigned, the spout must clean up the pending tuple caches for partitions it is no longer assigned.
+         * This is necessary to prevent the spout from emitting tuples on revoked partitions.
+         */
+
+        ArgumentCaptor<ConsumerRebalanceListener> rebalanceListenerCapture = ArgumentCaptor.forClass(ConsumerRebalanceListener.class);
+        Subscription subscriptionMock = mock(Subscription.class);
+        doNothing()
+            .when(subscriptionMock)
+            .subscribe(any(), rebalanceListenerCapture.capture(), any());
+        KafkaSpout<String, String> spout = new KafkaSpout<>(createKafkaSpoutConfigBuilder(subscriptionMock, -1)
+            .build(), consumerFactory);
+        String topic = SingleTopicKafkaSpoutConfiguration.TOPIC;
+        TopicPartition assignedPartition = new TopicPartition(topic, 1);
+        TopicPartition partitionToRevoke = new TopicPartition(topic, 2);
+
+        //Setup spout with mock consumer so we can get at the rebalance listener   
+        spout.open(conf, contextMock, collectorMock);
+        spout.activate();
+
+        //Assign partitions to the spout
+        ConsumerRebalanceListener consumerRebalanceListener = rebalanceListenerCapture.getValue();
+        Set<TopicPartition> assignedPartitions = new HashSet<>();
+        assignedPartitions.add(partitionToRevoke);
+        assignedPartitions.add(assignedPartition);
+        consumerRebalanceListener.onPartitionsAssigned(assignedPartitions);
+        when(consumerMock.assignment()).thenReturn(assignedPartitions);
+
+        //Make the consumer return some messages for each partition
+        Map<TopicPartition, List<ConsumerRecord<String, String>>> records = new HashMap<>();
+        records.put(partitionToRevoke, SpoutWithMockedConsumerSetupHelper.createRecords(partitionToRevoke, 0, 10));
+        records.put(assignedPartition, SpoutWithMockedConsumerSetupHelper.createRecords(assignedPartition, 0, 10));
+        when(consumerMock.poll(anyLong()))
+            .thenReturn(new ConsumerRecords<>(records))
+            .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
+
+        //Poll in order to fill the cache
+        spout.nextTuple();
+        ArgumentCaptor<KafkaSpoutMessageId> emittedMessageId = ArgumentCaptor.forClass(KafkaSpoutMessageId.class);
+        verify(collectorMock).emit(anyString(), anyList(), emittedMessageId.capture());
+        spout.ack(emittedMessageId.getValue());
+        
+        //Rebalance
+        consumerRebalanceListener.onPartitionsRevoked(assignedPartitions);
+        consumerRebalanceListener.onPartitionsAssigned(Collections.singleton(assignedPartition));
+        when(consumerMock.assignment()).thenReturn(Collections.singleton(assignedPartition));
+        
+        //Verify that exactly the tuples belonging to the assigned partition are emitted
+        for (int i = 0; i < 10*2; i++) {
+            spout.nextTuple();
+        }
+        verify(collectorMock, times(10)).emit(anyString(), anyList(), emittedMessageId.capture());
+        for (KafkaSpoutMessageId msgId : emittedMessageId.getAllValues()) {
+            assertThat(msgId.partition(), is(assignedPartition.partition()));
+        } 
     }
 }

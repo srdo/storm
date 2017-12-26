@@ -88,6 +88,7 @@ public class KafkaSpoutReactivationTest {
     }
 
     private void prepareSpout(int messageCount) throws Exception {
+        kafkaUnitRule.getKafkaUnit().createTopic(SingleTopicKafkaSpoutConfiguration.TOPIC);
         SingleTopicKafkaUnitSetupHelper.populateTopicData(kafkaUnitRule.getKafkaUnit(), SingleTopicKafkaSpoutConfiguration.TOPIC, messageCount);
         SingleTopicKafkaUnitSetupHelper.initializeSpout(spout, conf, topologyContext, collector);
     }

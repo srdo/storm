@@ -56,6 +56,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.hamcrest.Matchers;
@@ -128,10 +129,13 @@ public class SingleTopicKafkaSpoutTest {
             /* Ack the tuple, and commit.
              * Since the tuple is more than max poll records behind the most recent emitted tuple, the consumer won't catch up in this poll.
              */
+            clearInvocations(collector);
             Time.advanceTime(KafkaSpout.TIMER_DELAY_MS + commitOffsetPeriodMs);
             spout.ack(failedIdReplayCaptor.getValue());
             spout.nextTuple();
             verify(consumerSpy).commitSync(commitCapture.capture());
+            //No more messages should be emitted
+            verify(collector, never()).emit(any(), any(), any());
             
             Map<TopicPartition, OffsetAndMetadata> capturedCommit = commitCapture.getValue();
             TopicPartition expectedTp = new TopicPartition(SingleTopicKafkaSpoutConfiguration.TOPIC, 0);

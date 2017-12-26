@@ -44,16 +44,21 @@ public class SingleTopicKafkaUnitSetupHelper {
      * @param msgCount The number of messages to produce
      */
     public static void populateTopicData(KafkaUnit kafkaUnit, String topicName, int msgCount) throws Exception {
-        kafkaUnit.createTopic(topicName);
+        populateTopicData(kafkaUnit, new TopicPartition(topicName, 0), msgCount);
+    }
 
+    /**
+     * Using the given KafkaUnit instance, put some messages in the specified topic partition.
+     */
+    public static void populateTopicData(KafkaUnit kafkaUnit, TopicPartition tp, int msgCount) throws Exception {
         for (int i = 0; i < msgCount; i++) {
             ProducerRecord<String, String> producerRecord = new ProducerRecord<>(
-                topicName, Integer.toString(i),
+                tp.topic(), tp.partition(), Integer.toString(i),
                 Integer.toString(i));
             kafkaUnit.sendMessage(producerRecord);
         }
     }
-    
+
     /*
      * Asserts that commitSync has been called once, 
      * that there are only commits on one topic,

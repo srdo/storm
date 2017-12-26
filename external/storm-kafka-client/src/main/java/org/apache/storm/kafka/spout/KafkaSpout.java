@@ -443,7 +443,7 @@ public class KafkaSpout<K, V> extends BaseRichSpout {
         } else {
             final OffsetAndMetadata committedOffset = kafkaConsumer.committed(tp);
             if (committedOffset != null && isOffsetCommittedByThisTopology(tp, committedOffset)
-                && committedOffset.offset() > kafkaConsumer.position(tp)) {
+                && committedOffset.offset() > record.offset()) {
                 // Ensures that after a topology with this id is started, the consumer fetch
                 // position never falls behind the committed offset (STORM-2844)
                 throw new IllegalStateException("Attempting to emit a message that has already been committed.");
@@ -522,7 +522,7 @@ public class KafkaSpout<K, V> extends BaseRichSpout {
                      * The position is behind the committed offset. This can happen in some cases, e.g. if a message failed,
                      * lots of (more than max.poll.records) later messages were acked, and the failed message then gets acked. 
                      * The consumer may only be part way through "catching up" to where it was when it went back to retry the failed tuple. 
-                     * Skip the consumer forward to the committed offset drop the current waiting to emit list,
+                     * Skip the consumer forward to the committed offset and drop the current waiting to emit list,
                      * since it'll likely contain committed offsets.
                      */
                     LOG.debug("Consumer fell behind committed offset. Catching up. Position was [{}], skipping to [{}]",

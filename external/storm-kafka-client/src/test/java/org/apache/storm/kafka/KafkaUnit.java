@@ -82,7 +82,11 @@ public class KafkaUnit {
     }
 
     public void createTopic(String topicName) {
-        AdminUtils.createTopic(zkUtils, topicName, 1, 1, new Properties(), RackAwareMode.Disabled$.MODULE$);
+        createTopic(topicName, 1);
+    }
+    
+    public void createTopic(String topicName, int partitions) {
+        AdminUtils.createTopic(zkUtils, topicName, partitions, 1, new Properties(), RackAwareMode.Disabled$.MODULE$);
     }
 
     public int getKafkaPort() {
