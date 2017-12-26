@@ -44,16 +44,9 @@ public class SingleTopicKafkaUnitSetupHelper {
      * @param msgCount The number of messages to produce
      */
     public static void populateTopicData(KafkaUnit kafkaUnit, String topicName, int msgCount) throws Exception {
-        populateTopicData(kafkaUnit, new TopicPartition(topicName, 0), msgCount);
-    }
-
-    /**
-     * Using the given KafkaUnit instance, put some messages in the specified topic partition.
-     */
-    public static void populateTopicData(KafkaUnit kafkaUnit, TopicPartition tp, int msgCount) throws Exception {
         for (int i = 0; i < msgCount; i++) {
             ProducerRecord<String, String> producerRecord = new ProducerRecord<>(
-                tp.topic(), tp.partition(), Integer.toString(i),
+                topicName, Integer.toString(i),
                 Integer.toString(i));
             kafkaUnit.sendMessage(producerRecord);
         }

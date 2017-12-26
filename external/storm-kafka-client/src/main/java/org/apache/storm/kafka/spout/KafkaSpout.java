@@ -28,13 +28,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -138,7 +138,7 @@ public class KafkaSpout<K, V> extends BaseRichSpout {
 
         offsetManagers = new HashMap<>();
         emitted = new HashSet<>();
-        waitingToEmit = Collections.emptyMap();
+        waitingToEmit = new HashMap<>();
         setCommitMetadata(context);
 
         tupleListener.open(conf, context);
@@ -356,7 +356,7 @@ public class KafkaSpout<K, V> extends BaseRichSpout {
 
     private void setWaitingToEmit(ConsumerRecords<K, V> consumerRecords) {
         for (TopicPartition tp : consumerRecords.partitions()) {
-            waitingToEmit.put(tp, consumerRecords.records(tp));
+            waitingToEmit.put(tp, new ArrayList<>(consumerRecords.records(tp)));
         }
     }
 
