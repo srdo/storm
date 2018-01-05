@@ -18,11 +18,8 @@
 
 package org.apache.storm.scheduler.resource;
 
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.apache.storm.Constants;
-import org.apache.storm.generated.WorkerResources;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

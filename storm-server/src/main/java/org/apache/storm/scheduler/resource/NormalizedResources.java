@@ -184,6 +184,7 @@ public abstract class NormalizedResources {
      * Remove the other resources from this. This is the same as subtracting the resources in other from this.
      *
      * @param other the resources we want removed.
+     * @throws IllegalArgumentException if subtracting other from this would result in any resource amount becoming negative.
      */
     public void remove(NormalizedResources other) {
         this.cpu -= other.cpu;
