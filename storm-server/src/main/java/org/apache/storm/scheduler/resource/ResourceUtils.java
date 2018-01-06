@@ -18,17 +18,15 @@
 
 package org.apache.storm.scheduler.resource;
 
-import org.apache.storm.scheduler.resource.normalization.NormalizedResources;
-import org.apache.storm.scheduler.resource.normalization.NormalizedResourceRequest;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.storm.Config;
-import org.apache.storm.Constants;
 import org.apache.storm.generated.Bolt;
 import org.apache.storm.generated.ComponentCommon;
 import org.apache.storm.generated.SpoutSpec;
 import org.apache.storm.generated.StormTopology;
+import org.apache.storm.scheduler.resource.normalization.NormalizedResourceRequest;
+import org.apache.storm.scheduler.resource.normalization.NormalizedResources;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;

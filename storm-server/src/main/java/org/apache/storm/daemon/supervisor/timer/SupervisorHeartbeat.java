@@ -17,20 +17,19 @@
  */
 package org.apache.storm.daemon.supervisor.timer;
 
-import org.apache.storm.Config;
-import org.apache.storm.DaemonConfig;
-import org.apache.storm.cluster.IStormClusterState;
-import org.apache.storm.daemon.supervisor.Supervisor;
-import org.apache.storm.generated.SupervisorInfo;
-import org.apache.storm.utils.ObjectReader;
-import org.apache.storm.utils.Time;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.storm.Config;
+import org.apache.storm.DaemonConfig;
+import org.apache.storm.cluster.IStormClusterState;
+import org.apache.storm.daemon.supervisor.Supervisor;
+import org.apache.storm.generated.SupervisorInfo;
 import org.apache.storm.scheduler.resource.normalization.NormalizedResources;
+import org.apache.storm.utils.ObjectReader;
+import org.apache.storm.utils.Time;
 
 public class SupervisorHeartbeat implements Runnable {
 
