@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.storm.Config;
 import org.apache.storm.Constants;
@@ -36,111 +37,49 @@ import org.slf4j.LoggerFactory;
 /**
  * Resources that have been normalized.
  */
-public abstract class NormalizedResources {
+public class NormalizedResources {
 
     private static final Logger LOG = LoggerFactory.getLogger(NormalizedResources.class);
-    public static final Map<String, String> RESOURCE_NAME_MAPPING;
+    public static NormalizedResourceNames NORMALIZED_RESOURCE_NAMES;
 
     static {
-        Map<String, String> tmp = new HashMap<>();
-        tmp.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, Constants.COMMON_CPU_RESOURCE_NAME);
-        tmp.put(Config.SUPERVISOR_CPU_CAPACITY, Constants.COMMON_CPU_RESOURCE_NAME);
-        tmp.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, Constants.COMMON_ONHEAP_MEMORY_RESOURCE_NAME);
-        tmp.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, Constants.COMMON_OFFHEAP_MEMORY_RESOURCE_NAME);
-        tmp.put(Config.SUPERVISOR_MEMORY_CAPACITY_MB, Constants.COMMON_TOTAL_MEMORY_RESOURCE_NAME);
-        RESOURCE_NAME_MAPPING = Collections.unmodifiableMap(tmp);
+        resetResourceNames();
     }
 
-    private static double[] makeArray(Map<String, Double> normalizedResources) {
-        //To avoid locking we will go through the map twice.  It should be small so it is probably not a big deal
-        for (String key : normalizedResources.keySet()) {
-            //We are going to skip over CPU and Memory, because they are captured elsewhere
-            if (!Constants.COMMON_CPU_RESOURCE_NAME.equals(key)
-                && !Constants.COMMON_TOTAL_MEMORY_RESOURCE_NAME.equals(key)
-                && !Constants.COMMON_OFFHEAP_MEMORY_RESOURCE_NAME.equals(key)
-                && !Constants.COMMON_ONHEAP_MEMORY_RESOURCE_NAME.equals(key)) {
-                resourceNames.computeIfAbsent(key, (k) -> counter.getAndIncrement());
-            }
-        }
-        //By default all of the values are 0
-        double[] ret = new double[counter.get()];
-        for (Map.Entry<String, Double> entry : normalizedResources.entrySet()) {
-            Integer index = resourceNames.get(entry.getKey());
-            if (index != null) {
-                //index == null if it is memory or CPU
-                ret[index] = entry.getValue();
-            }
-        }
-        return ret;
-    }
-
-    private static final ConcurrentMap<String, Integer> resourceNames = new ConcurrentHashMap<>();
-    private static final AtomicInteger counter = new AtomicInteger(0);
     private double cpu;
     private double[] otherResources;
-    private final Map<String, Double> normalizedResources;
+    private final Supplier<Double> getTotalMemoryMb;
 
     /**
-     * This is for testing only. It allows a test to reset the mapping of resource names in the array. We reset the mapping because some
+     * This is for testing only. It allows a test to reset the static state relating to resource names. We reset the mapping because some
      * algorithms sadly have different behavior if a resource exists or not.
      */
     @VisibleForTesting
     public static void resetResourceNames() {
-        resourceNames.clear();
-        counter.set(0);
+        NORMALIZED_RESOURCE_NAMES = new NormalizedResourceNames();
     }
 
     /**
      * Copy constructor.
      */
-    public NormalizedResources(NormalizedResources other) {
+    public NormalizedResources(NormalizedResources other, Supplier<Double> getTotalMemoryMb) {
         cpu = other.cpu;
         otherResources = Arrays.copyOf(other.otherResources, other.otherResources.length);
-        normalizedResources = other.normalizedResources;
+        this.getTotalMemoryMb = getTotalMemoryMb;
     }
 
     /**
-     * Create a new normalized set of resources. Note that memory is not covered here because it is not consistent in requests vs offers
-     * because of how on heap vs off heap is used.
+     * Create a new normalized set of resources. Note that memory is not managed by this class, as it is not consistent in requests vs
+     * offers because of how on heap vs off heap is used.
      *
-     * @param resources the resources to be normalized.
-     * @param defaults the default resources that will also be normalized and combined with the real resources.
+     * @param normalizedResources the normalized resource map
+     * @param getTotalMemoryMb Supplier of total memory in MB.
      */
-    public NormalizedResources(Map<String, ? extends Number> resources, Map<String, ? extends Number> defaults) {
-        normalizedResources = normalizedResourceMap(defaults);
-        normalizedResources.putAll(normalizedResourceMap(resources));
+    public NormalizedResources(Map<String, Double> normalizedResources, Supplier<Double> getTotalMemoryMb) {
         cpu = normalizedResources.getOrDefault(Constants.COMMON_CPU_RESOURCE_NAME, 0.0);
-        otherResources = makeArray(normalizedResources);
+        otherResources = NORMALIZED_RESOURCE_NAMES.translateToResourceArray(normalizedResources);
+        this.getTotalMemoryMb = getTotalMemoryMb;
     }
-
-    protected final Map<String, Double> getNormalizedResources() {
-        return this.normalizedResources;
-    }
-
-    /**
-     * Normalizes a supervisor resource map or topology details map's keys to universal resource names.
-     *
-     * @param resourceMap resource map of either Supervisor or Topology
-     * @return the resource map with common resource names
-     */
-    public static Map<String, Double> normalizedResourceMap(Map<String, ? extends Number> resourceMap) {
-        if (resourceMap == null) {
-            return new HashMap<>();
-        }
-        return new HashMap<>(resourceMap.entrySet().stream()
-            .collect(Collectors.toMap(
-                //Map the key if needed
-                (e) -> RESOURCE_NAME_MAPPING.getOrDefault(e.getKey(), e.getKey()),
-                //Map the value
-                (e) -> e.getValue().doubleValue())));
-    }
-
-    /**
-     * Get the total amount of memory.
-     *
-     * @return the total amount of memory requested or provided.
-     */
-    public abstract double getTotalMemoryMb();
 
     /**
      * Get the total amount of cpu.
@@ -177,7 +116,7 @@ public abstract class NormalizedResources {
     public void add(WorkerResources value) {
         Map<String, Double> workerNormalizedResources = value.get_resources();
         cpu += workerNormalizedResources.getOrDefault(Constants.COMMON_CPU_RESOURCE_NAME, 0.0);
-        add(makeArray(workerNormalizedResources));
+        add(NORMALIZED_RESOURCE_NAMES.translateToResourceArray(workerNormalizedResources));
     }
 
     /**
@@ -204,19 +143,7 @@ public abstract class NormalizedResources {
 
     @Override
     public String toString() {
-        return "CPU: " + cpu + " Other resources: " + toNormalizedOtherResources();
-    }
-
-    private Map<String, Double> toNormalizedOtherResources() {
-        Map<String, Double> ret = new HashMap<>();
-        int length = otherResources.length;
-        for (Map.Entry<String, Integer> entry : resourceNames.entrySet()) {
-            int index = entry.getValue();
-            if (index < length) {
-                ret.put(entry.getKey(), otherResources[index]);
-            }
-        }
-        return ret;
+        return "CPU: " + cpu + " Other resources: " + NORMALIZED_RESOURCE_NAMES.translateFromResourceArray(otherResources);
     }
 
     /**
@@ -224,7 +151,7 @@ public abstract class NormalizedResources {
      * user.
      */
     public Map<String, Double> toNormalizedMap() {
-        Map<String, Double> ret = toNormalizedOtherResources();
+        Map<String, Double> ret = NORMALIZED_RESOURCE_NAMES.translateFromResourceArray(otherResources);
         ret.put(Constants.COMMON_CPU_RESOURCE_NAME, cpu);
         return ret;
     }
@@ -254,15 +181,12 @@ public abstract class NormalizedResources {
             }
         }
 
-        if (this.getTotalMemoryMb() < other.getTotalMemoryMb()) {
-            return false;
-        }
-        return true;
+        return getTotalMemoryMb.get() >= other.getTotalMemoryMb.get();
     }
 
     private void throwBecauseResourceIsMissingFromTotal(int resourceIndex) {
         String resourceName = null;
-        for (Map.Entry<String, Integer> entry : resourceNames.entrySet()) {
+        for (Map.Entry<String, Integer> entry : NORMALIZED_RESOURCE_NAMES.getResourceNames().entrySet()) {
             int index = entry.getValue();
             if (index == resourceIndex) {
                 resourceName = entry.getKey();
@@ -287,9 +211,9 @@ public abstract class NormalizedResources {
     public double calculateAveragePercentageUsedBy(NormalizedResources used) {
         int skippedResourceTypes = 0;
         double total = 0.0;
-        double totalMemory = getTotalMemoryMb();
+        double totalMemory = getTotalMemoryMb.get();
         if (totalMemory != 0.0) {
-            total += used.getTotalMemoryMb() / totalMemory;
+            total += used.getTotalMemoryMb.get() / totalMemory;
         } else {
             skippedResourceTypes++;
         }
@@ -300,9 +224,9 @@ public abstract class NormalizedResources {
             skippedResourceTypes++;
         }
         if (LOG.isTraceEnabled()) {
-            LOG.trace("Calculating avg percentage used by. Used CPU: {} Total CPU: {} Used Mem: {} Total Mem: {}"
-                + " Other Used: {} Other Total: {}", totalCpu, used.getTotalCpu(), totalMemory, used.getTotalMemoryMb(),
-                this.toNormalizedOtherResources(), used.toNormalizedOtherResources());
+            LOG.trace("Calculating avg percentage used by. Used Mem: {} Total Mem: {}"
+                + " Used Normalized Resources: {} Total Normalized Resources: {}", totalMemory, used.getTotalMemoryMb.get(),
+                toNormalizedMap(), used.toNormalizedMap());
         }
 
         if (used.otherResources.length > otherResources.length) {
@@ -346,13 +270,13 @@ public abstract class NormalizedResources {
      * @return the minimum percentage used 0.0 to 100.0. Clamps to 100.0 in case there are no available resources in the total.
      */
     public double calculateMinPercentageUsedBy(NormalizedResources used) {
-        double totalMemory = getTotalMemoryMb();
+        double totalMemory = getTotalMemoryMb.get();
         double totalCpu = getTotalCpu();
 
         if (LOG.isTraceEnabled()) {
-            LOG.trace("Calculating min percentage used by. Used CPU: {} Total CPU: {} Used Mem: {} Total Mem: {}"
-                + " Other Used: {} Other Total: {}", totalCpu, used.getTotalCpu(), totalMemory, used.getTotalMemoryMb(),
-                toNormalizedOtherResources(), used.toNormalizedOtherResources());
+            LOG.trace("Calculating min percentage used by. Used Mem: {} Total Mem: {}"
+                + " Used Normalized Resources: {} Total Normalized Resources: {}", totalMemory, used.getTotalMemoryMb.get(),
+                toNormalizedMap(), used.toNormalizedMap());
         }
 
         if (used.otherResources.length > otherResources.length) {
@@ -369,7 +293,7 @@ public abstract class NormalizedResources {
 
         double min = 100.0;
         if (totalMemory != 0.0) {
-            min = Math.min(min, used.getTotalMemoryMb() / totalMemory);
+            min = Math.min(min, used.getTotalMemoryMb.get() / totalMemory);
         }
         if (totalCpu != 0.0) {
             min = Math.min(min, used.getTotalCpu() / totalCpu);

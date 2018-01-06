@@ -33,8 +33,6 @@ import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.storm.scheduler.resource.NormalizedResources.normalizedResourceMap;
-
 public class ResourceUtils {
     private static final Logger LOG = LoggerFactory.getLogger(ResourceUtils.class);
 
@@ -95,7 +93,8 @@ public class ResourceUtils {
 
                 if (resourceUpdatesMap.containsKey(spoutName)) {
                     ComponentCommon spoutCommon = spoutSpec.get_common();
-                    Map<String, Double> resourcesUpdate = normalizedResourceMap(resourceUpdatesMap.get(spoutName));
+                    Map<String, Double> resourcesUpdate = NormalizedResources
+                        .NORMALIZED_RESOURCE_NAMES.normalizedResourceMap(resourceUpdatesMap.get(spoutName));
                     String newJsonConf = getJsonWithUpdatedResources(spoutCommon.get_json_conf(), resourcesUpdate);
                     spoutCommon.set_json_conf(newJsonConf);
                     componentsUpdated.put(spoutName, resourcesUpdate);
@@ -110,7 +109,8 @@ public class ResourceUtils {
 
                 if (resourceUpdatesMap.containsKey(boltName)) {
                     ComponentCommon boltCommon = boltObj.get_common();
-                    Map<String, Double> resourcesUpdate = normalizedResourceMap(resourceUpdatesMap.get(boltName));
+                    Map<String, Double> resourcesUpdate = NormalizedResources
+                        .NORMALIZED_RESOURCE_NAMES.normalizedResourceMap(resourceUpdatesMap.get(boltName));
                     String newJsonConf = getJsonWithUpdatedResources(boltCommon.get_json_conf(), resourceUpdatesMap.get(boltName));
                     boltCommon.set_json_conf(newJsonConf);
                     componentsUpdated.put(boltName, resourcesUpdate);
@@ -128,7 +128,7 @@ public class ResourceUtils {
     }
 
     public static String getCorrespondingLegacyResourceName(String normalizedResourceName) {
-        for(Map.Entry<String, String> entry : NormalizedResources.RESOURCE_NAME_MAPPING.entrySet()) {
+        for(Map.Entry<String, String> entry : NormalizedResources.NORMALIZED_RESOURCE_NAMES.getResourceNameMapping().entrySet()) {
             if (entry.getValue().equals(normalizedResourceName)) {
                 return entry.getKey();
             }
@@ -148,7 +148,7 @@ public class ResourceUtils {
                     );
 
             for (Map.Entry<String, Double> resourceUpdateEntry : resourceUpdates.entrySet()) {
-                if (NormalizedResources.RESOURCE_NAME_MAPPING.containsValue(resourceUpdateEntry.getKey())) {
+                if (NormalizedResources.NORMALIZED_RESOURCE_NAMES.getResourceNameMapping().containsValue(resourceUpdateEntry.getKey())) {
                     // if there will be legacy values they will be in the outer conf
                     jsonObject.remove(getCorrespondingLegacyResourceName(resourceUpdateEntry.getKey()));
                     componentResourceMap.remove(getCorrespondingLegacyResourceName(resourceUpdateEntry.getKey()));

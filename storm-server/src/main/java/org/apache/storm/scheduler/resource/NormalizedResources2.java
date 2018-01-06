@@ -16,13 +16,10 @@
 
 package org.apache.storm.scheduler.resource;
 
-import org.junit.Test;
+public interface NormalizedResources2 {
 
-public class NormalizedResourcesTest {
-    
-    @Test
-    public void testRemoveThrowsIfResourcesBecomeNegative() {
-        //NormalizedResources a = new NormalizedResources(resources, null, () -> 10);
-    }
+    NormalizedResources getNormalizedResources();
+
+    double getTotalMemoryMb();
 
 }

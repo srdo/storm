@@ -26,57 +26,91 @@ import org.slf4j.LoggerFactory;
 /**
  * An offer of resources that has been normalized.
  */
-public class NormalizedResourceOffer extends NormalizedResources {
+public class NormalizedResourceOffer implements NormalizedResources2 {
+
     private static final Logger LOG = LoggerFactory.getLogger(NormalizedResourceOffer.class);
-    private double totalMemory;
+    private final NormalizedResources normalizedResources;
+    private double totalMemoryMb;
 
     /**
-     * Create a new normalized set of resources.  Note that memory is not covered here because it is not consistent in requests vs offers
-     * because of how on heap vs off heap is used.
+     * Create a new normalized resource offer.
      *
      * @param resources the resources to be normalized.
      */
     public NormalizedResourceOffer(Map<String, ? extends Number> resources) {
-        super(resources, null);
-        totalMemory = getNormalizedResources().getOrDefault(Constants.COMMON_TOTAL_MEMORY_RESOURCE_NAME, 0.0);
+        Map<String, Double> normalizedResourceMap = NormalizedResources.NORMALIZED_RESOURCE_NAMES.normalizedResourceMap(resources);
+        totalMemoryMb = normalizedResourceMap.getOrDefault(Constants.COMMON_TOTAL_MEMORY_RESOURCE_NAME, 0.0);
+        this.normalizedResources = new NormalizedResources(normalizedResourceMap, () -> totalMemoryMb);
     }
 
     public NormalizedResourceOffer() {
-        this((Map<String, ? extends Number>)null);
+        this((Map<String, ? extends Number>) null);
     }
 
     public NormalizedResourceOffer(NormalizedResourceOffer other) {
-        super(other);
-        this.totalMemory = other.totalMemory;
+        this.totalMemoryMb = other.totalMemoryMb;
+        this.normalizedResources = new NormalizedResources(other.normalizedResources, () -> totalMemoryMb);
     }
 
     @Override
     public double getTotalMemoryMb() {
-        return totalMemory;
+        return totalMemoryMb;
     }
 
-    @Override
-    public String toString() {
-        return super.toString() + " MEM: " + totalMemory;
-    }
-
-    @Override
-    public Map<String,Double> toNormalizedMap() {
-        Map<String, Double> ret = super.toNormalizedMap();
-        ret.put(Constants.COMMON_TOTAL_MEMORY_RESOURCE_NAME, totalMemory);
+    public Map<String, Double> toNormalizedMap() {
+        Map<String, Double> ret = normalizedResources.toNormalizedMap();
+        ret.put(Constants.COMMON_TOTAL_MEMORY_RESOURCE_NAME, totalMemoryMb);
         return ret;
     }
 
-    @Override
-    public void add(NormalizedResources other) {
-        super.add(other);
-        totalMemory += other.getTotalMemoryMb();
+    public void add(NormalizedResources2 other) {
+        normalizedResources.add(other.getNormalizedResources());
+        totalMemoryMb += other.getTotalMemoryMb();
+    }
+
+    public void remove(NormalizedResources2 other) {
+        normalizedResources.remove(other.getNormalizedResources());
+        totalMemoryMb -= other.getTotalMemoryMb();
+        assert totalMemoryMb >= 0.0;
+    }
+
+    /**
+     * Calculate the average resource usage percentage with this being the total resources and used being the amounts used.
+     *
+     * @param used the amount of resources used.
+     * @return the average percentage used 0.0 to 100.0. Clamps to 100.0 in case there are no available resources in the total
+     */
+    public double calculateAveragePercentageUsedBy(NormalizedResources2 used) {
+        return normalizedResources.calculateAveragePercentageUsedBy(used.getNormalizedResources());
+    }
+
+    /**
+     * Calculate the minimum resource usage percentage with this being the total resources and used being the amounts used.
+     *
+     * @param used the amount of resources used.
+     * @return the minimum percentage used 0.0 to 100.0. Clamps to 100.0 in case there are no available resources in the total.
+     */
+    public double calculateMinPercentageUsedBy(NormalizedResources2 used) {
+        return normalizedResources.calculateMinPercentageUsedBy(used.getNormalizedResources());
+    }
+
+    /**
+     * A simple sanity check to see if all of the resources in this would be large enough to hold the resources in other ignoring memory. It
+     * does not check memory because with shared memory it is beyond the scope of this.
+     *
+     * @param other the resources that we want to check if they would fit in this.
+     * @return true if it might fit, else false if it could not possibly fit.
+     */
+    public boolean couldHoldIgnoringSharedMemory(NormalizedResources2 other) {
+        return normalizedResources.couldHoldIgnoringSharedMemory(other.getNormalizedResources());
+    }
+
+    public double getTotalCpu() {
+        return normalizedResources.getTotalCpu();
     }
 
     @Override
-    public void remove(NormalizedResources other) {
-        super.remove(other);
-        totalMemory -= other.getTotalMemoryMb();
-        assert totalMemory >= 0.0;
+    public NormalizedResources getNormalizedResources() {
+        return normalizedResources;
     }
 }

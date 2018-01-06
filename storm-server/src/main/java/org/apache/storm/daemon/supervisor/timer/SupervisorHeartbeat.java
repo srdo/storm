@@ -30,8 +30,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.apache.storm.scheduler.resource.NormalizedResources.normalizedResourceMap;
+import org.apache.storm.scheduler.resource.NormalizedResources;
 
 public class SupervisorHeartbeat implements Runnable {
 
@@ -92,7 +91,7 @@ public class SupervisorHeartbeat implements Runnable {
             ret.put(stringNumberEntry.getKey(), stringNumberEntry.getValue().doubleValue());
         }
 
-        return normalizedResourceMap(ret);
+        return NormalizedResources.NORMALIZED_RESOURCE_NAMES.normalizedResourceMap(ret);
     }
 
     @Override
