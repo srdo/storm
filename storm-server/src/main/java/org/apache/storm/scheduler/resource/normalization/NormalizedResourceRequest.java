@@ -112,7 +112,7 @@ public class NormalizedResourceRequest implements NormalizedResourcesWithMemory 
         normalizedResourceMap.putAll(NormalizedResources.RESOURCE_NAME_NORMALIZER.normalizedResourceMap(resources));
         onHeap = normalizedResourceMap.getOrDefault(Constants.COMMON_ONHEAP_MEMORY_RESOURCE_NAME, 0.0);
         offHeap = normalizedResourceMap.getOrDefault(Constants.COMMON_OFFHEAP_MEMORY_RESOURCE_NAME, 0.0);
-        normalizedResources = new NormalizedResources(normalizedResourceMap, () -> onHeap + offHeap);
+        normalizedResources = new NormalizedResources(normalizedResourceMap);
     }
 
     public NormalizedResourceRequest(ComponentCommon component, Map<String, Object> topoConf) {

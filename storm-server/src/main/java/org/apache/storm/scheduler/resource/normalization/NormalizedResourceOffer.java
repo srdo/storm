@@ -40,7 +40,7 @@ public class NormalizedResourceOffer implements NormalizedResourcesWithMemory {
     public NormalizedResourceOffer(Map<String, ? extends Number> resources) {
         Map<String, Double> normalizedResourceMap = NormalizedResources.RESOURCE_NAME_NORMALIZER.normalizedResourceMap(resources);
         totalMemoryMb = normalizedResourceMap.getOrDefault(Constants.COMMON_TOTAL_MEMORY_RESOURCE_NAME, 0.0);
-        this.normalizedResources = new NormalizedResources(normalizedResourceMap, () -> totalMemoryMb);
+        this.normalizedResources = new NormalizedResources(normalizedResourceMap);
     }
 
     public NormalizedResourceOffer() {
@@ -49,7 +49,7 @@ public class NormalizedResourceOffer implements NormalizedResourcesWithMemory {
 
     public NormalizedResourceOffer(NormalizedResourceOffer other) {
         this.totalMemoryMb = other.totalMemoryMb;
-        this.normalizedResources = new NormalizedResources(other.normalizedResources, () -> totalMemoryMb);
+        this.normalizedResources = new NormalizedResources(other.normalizedResources);
     }
 
     @Override
@@ -81,7 +81,8 @@ public class NormalizedResourceOffer implements NormalizedResourcesWithMemory {
      * @return the average percentage used 0.0 to 100.0. Clamps to 100.0 in case there are no available resources in the total
      */
     public double calculateAveragePercentageUsedBy(NormalizedResourcesWithMemory used) {
-        return normalizedResources.calculateAveragePercentageUsedBy(used.getNormalizedResources());
+        return normalizedResources.calculateAveragePercentageUsedBy(
+            used.getNormalizedResources(), getTotalMemoryMb(), used.getTotalMemoryMb());
     }
 
     /**
@@ -91,7 +92,7 @@ public class NormalizedResourceOffer implements NormalizedResourcesWithMemory {
      * @return the minimum percentage used 0.0 to 100.0. Clamps to 100.0 in case there are no available resources in the total.
      */
     public double calculateMinPercentageUsedBy(NormalizedResourcesWithMemory used) {
-        return normalizedResources.calculateMinPercentageUsedBy(used.getNormalizedResources());
+        return normalizedResources.calculateMinPercentageUsedBy(used.getNormalizedResources(), getTotalMemoryMb(), used.getTotalMemoryMb());
     }
 
     /**
@@ -102,7 +103,8 @@ public class NormalizedResourceOffer implements NormalizedResourcesWithMemory {
      * @return true if it might fit, else false if it could not possibly fit.
      */
     public boolean couldHoldIgnoringSharedMemory(NormalizedResourcesWithMemory other) {
-        return normalizedResources.couldHoldIgnoringSharedMemory(other.getNormalizedResources());
+        return normalizedResources.couldHoldIgnoringSharedMemory(
+            other.getNormalizedResources(), getTotalMemoryMb(), other.getTotalMemoryMb());
     }
 
     public double getTotalCpu() {

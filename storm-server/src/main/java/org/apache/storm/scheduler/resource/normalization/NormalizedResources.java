@@ -21,19 +21,20 @@ package org.apache.storm.scheduler.resource.normalization;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.function.Supplier;
+import org.apache.commons.lang.Validate;
 import org.apache.storm.Constants;
 import org.apache.storm.generated.WorkerResources;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Resources that have been normalized. Does not cover memory, this job is delegated to wrappers.
+ * Resources that have been normalized. This class is intended as a delegate for more specific types of normalized resource set, since it
+ * does not keep track of memory as a resource.
  */
 public class NormalizedResources {
 
     private static final Logger LOG = LoggerFactory.getLogger(NormalizedResources.class);
-    
+
     public static ResourceNameNormalizer RESOURCE_NAME_NORMALIZER;
     private static ResourceMapArrayBridge RESOURCE_ARRAY_BRIDGE;
 
@@ -43,7 +44,6 @@ public class NormalizedResources {
 
     private double cpu;
     private double[] otherResources;
-    private final Supplier<Double> getTotalMemoryMb;
 
     /**
      * This is for testing only. It allows a test to reset the static state relating to resource names. We reset the mapping because some
@@ -58,10 +58,9 @@ public class NormalizedResources {
     /**
      * Copy constructor.
      */
-    public NormalizedResources(NormalizedResources other, Supplier<Double> getTotalMemoryMb) {
+    public NormalizedResources(NormalizedResources other) {
         cpu = other.cpu;
         otherResources = Arrays.copyOf(other.otherResources, other.otherResources.length);
-        this.getTotalMemoryMb = getTotalMemoryMb;
     }
 
     /**
@@ -71,10 +70,9 @@ public class NormalizedResources {
      * @param normalizedResources the normalized resource map
      * @param getTotalMemoryMb Supplier of total memory in MB.
      */
-    public NormalizedResources(Map<String, Double> normalizedResources, Supplier<Double> getTotalMemoryMb) {
+    public NormalizedResources(Map<String, Double> normalizedResources) {
         cpu = normalizedResources.getOrDefault(Constants.COMMON_CPU_RESOURCE_NAME, 0.0);
         otherResources = RESOURCE_ARRAY_BRIDGE.translateToResourceArray(normalizedResources);
-        this.getTotalMemoryMb = getTotalMemoryMb;
     }
 
     /**
@@ -91,7 +89,7 @@ public class NormalizedResources {
         int length = otherResources.length;
         if (otherLength > length) {
             double[] newResources = new double[otherLength];
-            System.arraycopy(newResources, 0, otherResources, 0, length);
+            System.arraycopy(otherResources, 0, newResources, 0, length);
             otherResources = newResources;
         }
         for (int i = 0; i < otherLength; i++) {
@@ -123,17 +121,21 @@ public class NormalizedResources {
      */
     public void remove(NormalizedResources other) {
         this.cpu -= other.cpu;
-        assert cpu >= 0.0;
+        if (cpu < 0.0) {
+            throwBecauseResourceBecameNegative(Constants.COMMON_CPU_RESOURCE_NAME, cpu, other.cpu);
+        }
         int otherLength = other.otherResources.length;
         int length = otherResources.length;
         if (otherLength > length) {
             double[] newResources = new double[otherLength];
-            System.arraycopy(newResources, 0, otherResources, 0, length);
+            System.arraycopy(otherResources, 0, newResources, 0, length);
             otherResources = newResources;
         }
         for (int i = 0; i < otherLength; i++) {
             otherResources[i] -= other.otherResources[i];
-            assert otherResources[i] >= 0.0;
+            if (otherResources[i] < 0.0) {
+                throwBecauseResourceBecameNegative(getResourceNameForResourceIndex(i), otherResources[i], other.otherResources[i]);
+            }
         }
     }
 
@@ -164,9 +166,11 @@ public class NormalizedResources {
      * does not check memory because with shared memory it is beyond the scope of this.
      *
      * @param other the resources that we want to check if they would fit in this.
+     * @param thisTotalMemoryMb The total memory in MB of this
+     * @param otherTotalMemoryMb The total memory in MB of other
      * @return true if it might fit, else false if it could not possibly fit.
      */
-    public boolean couldHoldIgnoringSharedMemory(NormalizedResources other) {
+    public boolean couldHoldIgnoringSharedMemory(NormalizedResources other, double thisTotalMemoryMb, double otherTotalMemoryMb) {
         if (this.cpu < other.getTotalCpu()) {
             return false;
         }
@@ -177,20 +181,29 @@ public class NormalizedResources {
             }
         }
 
-        return getTotalMemoryMb.get() >= other.getTotalMemoryMb.get();
+        return thisTotalMemoryMb >= otherTotalMemoryMb;
     }
 
-    private void throwBecauseResourceIsMissingFromTotal(int resourceIndex) {
-        String resourceName = null;
+    private String getResourceNameForResourceIndex(int resourceIndex) {
         for (Map.Entry<String, Integer> entry : RESOURCE_ARRAY_BRIDGE.getResourceNamesToArrayIndex().entrySet()) {
             int index = entry.getValue();
             if (index == resourceIndex) {
-                resourceName = entry.getKey();
-                break;
+                return entry.getKey();
             }
         }
+        return null;
+    }
+
+    private void throwBecauseResourceBecameNegative(String resourceName, double currentValue, double subtractedValue) {
+        throw new IllegalArgumentException(String.format("Resource amounts should never be negative."
+            + " Resource '%s' with current value '%f' became negative because '%f' was removed.",
+            resourceName, currentValue, subtractedValue));
+    }
+
+    private void throwBecauseResourceIsMissingFromTotal(int resourceIndex) {
+        String resourceName = getResourceNameForResourceIndex(resourceIndex);
         if (resourceName == null) {
-            throw new IllegalStateException("Array index " + resourceIndex + " is not mapped in the resource names map."
+            throw new IllegalArgumentException("Array index " + resourceIndex + " is not mapped in the resource names map."
                 + " This should not be possible, and is likely a bug in the Storm code.");
         }
         throw new IllegalArgumentException("Total resources does not contain resource '"
@@ -199,17 +212,20 @@ public class NormalizedResources {
     }
 
     /**
-     * Calculate the average resource usage percentage with this being the total resources and used being the amounts used.
+     * Calculate the average resource usage percentage with this being the total resources and used being the amounts used. If a resource is
+     * missing or zero in the total, it will be considered to be 0 and skipped in the average to avoid division by 0. If all resources are
+     * skipped the result is defined to be 100.0.
      *
      * @param used the amount of resources used.
+     * @param thisTotalMemoryMb The total memory in MB of this
+     * @param usedTotalMemoryMb The total memory in MB of other
      * @return the average percentage used 0.0 to 100.0. Clamps to 100.0 in case there are no available resources in the total
      */
-    public double calculateAveragePercentageUsedBy(NormalizedResources used) {
+    public double calculateAveragePercentageUsedBy(NormalizedResources used, double thisTotalMemoryMb, double usedTotalMemoryMb) {
         int skippedResourceTypes = 0;
         double total = 0.0;
-        double totalMemory = getTotalMemoryMb.get();
-        if (totalMemory != 0.0) {
-            total += used.getTotalMemoryMb.get() / totalMemory;
+        if (thisTotalMemoryMb != 0.0) {
+            total += usedTotalMemoryMb / thisTotalMemoryMb;
         } else {
             skippedResourceTypes++;
         }
@@ -221,7 +237,7 @@ public class NormalizedResources {
         }
         if (LOG.isTraceEnabled()) {
             LOG.trace("Calculating avg percentage used by. Used Mem: {} Total Mem: {}"
-                + " Used Normalized Resources: {} Total Normalized Resources: {}", totalMemory, used.getTotalMemoryMb.get(),
+                + " Used Normalized Resources: {} Total Normalized Resources: {}", thisTotalMemoryMb, usedTotalMemoryMb,
                 toNormalizedMap(), used.toNormalizedMap());
         }
 
@@ -263,15 +279,16 @@ public class NormalizedResources {
      * Calculate the minimum resource usage percentage with this being the total resources and used being the amounts used.
      *
      * @param used the amount of resources used.
+     * @param thisTotalMemoryMb The total memory in MB of this
+     * @param usedTotalMemoryMb The total memory in MB of other
      * @return the minimum percentage used 0.0 to 100.0. Clamps to 100.0 in case there are no available resources in the total.
      */
-    public double calculateMinPercentageUsedBy(NormalizedResources used) {
-        double totalMemory = getTotalMemoryMb.get();
+    public double calculateMinPercentageUsedBy(NormalizedResources used, double thisTotalMemoryMb, double usedTotalMemoryMb) {
         double totalCpu = getTotalCpu();
 
         if (LOG.isTraceEnabled()) {
             LOG.trace("Calculating min percentage used by. Used Mem: {} Total Mem: {}"
-                + " Used Normalized Resources: {} Total Normalized Resources: {}", totalMemory, used.getTotalMemoryMb.get(),
+                + " Used Normalized Resources: {} Total Normalized Resources: {}", thisTotalMemoryMb, usedTotalMemoryMb,
                 toNormalizedMap(), used.toNormalizedMap());
         }
 
@@ -280,7 +297,7 @@ public class NormalizedResources {
         }
 
         if (used.otherResources.length != otherResources.length
-            || totalMemory == 0.0
+            || thisTotalMemoryMb == 0.0
             || totalCpu == 0.0) {
             //If the lengths don't match one of the resources will be 0, which means we would calculate the percentage to be 0.0
             // and so the min would be 0.0 (assuming that we can never go negative on a resource being used.
@@ -288,8 +305,8 @@ public class NormalizedResources {
         }
 
         double min = 100.0;
-        if (totalMemory != 0.0) {
-            min = Math.min(min, used.getTotalMemoryMb.get() / totalMemory);
+        if (thisTotalMemoryMb != 0.0) {
+            min = Math.min(min, usedTotalMemoryMb / thisTotalMemoryMb);
         }
         if (totalCpu != 0.0) {
             min = Math.min(min, used.getTotalCpu() / totalCpu);
