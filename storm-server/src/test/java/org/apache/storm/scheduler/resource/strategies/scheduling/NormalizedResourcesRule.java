@@ -18,7 +18,7 @@
 
 package org.apache.storm.scheduler.resource.strategies.scheduling;
 
-import org.apache.storm.scheduler.resource.NormalizedResources;
+import org.apache.storm.scheduler.resource.normalization.NormalizedResources;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;

@@ -18,6 +18,7 @@
 
 package org.apache.storm.scheduler.resource;
 
+import org.apache.storm.scheduler.resource.normalization.NormalizedResourceOffer;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;

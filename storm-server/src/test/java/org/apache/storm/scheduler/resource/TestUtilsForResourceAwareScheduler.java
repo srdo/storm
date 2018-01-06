@@ -18,6 +18,7 @@
 
 package org.apache.storm.scheduler.resource;
 
+import org.apache.storm.scheduler.resource.normalization.NormalizedResources;
 import org.apache.storm.Config;
 import org.apache.storm.DaemonConfig;
 import org.apache.storm.generated.Bolt;
@@ -153,7 +154,7 @@ public class TestUtilsForResourceAwareScheduler {
             for (int j = 0; j < numPorts; j++) {
                 ports.add(j);
             }
-            SupervisorDetails sup = new SupervisorDetails("sup-" + i, "host-" + i, null, ports, NormalizedResources.NORMALIZED_RESOURCE_NAMES.normalizedResourceMap(resourceMap));
+            SupervisorDetails sup = new SupervisorDetails("sup-" + i, "host-" + i, null, ports, NormalizedResources.RESOURCE_NAME_NORMALIZER.normalizedResourceMap(resourceMap));
             retList.put(sup.getId(), sup);
         }
         return retList;

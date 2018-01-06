@@ -16,31 +16,26 @@
  * limitations under the License.
  */
 
-package org.apache.storm.scheduler.resource;
+package org.apache.storm.scheduler.resource.normalization;
 
 import com.google.common.annotations.VisibleForTesting;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import org.apache.storm.Config;
 import org.apache.storm.Constants;
 import org.apache.storm.generated.WorkerResources;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Resources that have been normalized.
+ * Resources that have been normalized. Does not cover memory, this job is delegated to wrappers.
  */
 public class NormalizedResources {
 
     private static final Logger LOG = LoggerFactory.getLogger(NormalizedResources.class);
-    public static NormalizedResourceNames NORMALIZED_RESOURCE_NAMES;
+    
+    public static ResourceNameNormalizer RESOURCE_NAME_NORMALIZER;
+    private static ResourceMapArrayBridge RESOURCE_ARRAY_BRIDGE;
 
     static {
         resetResourceNames();
@@ -56,7 +51,8 @@ public class NormalizedResources {
      */
     @VisibleForTesting
     public static void resetResourceNames() {
-        NORMALIZED_RESOURCE_NAMES = new NormalizedResourceNames();
+        RESOURCE_NAME_NORMALIZER = new ResourceNameNormalizer();
+        RESOURCE_ARRAY_BRIDGE = new ResourceMapArrayBridge();
     }
 
     /**
@@ -77,7 +73,7 @@ public class NormalizedResources {
      */
     public NormalizedResources(Map<String, Double> normalizedResources, Supplier<Double> getTotalMemoryMb) {
         cpu = normalizedResources.getOrDefault(Constants.COMMON_CPU_RESOURCE_NAME, 0.0);
-        otherResources = NORMALIZED_RESOURCE_NAMES.translateToResourceArray(normalizedResources);
+        otherResources = RESOURCE_ARRAY_BRIDGE.translateToResourceArray(normalizedResources);
         this.getTotalMemoryMb = getTotalMemoryMb;
     }
 
@@ -116,7 +112,7 @@ public class NormalizedResources {
     public void add(WorkerResources value) {
         Map<String, Double> workerNormalizedResources = value.get_resources();
         cpu += workerNormalizedResources.getOrDefault(Constants.COMMON_CPU_RESOURCE_NAME, 0.0);
-        add(NORMALIZED_RESOURCE_NAMES.translateToResourceArray(workerNormalizedResources));
+        add(RESOURCE_ARRAY_BRIDGE.translateToResourceArray(workerNormalizedResources));
     }
 
     /**
@@ -143,7 +139,7 @@ public class NormalizedResources {
 
     @Override
     public String toString() {
-        return "CPU: " + cpu + " Other resources: " + NORMALIZED_RESOURCE_NAMES.translateFromResourceArray(otherResources);
+        return "Normalized resources: " + toNormalizedMap();
     }
 
     /**
@@ -151,7 +147,7 @@ public class NormalizedResources {
      * user.
      */
     public Map<String, Double> toNormalizedMap() {
-        Map<String, Double> ret = NORMALIZED_RESOURCE_NAMES.translateFromResourceArray(otherResources);
+        Map<String, Double> ret = RESOURCE_ARRAY_BRIDGE.translateFromResourceArray(otherResources);
         ret.put(Constants.COMMON_CPU_RESOURCE_NAME, cpu);
         return ret;
     }
@@ -186,7 +182,7 @@ public class NormalizedResources {
 
     private void throwBecauseResourceIsMissingFromTotal(int resourceIndex) {
         String resourceName = null;
-        for (Map.Entry<String, Integer> entry : NORMALIZED_RESOURCE_NAMES.getResourceNames().entrySet()) {
+        for (Map.Entry<String, Integer> entry : RESOURCE_ARRAY_BRIDGE.getResourceNamesToArrayIndex().entrySet()) {
             int index = entry.getValue();
             if (index == resourceIndex) {
                 resourceName = entry.getKey();

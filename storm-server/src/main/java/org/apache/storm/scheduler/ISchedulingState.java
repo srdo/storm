@@ -25,8 +25,8 @@ import java.util.Set;
 
 import org.apache.storm.daemon.nimbus.TopologyResources;
 import org.apache.storm.generated.WorkerResources;
-import org.apache.storm.scheduler.resource.NormalizedResourceOffer;
-import org.apache.storm.scheduler.resource.NormalizedResourceRequest;
+import org.apache.storm.scheduler.resource.normalization.NormalizedResourceOffer;
+import org.apache.storm.scheduler.resource.normalization.NormalizedResourceRequest;
 
 /** An interface that provides access to the current scheduling state. */
 public interface ISchedulingState {

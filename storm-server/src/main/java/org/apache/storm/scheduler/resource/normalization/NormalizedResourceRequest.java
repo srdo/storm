@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.storm.scheduler.resource;
+package org.apache.storm.scheduler.resource.normalization;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,9 +32,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A request that has been normalized.
+ * A resource request with normalized resource names.
  */
-public class NormalizedResourceRequest implements NormalizedResources2 {
+public class NormalizedResourceRequest implements NormalizedResourcesWithMemory {
 
     private static final Logger LOG = LoggerFactory.getLogger(NormalizedResourceRequest.class);
 
@@ -48,7 +48,7 @@ public class NormalizedResourceRequest implements NormalizedResources2 {
     }
 
     private static Map<String, Double> getDefaultResources(Map<String, Object> topoConf) {
-        Map<String, Double> ret = NormalizedResources.NORMALIZED_RESOURCE_NAMES.normalizedResourceMap((Map<String, Number>) topoConf.getOrDefault(
+        Map<String, Double> ret = NormalizedResources.RESOURCE_NAME_NORMALIZER.normalizedResourceMap((Map<String, Number>) topoConf.getOrDefault(
             Config.TOPOLOGY_COMPONENT_RESOURCES_MAP, new HashMap<>()));
         putIfMissing(ret, Constants.COMMON_CPU_RESOURCE_NAME, topoConf, Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT);
         putIfMissing(ret, Constants.COMMON_OFFHEAP_MEMORY_RESOURCE_NAME, topoConf, Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB);
@@ -108,8 +108,8 @@ public class NormalizedResourceRequest implements NormalizedResources2 {
 
     private NormalizedResourceRequest(Map<String, ? extends Number> resources,
         Map<String, Double> defaultResources) {
-        Map<String, Double> normalizedResourceMap = NormalizedResources.NORMALIZED_RESOURCE_NAMES.normalizedResourceMap(resources);
-        normalizedResourceMap.putAll(NormalizedResources.NORMALIZED_RESOURCE_NAMES.normalizedResourceMap(defaultResources));
+        Map<String, Double> normalizedResourceMap = NormalizedResources.RESOURCE_NAME_NORMALIZER.normalizedResourceMap(defaultResources);
+        normalizedResourceMap.putAll(NormalizedResources.RESOURCE_NAME_NORMALIZER.normalizedResourceMap(resources));
         onHeap = normalizedResourceMap.getOrDefault(Constants.COMMON_ONHEAP_MEMORY_RESOURCE_NAME, 0.0);
         offHeap = normalizedResourceMap.getOrDefault(Constants.COMMON_OFFHEAP_MEMORY_RESOURCE_NAME, 0.0);
         normalizedResources = new NormalizedResources(normalizedResourceMap, () -> onHeap + offHeap);

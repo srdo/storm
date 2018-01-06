@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.storm.scheduler.resource;
+package org.apache.storm.scheduler.resource.normalization;
 
 import java.util.Map;
 import org.apache.storm.Constants;
@@ -24,9 +24,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * An offer of resources that has been normalized.
+ * An offer of resources with normalized resource names.
  */
-public class NormalizedResourceOffer implements NormalizedResources2 {
+public class NormalizedResourceOffer implements NormalizedResourcesWithMemory {
 
     private static final Logger LOG = LoggerFactory.getLogger(NormalizedResourceOffer.class);
     private final NormalizedResources normalizedResources;
@@ -38,7 +38,7 @@ public class NormalizedResourceOffer implements NormalizedResources2 {
      * @param resources the resources to be normalized.
      */
     public NormalizedResourceOffer(Map<String, ? extends Number> resources) {
-        Map<String, Double> normalizedResourceMap = NormalizedResources.NORMALIZED_RESOURCE_NAMES.normalizedResourceMap(resources);
+        Map<String, Double> normalizedResourceMap = NormalizedResources.RESOURCE_NAME_NORMALIZER.normalizedResourceMap(resources);
         totalMemoryMb = normalizedResourceMap.getOrDefault(Constants.COMMON_TOTAL_MEMORY_RESOURCE_NAME, 0.0);
         this.normalizedResources = new NormalizedResources(normalizedResourceMap, () -> totalMemoryMb);
     }
@@ -63,12 +63,12 @@ public class NormalizedResourceOffer implements NormalizedResources2 {
         return ret;
     }
 
-    public void add(NormalizedResources2 other) {
+    public void add(NormalizedResourcesWithMemory other) {
         normalizedResources.add(other.getNormalizedResources());
         totalMemoryMb += other.getTotalMemoryMb();
     }
 
-    public void remove(NormalizedResources2 other) {
+    public void remove(NormalizedResourcesWithMemory other) {
         normalizedResources.remove(other.getNormalizedResources());
         totalMemoryMb -= other.getTotalMemoryMb();
         assert totalMemoryMb >= 0.0;
@@ -80,7 +80,7 @@ public class NormalizedResourceOffer implements NormalizedResources2 {
      * @param used the amount of resources used.
      * @return the average percentage used 0.0 to 100.0. Clamps to 100.0 in case there are no available resources in the total
      */
-    public double calculateAveragePercentageUsedBy(NormalizedResources2 used) {
+    public double calculateAveragePercentageUsedBy(NormalizedResourcesWithMemory used) {
         return normalizedResources.calculateAveragePercentageUsedBy(used.getNormalizedResources());
     }
 
@@ -90,7 +90,7 @@ public class NormalizedResourceOffer implements NormalizedResources2 {
      * @param used the amount of resources used.
      * @return the minimum percentage used 0.0 to 100.0. Clamps to 100.0 in case there are no available resources in the total.
      */
-    public double calculateMinPercentageUsedBy(NormalizedResources2 used) {
+    public double calculateMinPercentageUsedBy(NormalizedResourcesWithMemory used) {
         return normalizedResources.calculateMinPercentageUsedBy(used.getNormalizedResources());
     }
 
@@ -101,7 +101,7 @@ public class NormalizedResourceOffer implements NormalizedResources2 {
      * @param other the resources that we want to check if they would fit in this.
      * @return true if it might fit, else false if it could not possibly fit.
      */
-    public boolean couldHoldIgnoringSharedMemory(NormalizedResources2 other) {
+    public boolean couldHoldIgnoringSharedMemory(NormalizedResourcesWithMemory other) {
         return normalizedResources.couldHoldIgnoringSharedMemory(other.getNormalizedResources());
     }
 

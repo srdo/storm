@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
-package org.apache.storm.scheduler.resource;
+package org.apache.storm.scheduler.resource.normalization;
 
-public interface NormalizedResources2 {
+/**
+ * Intended for {@link NormalizedResources} wrappers that handle memory.
+ */
+public interface NormalizedResourcesWithMemory {
 
     NormalizedResources getNormalizedResources();
 
