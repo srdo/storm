@@ -85,11 +85,18 @@ public class KafkaSpoutMessagingGuaranteeTest {
 
         spout.nextTuple();
 
+        when(consumerMock.position(partition)).thenReturn(1L);
+
         //The spout should have emitted the tuple, and must have committed it before emit
         InOrder inOrder = inOrder(consumerMock, collectorMock);
         inOrder.verify(consumerMock).poll(anyLong());
-        inOrder.verify(consumerMock).commitSync();
+        inOrder.verify(consumerMock).commitSync(commitCapture.capture());
         inOrder.verify(collectorMock).emit(eq(SingleTopicKafkaSpoutConfiguration.STREAM), anyList());
+        
+        CommitMetadataManager metadataManager = new CommitMetadataManager(contextMock, KafkaSpoutConfig.ProcessingGuarantee.AT_MOST_ONCE);
+        Map<TopicPartition, OffsetAndMetadata> committedOffsets = commitCapture.getValue();
+        assertThat(committedOffsets.get(partition).offset(), is(0L));
+        assertThat(committedOffsets.get(partition).metadata(), is(metadataManager.getCommitMetadata()));
     }
 
     private void doTestModeDisregardsMaxUncommittedOffsets(KafkaSpoutConfig<String, String> spoutConfig) {
@@ -172,7 +179,13 @@ public class KafkaSpoutMessagingGuaranteeTest {
         doTestModeCannotReplayTuples(spoutConfig);
     }
 
-    private void doTestModeDoesNotCommitAckedTuples(KafkaSpoutConfig<String, String> spoutConfig) {
+    @Test
+    public void testAtMostOnceModeDoesNotCommitAckedTuples() throws Exception {
+        //When tuple tracking is enabled, the spout must not commit acked tuples in at-most-once mode because they were committed before being emitted
+        KafkaSpoutConfig<String, String> spoutConfig = createKafkaSpoutConfigBuilder(mock(Subscription.class), -1)
+            .setProcessingGuarantee(KafkaSpoutConfig.ProcessingGuarantee.AT_MOST_ONCE)
+            .setTupleTrackingEnforced(true)
+            .build();
         try (SimulatedTime time = new SimulatedTime()) {
             KafkaSpout<String, String> spout = SpoutWithMockedConsumerSetupHelper.setupSpout(spoutConfig, conf, contextMock, collectorMock, consumerMock,partition);
 
@@ -180,6 +193,7 @@ public class KafkaSpoutMessagingGuaranteeTest {
                 SpoutWithMockedConsumerSetupHelper.<String, String>createRecords(partition, 0, 1))));
 
             spout.nextTuple();
+            clearInvocations(consumerMock);
 
             ArgumentCaptor<KafkaSpoutMessageId> msgIdCaptor = ArgumentCaptor.forClass(KafkaSpoutMessageId.class);
             verify(collectorMock).emit(eq(SingleTopicKafkaSpoutConfiguration.STREAM), anyList(), msgIdCaptor.capture());
@@ -189,22 +203,16 @@ public class KafkaSpoutMessagingGuaranteeTest {
             
             Time.advanceTime(KafkaSpout.TIMER_DELAY_MS + spoutConfig.getOffsetsCommitPeriodMs());
             
+            when(consumerMock.poll(anyLong())).thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
+            
             spout.nextTuple();
             
-            verify(consumerMock, never()).commitSync(any(Map.class));
+            verify(consumerMock, never()).commitSync(argThat(arg -> {
+                return !arg.containsKey(partition);
+            }));
         }
     }
 
-    @Test
-    public void testAtMostOnceModeDoesNotCommitAckedTuples() throws Exception {
-        //When tuple tracking is enabled, the spout must not commit acked tuples in at-most-once mode because they were committed before being emitted
-        KafkaSpoutConfig<String, String> spoutConfig = createKafkaSpoutConfigBuilder(mock(Subscription.class), -1)
-            .setProcessingGuarantee(KafkaSpoutConfig.ProcessingGuarantee.AT_MOST_ONCE)
-            .setTupleTrackingEnforced(true)
-            .build();
-        doTestModeDoesNotCommitAckedTuples(spoutConfig);
-    }
-    
     @Test
     public void testNoneModeCommitsPolledTuples() throws Exception {
         //When using the none guarantee, the spout must commit tuples periodically, regardless of whether they've been acked
@@ -233,9 +241,10 @@ public class KafkaSpoutMessagingGuaranteeTest {
             
             verify(consumerMock).commitAsync(commitCapture.capture(), isNull(OffsetCommitCallback.class));
             
-            Map<TopicPartition, OffsetAndMetadata> commit = commitCapture.getValue();
-            assertThat(commit.containsKey(partition), is(true));
-            assertThat(commit.get(partition).offset(), is(1L));
+            CommitMetadataManager metadataManager = new CommitMetadataManager(contextMock, KafkaSpoutConfig.ProcessingGuarantee.NONE);
+            Map<TopicPartition, OffsetAndMetadata> committedOffsets = commitCapture.getValue();
+            assertThat(committedOffsets.get(partition).offset(), is(1L));
+            assertThat(committedOffsets.get(partition).metadata(), is(metadataManager.getCommitMetadata()));
         }
     }
 
