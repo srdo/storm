@@ -31,11 +31,15 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.storm.kafka.spout.KafkaSpoutConfig.FirstPollOffsetStrategy;
-import org.hamcrest.CoreMatchers;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class KafkaSpoutConfigTest {
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+    
     @Test
     public void testBasic() {
         KafkaSpoutConfig<String, String> conf = KafkaSpoutConfig.builder("localhost:1234", "topic").build();
@@ -232,5 +236,13 @@ public class KafkaSpoutConfigTest {
             .build();
 
         assertEquals(100, conf.getMetricsTimeBucketSizeInSecs());
+    }
+    
+    @Test
+    public void testEnableAutoCommitIsBanned() {
+        expectedException.expect(IllegalArgumentException.class);
+        KafkaSpoutConfig.builder("localhost:1234", "topic")
+            .setProp(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, true)
+            .build();
     }
 }
