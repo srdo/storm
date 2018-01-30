@@ -31,6 +31,8 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.storm.kafka.spout.KafkaSpoutConfig.FirstPollOffsetStrategy;
+import org.apache.storm.kafka.spout.KafkaSpoutConfig.ProcessingGuarantee;
+import org.hamcrest.CoreMatchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -239,10 +241,12 @@ public class KafkaSpoutConfigTest {
     }
     
     @Test
-    public void testEnableAutoCommitIsBanned() {
-        expectedException.expect(IllegalArgumentException.class);
-        KafkaSpoutConfig.builder("localhost:1234", "topic")
+    public void testEnableAutoCommitCannotBeTrue() {
+        KafkaSpoutConfig<String, String> config = KafkaSpoutConfig.builder("localhost:1234", "topic")
             .setProp(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, true)
             .build();
+        
+        assertThat(config.getProcessingGuarantee(), is(ProcessingGuarantee.NONE));
+        assertThat(config.getKafkaProps().get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG), is((Object)false));
     }
 }

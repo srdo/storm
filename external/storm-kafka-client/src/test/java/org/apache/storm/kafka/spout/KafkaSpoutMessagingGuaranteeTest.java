@@ -25,7 +25,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -40,6 +40,7 @@ import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.clients.consumer.OffsetCommitCallback;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.storm.kafka.spout.builders.SingleTopicKafkaSpoutConfiguration;
 import org.apache.storm.spout.SpoutOutputCollector;
@@ -216,7 +217,7 @@ public class KafkaSpoutMessagingGuaranteeTest {
             KafkaSpout<String, String> spout = SpoutWithMockedConsumerSetupHelper.setupSpout(spoutConfig, conf, contextMock, collectorMock, consumerMock,partition);
 
             when(consumerMock.poll(anyLong())).thenReturn(new ConsumerRecords<>(Collections.singletonMap(partition,
-                SpoutWithMockedConsumerSetupHelper.createRecords(partition, 0, 1))));
+                SpoutWithMockedConsumerSetupHelper.<String, String>createRecords(partition, 0, 1))));
 
             spout.nextTuple();
             
@@ -230,7 +231,7 @@ public class KafkaSpoutMessagingGuaranteeTest {
             
             spout.nextTuple();
             
-            verify(consumerMock).commitAsync(commitCapture.capture(), isNull());
+            verify(consumerMock).commitAsync(commitCapture.capture(), isNull(OffsetCommitCallback.class));
             
             Map<TopicPartition, OffsetAndMetadata> commit = commitCapture.getValue();
             assertThat(commit.containsKey(partition), is(true));
