@@ -268,11 +268,10 @@ use Kafka-clients 0.10.0.0, you would use the following dependency in your `pom.
 You can also override the kafka clients version while building from maven, with parameter `storm.kafka.client.version`
 e.g. `mvn clean install -Dstorm.kafka.client.version=0.10.0.0`
 
-When selecting a kafka client version, you should ensure -
- 1. kafka api is compatible. storm-kafka-client module only supports **0.10 or newer** kafka client API. For older versions,
- you can use storm-kafka module (https://github.com/apache/storm/tree/master/external/storm-kafka).  
- 2. The kafka client selected by you should be wire compatible with the broker. e.g. 0.9.x client will not work with 
- 0.8.x broker. 
+When selecting a kafka client version, you should ensure:
+
+* Kafka API is compatible. storm-kafka-client module only supports **0.10 or newer** kafka client API. 
+* The kafka client selected by you should be wire compatible with the broker. Refer to Kafka's compatibility matrix [here](https://cwiki.apache.org/confluence/display/KAFKA/Compatibility+Matrix).
 
 # Kafka Spout Performance Tuning
 
