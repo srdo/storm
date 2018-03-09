@@ -18,13 +18,24 @@
 
 package org.apache.storm.kafka.spout;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.storm.kafka.KafkaUnitRule;
 import org.apache.storm.kafka.spout.config.builder.SingleTopicKafkaSpoutConfiguration;
-import org.apache.storm.kafka.spout.internal.KafkaConsumerFactory;
-import org.apache.storm.kafka.spout.internal.KafkaConsumerFactoryDefault;
+import org.apache.storm.kafka.spout.internal.ConsumerFactory;
+import org.apache.storm.kafka.spout.internal.ConsumerFactoryDefault;
+import org.apache.storm.kafka.spout.subscription.TopicAssigner;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.tuple.Values;
@@ -34,19 +45,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
-
-import org.apache.storm.kafka.spout.subscription.TopicAssigner;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
@@ -90,9 +88,9 @@ public abstract class KafkaSpoutAbstractTest {
         simulatedTime = new Time.SimulatedTime();
     }
 
-    private KafkaConsumerFactory<String, String> createConsumerFactory() {
+    private ConsumerFactory<String, String> createConsumerFactory() {
 
-        return new KafkaConsumerFactory<String, String>() {
+        return new ConsumerFactory<String, String>() {
             @Override
             public KafkaConsumer<String, String> createConsumer(KafkaSpoutConfig<String, String> kafkaSpoutConfig) {
                 return consumerSpy;
@@ -102,7 +100,7 @@ public abstract class KafkaSpoutAbstractTest {
     }
 
     KafkaConsumer<String, String> createConsumerSpy() {
-        return spy(new KafkaConsumerFactoryDefault<String, String>().createConsumer(spoutConfig));
+        return spy(new ConsumerFactoryDefault<String, String>().createConsumer(spoutConfig));
     }
 
     @After

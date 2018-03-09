@@ -18,40 +18,35 @@
 package org.apache.storm.kafka.spout;
 
 
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.storm.kafka.spout.config.builder.SingleTopicKafkaSpoutConfiguration;
-import org.apache.storm.tuple.Values;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.util.Map;
-
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyListOf;
 import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-
-import org.apache.kafka.common.TopicPartition;
-import org.apache.storm.utils.Time;
-
-import static org.mockito.Mockito.clearInvocations;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.junit.Assert.assertEquals;
-
 import java.util.regex.Pattern;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.storm.kafka.spout.config.builder.SingleTopicKafkaSpoutConfiguration;
+import org.apache.storm.tuple.Values;
+import org.apache.storm.utils.Time;
 import org.hamcrest.Matchers;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 public class KafkaSpoutSingleTopicTest extends KafkaSpoutAbstractTest {
     private final int maxPollRecords = 10;
