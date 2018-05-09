@@ -52,7 +52,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class KafkaTridentSpoutEmitter<K, V> implements Serializable {
-    
+
     private static final long serialVersionUID = -7343927794834130435L;
     private static final Logger LOG = LoggerFactory.getLogger(KafkaTridentSpoutEmitter.class);
 
@@ -61,8 +61,8 @@ public class KafkaTridentSpoutEmitter<K, V> implements Serializable {
     private final KafkaSpoutConfig<K, V> kafkaSpoutConfig;
     private final TopicAssigner topicAssigner;
     
-    // set of topic-partitions for which first poll has already occurred, and the first polled txid
-    private final Map<TopicPartition, Long> firstPollTransaction = new HashMap<>(); 
+    // The first seek offset for each topic partition, i.e. the offset this spout instance started processing at.
+    private final Map<TopicPartition, Long> tpToFirstSeekOffset = new HashMap<>(); 
 
     private final long pollTimeoutMs;
     private final KafkaSpoutConfig.FirstPollOffsetStrategy firstPollOffsetStrategy;
@@ -91,7 +91,7 @@ public class KafkaTridentSpoutEmitter<K, V> implements Serializable {
         this.firstPollOffsetStrategy = kafkaSpoutConfig.getFirstPollOffsetStrategy();
         LOG.debug("Created {}", this.toString());
     }
-    
+
     /**
      * Emit a batch that has already been emitted.
      */
@@ -154,7 +154,7 @@ public class KafkaTridentSpoutEmitter<K, V> implements Serializable {
 
         LOG.debug("Processing batch: [transaction = {}], [currBatchPartition = {}], [lastBatchMetadata = {}], [collector = {}]",
                 tx, currBatchPartition, lastBatch, collector);
-        
+
         final TopicPartition currBatchTp = currBatchPartition.getTopicPartition();
         
         throwIfEmittingForUnassignedPartition(currBatchTp);
@@ -163,32 +163,32 @@ public class KafkaTridentSpoutEmitter<K, V> implements Serializable {
         KafkaTridentSpoutBatchMetadata currentBatch = lastBatchMeta;
         Collection<TopicPartition> pausedTopicPartitions = Collections.emptySet();
 
-        try {
-            // pause other topic-partitions to only poll from current topic-partition
-            pausedTopicPartitions = pauseTopicPartitions(currBatchTp);
+            try {
+                // pause other topic-partitions to only poll from current topic-partition
+                pausedTopicPartitions = pauseTopicPartitions(currBatchTp);
 
-            seek(currBatchTp, lastBatchMeta, tx.getTransactionId());
+                seek(currBatchTp, lastBatchMeta);
 
             final ConsumerRecords<K, V> records = consumer.poll(pollTimeoutMs);
-            LOG.debug("Polled [{}] records from Kafka.", records.count());
+                LOG.debug("Polled [{}] records from Kafka.", records.count());
 
-            if (!records.isEmpty()) {
+                if (!records.isEmpty()) {
                 for (ConsumerRecord<K, V> record : records) {
                     emitTuple(collector, record);
                 }
-                // build new metadata
+                    // build new metadata
                 currentBatch = new KafkaTridentSpoutBatchMetadata(records.records(currBatchTp), this.topologyContext.getStormId());
-            }
-        } finally {
+                }
+            } finally {
             consumer.resume(pausedTopicPartitions);
-            LOG.trace("Resumed topic-partitions {}", pausedTopicPartitions);
-        }
-        LOG.debug("Emitted batch: [transaction = {}], [currBatchPartition = {}], [lastBatchMetadata = {}], "
-            + "[currBatchMetadata = {}], [collector = {}]", tx, currBatchPartition, lastBatch, currentBatch, collector);
+                LOG.trace("Resumed topic-partitions {}", pausedTopicPartitions);
+            }
+            LOG.debug("Emitted batch: [transaction = {}], [currBatchPartition = {}], [lastBatchMetadata = {}], "
+                    + "[currBatchMetadata = {}], [collector = {}]", tx, currBatchPartition, lastBatch, currentBatch, collector);
 
         return currentBatch == null ? null : currentBatch.toMap();
     }
-    
+
     private boolean isFirstPollOffsetStrategyIgnoringCommittedOffsets() {
         return firstPollOffsetStrategy == KafkaSpoutConfig.FirstPollOffsetStrategy.EARLIEST 
             || firstPollOffsetStrategy == KafkaSpoutConfig.FirstPollOffsetStrategy.LATEST;
@@ -204,25 +204,26 @@ public class KafkaTridentSpoutEmitter<K, V> implements Serializable {
     }
 
     private void emitTuple(TridentCollector collector, ConsumerRecord<K, V> record) {
-        final List<Object> tuple = translator.apply(record);
-        collector.emit(tuple);
-        LOG.debug("Emitted tuple {} for record [{}]", tuple, record);
-    }
+            final List<Object> tuple = translator.apply(record);
+            collector.emit(tuple);
+            LOG.debug("Emitted tuple {} for record [{}]", tuple, record);
+        }
 
     /**
      * Determines the offset of the next fetch. Will use the firstPollOffsetStrategy if this is the first poll for the topic partition.
      * Otherwise the next offset will be one past the last batch, based on lastBatchMeta.
      * 
-     * <p>lastBatchMeta should only be null when the previous txid was not emitted (e.g. new topic),
-     * it is the first poll for the spout instance, or it is a replay of the first txid this spout emitted on this partition.
-     * In the second case, there are either no previous transactions, or the MBC is still committing them
-     * and they will fail because this spout did not emit the corresponding batches. If it had emitted them, the meta could not be null. 
-     * In any case, the lastBatchMeta should never be null if this is not the first poll for this spout instance.
+     * <p>lastBatchMeta should only be null in the following cases:
+     * <ul>
+     * <li>This is the first batch for this partition</li>
+     * <li>This is a replay of the first batch for this partition</li>
+     * <li>This is batch n for this partition, where batch 0...n-1 were all empty</li>
+     * </ul>
      *
      * @return the offset of the next fetch
      */
-    private long seek(TopicPartition tp, KafkaTridentSpoutBatchMetadata lastBatchMeta, long transactionId) {
-        if (isFirstPoll(tp, transactionId)) {
+    private long seek(TopicPartition tp, KafkaTridentSpoutBatchMetadata lastBatchMeta) {
+        if (isFirstPoll(tp)) {
             if (firstPollOffsetStrategy == EARLIEST) {
                 LOG.debug("First poll for topic partition [{}], seeking to partition beginning", tp);
                 consumer.seekToBeginning(Collections.singleton(tp));
@@ -239,10 +240,20 @@ public class KafkaTridentSpoutEmitter<K, V> implements Serializable {
                 LOG.debug("First poll for topic partition [{}] with no last batch metadata, seeking to partition end", tp);
                 consumer.seekToEnd(Collections.singleton(tp));
             }
-            firstPollTransaction.put(tp, transactionId);
-        } else {
+            tpToFirstSeekOffset.put(tp, kafkaConsumer.position(tp));
+        } else if (lastBatchMeta != null) {
             consumer.seek(tp, lastBatchMeta.getLastOffset() + 1);  // seek next offset after last offset from previous batch
             LOG.debug("First poll for topic partition [{}], using last batch metadata", tp);
+        } else {
+            /*
+             * Last batch meta is null, but this is not the first batch emitted for this partition by this emitter instance.
+             * This is either a replay of the first batch for this partition, or all previous batches were empty,
+             * otherwise last batch meta could not be null. Use the offset the consumer started at. 
+             */
+            long initialFetchOffset = tpToFirstSeekOffset.get(tp);
+            kafkaConsumer.seek(tp, initialFetchOffset);
+            LOG.debug("First poll for topic partition [{}], no last batch metadata present."
+                + " Using stored initial fetch offset [{}]", tp, initialFetchOffset);
         }
 
         final long fetchOffset = consumer.position(tp);
@@ -250,9 +261,8 @@ public class KafkaTridentSpoutEmitter<K, V> implements Serializable {
         return fetchOffset;
     }
 
-    private boolean isFirstPoll(TopicPartition tp, long txid) {
-        // The first poll is either the "real" first transaction, or a replay of the first transaction
-        return !firstPollTransaction.containsKey(tp) || firstPollTransaction.get(tp) == txid;
+    private boolean isFirstPoll(TopicPartition tp) {
+        return !tpToFirstSeekOffset.containsKey(tp);
     }
 
     // returns paused topic-partitions.
