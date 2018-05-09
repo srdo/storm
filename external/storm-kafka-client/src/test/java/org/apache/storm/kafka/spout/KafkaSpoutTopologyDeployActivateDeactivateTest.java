@@ -18,12 +18,11 @@
 
 package org.apache.storm.kafka.spout;
 
-import org.apache.storm.kafka.spout.config.builder.SingleTopicKafkaSpoutConfiguration;
-import org.junit.Test;
+import static org.mockito.Mockito.when;
 
 import java.util.regex.Pattern;
-
-import static org.mockito.Mockito.when;
+import org.apache.storm.kafka.spout.config.builder.SingleTopicKafkaSpoutConfiguration;
+import org.junit.Test;
 
 public class KafkaSpoutTopologyDeployActivateDeactivateTest extends KafkaSpoutAbstractTest {
 
