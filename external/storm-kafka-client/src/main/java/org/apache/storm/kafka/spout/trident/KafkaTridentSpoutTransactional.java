@@ -42,13 +42,13 @@ public class KafkaTridentSpoutTransactional<K,V> implements IPartitionedTridentS
     }
     
     @Override
-    public Coordinator<List<Map<String, Object>>> getCoordinator(Map<String, Object> conf, TopologyContext context) {
+    public Coordinator<List<Map<String, Object>>> getCoordinator(Map conf, TopologyContext context) {
         return new KafkaTridentSpoutCoordinator<>(kafkaSpoutConfig);
     }
-
+    
     @Override
     public Emitter<List<Map<String, Object>>, KafkaTridentSpoutTopicPartition, Map<String, Object>> getEmitter(
-        Map<String, Object> conf, TopologyContext context) {
+        Map conf, TopologyContext context) {
         return new KafkaTridentTransactionalSpoutEmitter<>(new KafkaTridentSpoutEmitter<>(kafkaSpoutConfig, context));
     }
 

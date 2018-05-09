@@ -50,11 +50,11 @@ public class KafkaTridentOpaqueSpoutEmitter<K, V> implements IOpaquePartitionedT
     @Override
     public List<KafkaTridentSpoutTopicPartition> getOrderedPartitions(List<Map<String, Object>> allPartitionInfo) {
         return emitter.getOrderedPartitions(allPartitionInfo);
-    }
-
+    }  
+    
     @Override
     public List<KafkaTridentSpoutTopicPartition> getPartitionsForTask(int taskId, int numTasks,
-        List<KafkaTridentSpoutTopicPartition> allPartitionInfoSorted) {
+        List<Map<String, Object>> allPartitionInfoSorted) {
         return emitter.getPartitionsForTask(taskId, numTasks, allPartitionInfoSorted);
     }
 

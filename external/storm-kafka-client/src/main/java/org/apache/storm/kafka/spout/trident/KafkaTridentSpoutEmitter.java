@@ -240,7 +240,7 @@ public class KafkaTridentSpoutEmitter<K, V> implements Serializable {
                 LOG.debug("First poll for topic partition [{}] with no last batch metadata, seeking to partition end", tp);
                 consumer.seekToEnd(Collections.singleton(tp));
             }
-            tpToFirstSeekOffset.put(tp, kafkaConsumer.position(tp));
+            tpToFirstSeekOffset.put(tp, consumer.position(tp));
         } else if (lastBatchMeta != null) {
             consumer.seek(tp, lastBatchMeta.getLastOffset() + 1);  // seek next offset after last offset from previous batch
             LOG.debug("First poll for topic partition [{}], using last batch metadata", tp);
@@ -251,7 +251,7 @@ public class KafkaTridentSpoutEmitter<K, V> implements Serializable {
              * otherwise last batch meta could not be null. Use the offset the consumer started at. 
              */
             long initialFetchOffset = tpToFirstSeekOffset.get(tp);
-            kafkaConsumer.seek(tp, initialFetchOffset);
+            consumer.seek(tp, initialFetchOffset);
             LOG.debug("First poll for topic partition [{}], no last batch metadata present."
                 + " Using stored initial fetch offset [{}]", tp, initialFetchOffset);
         }
@@ -293,8 +293,8 @@ public class KafkaTridentSpoutEmitter<K, V> implements Serializable {
      * Get the partitions that should be handled by this task.
      */
     public List<KafkaTridentSpoutTopicPartition> getPartitionsForTask(int taskId, int numTasks,
-        List<KafkaTridentSpoutTopicPartition> allPartitionInfoSorted) {
-        List<TopicPartition> tps = allPartitionInfoSorted.stream()
+        List<Map<String, Object>> allPartitionInfoSorted) {
+        List<TopicPartition> tps = getOrderedPartitions(allPartitionInfoSorted).stream()
             .map(kttp -> kttp.getTopicPartition())
             .collect(Collectors.toList());
         final Set<TopicPartition> assignedTps = kafkaSpoutConfig.getTopicPartitioner().getPartitionsForThisTask(tps, topologyContext);

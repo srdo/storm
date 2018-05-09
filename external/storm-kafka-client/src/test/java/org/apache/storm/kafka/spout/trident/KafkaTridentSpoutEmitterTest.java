@@ -19,12 +19,9 @@ package org.apache.storm.kafka.spout.trident;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyList;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.clearInvocations;
-import static org.mockito.Mockito.inOrder;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -43,6 +40,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.MockConsumer;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.storm.kafka.spout.KafkaSpoutConfig;
 import org.apache.storm.kafka.spout.KafkaSpoutConfig.FirstPollOffsetStrategy;
 import org.apache.storm.kafka.spout.SpoutWithMockedConsumerSetupHelper;
 import org.apache.storm.kafka.spout.config.builder.SingleTopicKafkaSpoutConfiguration;
@@ -137,7 +135,11 @@ public class KafkaTridentSpoutEmitterTest {
             .map(kttp -> kttp.getTopicPartition())
             .collect(Collectors.toList());
         
-        List<KafkaTridentSpoutTopicPartition> partitionsForTask = emitter.getPartitionsForTask(0, 2, allPartitions);
+        List<Map<String, Object>> serializedPartitions = unwrappedPartitions.stream()
+            .map(tp -> tpSerializer.toMap(tp))
+            .collect(Collectors.toList());
+        
+        List<KafkaTridentSpoutTopicPartition> partitionsForTask = emitter.getPartitionsForTask(0, 2, serializedPartitions);
         verify(partitionerMock).getPartitionsForThisTask(eq(unwrappedPartitions), any(TopologyContext.class));
         allPartitions.remove(0);
         assertThat("Should have assigned all except the first partition to this task", new HashSet<>(partitionsForTask), is(new HashSet<>(allPartitions)));
@@ -231,43 +233,31 @@ public class KafkaTridentSpoutEmitterTest {
     public void testEmitEmptyBatches() throws Exception {
         //Check that the emitter can handle emitting empty batches on a new partition.
         //If the spout is configured to seek to LATEST, or the partition is empty, the initial batches may be empty
-        KafkaConsumer<String, String> consumerMock = mock(KafkaConsumer.class);
         TridentCollector collectorMock = mock(TridentCollector.class);
         TopicPartition tp = new TopicPartition(SingleTopicKafkaSpoutConfiguration.TOPIC, 0);
-        when(consumerMock.assignment()).thenReturn(Collections.singleton(tp));
-        KafkaConsumerFactory<String, String> consumerFactory = spoutConfig -> consumerMock;
+        consumer.assign(Collections.singleton(tp));
+        consumer.updateEndOffsets(Collections.singletonMap(tp, 0L));
         KafkaTridentSpoutEmitter<String, String> emitter = new KafkaTridentSpoutEmitter<>(
             SingleTopicKafkaSpoutConfiguration.createKafkaSpoutConfigBuilder(-1)
                 .setFirstPollOffsetStrategy(KafkaSpoutConfig.FirstPollOffsetStrategy.LATEST)
                 .build(),
             mock(TopologyContext.class),
-            consumerFactory, new TopicAssigner());
+            config -> consumer, new TopicAssigner());
         KafkaTridentSpoutTopicPartition kttp = new KafkaTridentSpoutTopicPartition(tp);
         Map<String, Object> lastBatchMeta = null;
         //Emit 10 empty batches, simulating no new records being present in Kafka
         for(int i = 0; i < 10; i++) {
-            clearInvocations(consumerMock);
-            when(consumerMock.poll(anyLong())).thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
             TransactionAttempt txid = new TransactionAttempt((long) i, 0);
-            lastBatchMeta = emitter.emitPartitionBatch(txid, collectorMock, kttp, lastBatchMeta);
+            lastBatchMeta = emitter.emitPartitionBatchNew(txid, collectorMock, kttp, lastBatchMeta);
             assertThat(lastBatchMeta, nullValue());
-            if (i == 0) {
-                InOrder inOrder = inOrder(consumerMock, collectorMock);
-                inOrder.verify(consumerMock).seekToEnd(Collections.singleton(tp));
-                inOrder.verify(consumerMock).poll(anyLong());
-            } else {
-                verify(consumerMock).poll(anyLong());
-            }
         }
-        clearInvocations(consumerMock);
         //Simulate that new records were added in Kafka, and check that the next batch contains these records
         long firstOffset = 0;
         int numRecords = 10;
-        when(consumerMock.poll(anyLong())).thenReturn(new ConsumerRecords<>(Collections.singletonMap(
-            tp, SpoutWithMockedConsumerSetupHelper.createRecords(tp, firstOffset, numRecords))));
-        lastBatchMeta = emitter.emitPartitionBatch(new TransactionAttempt(11L, 0), collectorMock, kttp, lastBatchMeta);
+        List<ConsumerRecord<String, String>> records = SpoutWithMockedConsumerSetupHelper.createRecords(tp, firstOffset, numRecords);
+        records.forEach(record -> consumer.addRecord(record));
+        lastBatchMeta = emitter.emitPartitionBatchNew(new TransactionAttempt(11L, 0), collectorMock, kttp, lastBatchMeta);
         
-        verify(consumerMock).poll(anyLong());
         verify(collectorMock, times(numRecords)).emit(anyList());
         KafkaTridentSpoutBatchMetadata deserializedMeta = KafkaTridentSpoutBatchMetadata.fromMap(lastBatchMeta);
         assertThat("The batch should start at the first offset of the polled records", deserializedMeta.getFirstOffset(), is(firstOffset));
