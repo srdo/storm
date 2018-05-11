@@ -17,24 +17,24 @@
  */
 package org.apache.storm.pacemaker.codec;
 
-import org.jboss.netty.handler.codec.frame.FrameDecoder;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.Channel;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.ByteToMessageDecoder;
 import org.apache.storm.generated.HBMessage;
 import org.apache.storm.generated.HBServerMessageType;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.apache.storm.utils.Utils;
 import org.apache.storm.messaging.netty.ControlMessage;
 import org.apache.storm.messaging.netty.SaslMessageToken;
+import org.apache.storm.utils.Utils;
 
-public class ThriftDecoder extends FrameDecoder {
+import java.util.List;
+
+public class ThriftDecoder extends ByteToMessageDecoder {
 
     @Override
-    protected Object decode(ChannelHandlerContext ctx, Channel channel, ChannelBuffer buf) throws Exception {
-
+    protected void decode(ChannelHandlerContext channelHandlerContext, ByteBuf buf, List<Object> list) throws Exception {
         long available = buf.readableBytes();
         if(available < 2) {
-            return null;
+            return;
         }
 
         buf.markReaderIndex();
@@ -45,7 +45,7 @@ public class ThriftDecoder extends FrameDecoder {
         if(available < thriftLen) {
             // We haven't received the entire object yet, return and wait for more bytes.
             buf.resetReaderIndex();
-            return null;
+            return;
         }
 
         buf.discardReadBytes();
@@ -63,14 +63,15 @@ public class ThriftDecoder extends FrameDecoder {
 
         if(m.get_type() == HBServerMessageType.CONTROL_MESSAGE) {
             ControlMessage cm = ControlMessage.read(m.get_data().get_message_blob());
-            return cm;
+            list.add(cm);
         }
         else if(m.get_type() == HBServerMessageType.SASL_MESSAGE_TOKEN) {
             SaslMessageToken sm = SaslMessageToken.read(m.get_data().get_message_blob());
-            return sm;
+            list.add(sm);
         }
         else {
-            return m;
+            list.add(m);
         }
     }
+
 }
