@@ -42,6 +42,7 @@ class TesterSpout(storm.Spout):
             storm.emit([word], id=id)
 
     def ack(self, id):
+        storm.ack(id)
         del self.pending[id]
 
     def fail(self, id):

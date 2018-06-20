@@ -29,6 +29,8 @@ import org.apache.storm.tuple.Fields;
 
 public class PythonShellMetricsSpout extends ShellSpout implements IRichSpout {
     private static final long serialVersionUID = 1999209252187463355L;
+    
+    private AckFailDelegate _ackFailDelegate;
 
     public PythonShellMetricsSpout(String[] command) {
         super(command);
@@ -44,6 +46,15 @@ public class PythonShellMetricsSpout extends ShellSpout implements IRichSpout {
 
         CountShellMetric cMetric = new CountShellMetric();
         context.registerMetric("my-custom-shellspout-metric", cMetric, 5);
+    }
+
+    public void setAckFailDelegate(AckFailDelegate _ackFailDelegate) {
+        this._ackFailDelegate = _ackFailDelegate;
+    }
+
+    @Override
+    public void ack(Object msgId) {
+        _ackFailDelegate.ack(msgId);
     }
 
     public void declareOutputFields(OutputFieldsDeclarer declarer) {

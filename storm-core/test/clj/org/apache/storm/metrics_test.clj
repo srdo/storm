@@ -199,9 +199,9 @@
       (assert-buckets! "2" "my-custom-shell-metric" [1 0 0 0 0 0 2] cluster)
       )))
 
-(defn mk-shell-spout-with-metrics-spec
+(defn mk-shell-spout-with-metrics
   [command file]
-    (Thrift/prepareSpoutDetails (PythonShellMetricsSpout. command file)))
+    (PythonShellMetricsSpout. command file))
 
 (deftest test-custom-metric-with-spout-multilang-py
   (with-open [cluster (.build (doto (LocalCluster$Builder.)
@@ -211,8 +211,11 @@
                            "storm.zookeeper.connection.timeout" 30000
                            "storm.zookeeper.session.timeout" 60000
                            })))]
-    (let [topology (Thrift/buildTopology
-                     {"1" (mk-shell-spout-with-metrics-spec "python" "tester_spout_metrics.py")}
+    (let [spout (mk-shell-spout-with-metrics "python" "tester_spout_metrics.py")
+         tracker (AckFailMapTracker.)
+         _ (.setAckFailDelegate spout tracker)
+         topology (Thrift/buildTopology
+                     {"1" (Thrift/prepareSpoutDetails spout)}
                      {"2" (Thrift/prepareBoltDetails
                             {(Utils/getGlobalStreamId "1" nil)
                              (Thrift/prepareAllGrouping)}
