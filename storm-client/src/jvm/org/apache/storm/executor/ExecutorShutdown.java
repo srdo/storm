@@ -28,6 +28,7 @@ import org.apache.storm.tuple.AddressedTuple;
 import org.apache.storm.tuple.TupleImpl;
 import org.apache.storm.tuple.Values;
 import org.apache.storm.utils.JCQueue;
+import org.apache.storm.utils.Time;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,6 +85,12 @@ public class ExecutorShutdown implements Shutdownable, IRunningExecutor {
     @Override
     public boolean publishFlushTuple() {
         return executor.publishFlushTuple();
+    }
+
+    @Override
+    public boolean isWaiting() {
+        return threads.stream()
+            .allMatch(Time::isThreadWaiting);
     }
 
     @Override
