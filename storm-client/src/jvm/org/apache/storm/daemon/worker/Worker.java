@@ -508,7 +508,6 @@ public class Worker implements Shutdownable, DaemonCommon {
                && workerState.refreshActiveTimer.isTimerWaiting()
                && workerState.executorHeartbeatTimer.isTimerWaiting()
                && workerState.userTimer.isTimerWaiting()
-               && workerState.flushTupleTimer.isTimerWaiting()
-               && executorsAtom.get().stream().allMatch(IRunningExecutor::isWaiting);
+               && workerState.flushTupleTimer.isTimerWaiting();
     }
 }

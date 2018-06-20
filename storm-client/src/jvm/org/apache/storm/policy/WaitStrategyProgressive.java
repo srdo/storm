@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.concurrent.locks.LockSupport;
 import org.apache.storm.Config;
 import org.apache.storm.utils.ObjectReader;
-import org.apache.storm.utils.Time;
 
 /**
  * A Progressive Wait Strategy
@@ -65,9 +64,9 @@ public class WaitStrategyProgressive implements IWaitStrategy {
             ++idleCounter;
         } else if (idleCounter < level1Count + level2Count) { // level 2 - parkNanos(1L)
             ++idleCounter;
-            Time.parkNanos(1L);
-        } else {                                      // level 3 - longer idling with Time.sleep()
-            Time.sleep(level3SleepMs);
+            LockSupport.parkNanos(1L);
+        } else {                                      // level 3 - longer idling with Thread.sleep()
+            Thread.sleep(level3SleepMs);
         }
         return idleCounter;
     }

@@ -19,9 +19,9 @@
 package org.apache.storm.policy;
 
 import java.util.Map;
+import java.util.concurrent.locks.LockSupport;
 import org.apache.storm.Config;
 import org.apache.storm.utils.ObjectReader;
-import org.apache.storm.utils.Time;
 
 public class WaitStrategyPark implements IWaitStrategy {
     private long parkTimeNanoSec;
@@ -52,7 +52,7 @@ public class WaitStrategyPark implements IWaitStrategy {
         if (parkTimeNanoSec == 0) {
             return 1;
         }
-        Time.parkNanos(parkTimeNanoSec);
+        LockSupport.parkNanos(parkTimeNanoSec);
         return idleCounter + 1;
     }
 }

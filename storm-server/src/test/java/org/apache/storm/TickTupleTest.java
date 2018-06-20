@@ -57,12 +57,10 @@ public class TickTupleTest {
                     time += 10_000;
                 }
                 tickTupleTimes.clear();
-                cluster.advanceClusterTime(1);
-                time += 1_000;
                 for (int i = 0; i < 5; i++) {
                     cluster.advanceClusterTime(1);
                     time += 1_000;
-                    assertEquals("Iteration " + i, (Long) (time - 1000), tickTupleTimes.poll(100, TimeUnit.MILLISECONDS));
+                    assertEquals("Iteration " + i, (Long) time, tickTupleTimes.poll(100, TimeUnit.MILLISECONDS));
                 }
             }
             assertNull("The bolt got a tuple that is not a tick tuple " + nonTickTuple.get(), nonTickTuple.get());
