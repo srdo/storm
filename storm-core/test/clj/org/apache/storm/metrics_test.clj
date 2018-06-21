@@ -204,6 +204,7 @@
     (Thrift/prepareSpoutDetails (PythonShellMetricsSpout. command file)))
 
 (deftest test-custom-metric-with-spout-multilang-py
+  (dotimes [n 50]
   (with-open [cluster (.build (doto (LocalCluster$Builder.)
                                 (.withSimulatedTime)
                                 (.withDaemonConf {TOPOLOGY-METRICS-CONSUMER-REGISTER
@@ -221,7 +222,7 @@
 
       (.advanceClusterTime cluster 7)
       (assert-buckets! "1" "my-custom-shellspout-metric" [2] cluster)
-      )))
+      ))))
 
 
 (deftest test-builtin-metrics-1
