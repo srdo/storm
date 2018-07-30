@@ -41,6 +41,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import org.apache.storm.metric.StormMetricsRegistry;
 import org.apache.storm.utils.ConfigUtils;
 
 public class BasicContainerTest {
@@ -102,8 +103,8 @@ public class BasicContainerTest {
         LocalState ls = mock(LocalState.class);
 
         MockBasicContainer mc = new MockBasicContainer(ContainerType.LAUNCH, superConf,
-                                                       "SUPERVISOR", supervisorPort, port, la, null, ls, null, new HashMap<>(), ops,
-                                                       "profile");
+            "SUPERVISOR", supervisorPort, port, la, null, ls, null, new StormMetricsRegistry(),
+            new HashMap<>(), ops, "profile");
         //null worker id means generate one...
 
         assertNotNull(mc._workerId);
@@ -133,8 +134,8 @@ public class BasicContainerTest {
         when(ops.doRequiredTopoFilesExist(superConf, topoId)).thenReturn(true);
 
         MockBasicContainer mc = new MockBasicContainer(ContainerType.RECOVER_FULL, superConf,
-                                                       "SUPERVISOR", supervisorPort, port, la, null, ls, null, new HashMap<>(), ops,
-                                                       "profile");
+            "SUPERVISOR", supervisorPort, port, la, null, ls, null, new StormMetricsRegistry(),
+            new HashMap<>(), ops, "profile");
 
         assertEquals(workerId, mc._workerId);
     }
@@ -155,7 +156,8 @@ public class BasicContainerTest {
 
         try {
             new MockBasicContainer(ContainerType.RECOVER_FULL, new HashMap<String, Object>(),
-                                   "SUPERVISOR", supervisorPort, port, la, null, ls, null, new HashMap<>(), null, "profile");
+                "SUPERVISOR", supervisorPort, port, la, null, ls, null, new StormMetricsRegistry(),
+                new HashMap<>(), null, "profile");
             fail("Container recovered worker incorrectly");
         } catch (ContainerRecoveryException e) {
             //Expected
@@ -182,8 +184,8 @@ public class BasicContainerTest {
         when(ls.getApprovedWorkers()).thenReturn(new HashMap<>(workerState));
 
         MockBasicContainer mc = new MockBasicContainer(ContainerType.LAUNCH, superConf,
-                                                       "SUPERVISOR", supervisorPort, port, la, null, ls, workerId, new HashMap<>(), ops,
-                                                       "profile");
+            "SUPERVISOR", supervisorPort, port, la, null, ls, workerId, new StormMetricsRegistry(), new HashMap<>(), ops,
+            "profile");
 
         mc.cleanUp();
 
@@ -218,8 +220,8 @@ public class BasicContainerTest {
         LocalState ls = mock(LocalState.class);
 
         MockBasicContainer mc = new MockBasicContainer(ContainerType.LAUNCH, superConf,
-                                                       "SUPERVISOR", supervisorPort, port, la, null, ls, workerId, new HashMap<>(), ops,
-                                                       "profile");
+            "SUPERVISOR", supervisorPort, port, la, null, ls, workerId, new StormMetricsRegistry(),
+            new HashMap<>(), ops, "profile");
 
         //HEAP DUMP
         ProfileRequest req = new ProfileRequest();
@@ -328,65 +330,64 @@ public class BasicContainerTest {
         LocalState ls = mock(LocalState.class);
 
         checkpoint(() -> {
-                       MockBasicContainer mc = new MockBasicContainer(ContainerType.LAUNCH, superConf,
-                                                                      "SUPERVISOR", supervisorPort, port, la, null, ls, workerId, new
-                                                                          HashMap<>(), ops,
-                                                                      "profile");
+            MockBasicContainer mc = new MockBasicContainer(ContainerType.LAUNCH, superConf,
+                "SUPERVISOR", supervisorPort, port, la, null, ls, workerId, new StormMetricsRegistry(),
+                new HashMap<>(), ops, "profile");
 
-                       mc.launch();
+            mc.launch();
 
-                       assertEquals(1, mc.workerCmds.size());
-                       CommandRun cmd = mc.workerCmds.get(0);
-                       mc.workerCmds.clear();
-                       assertListEquals(Arrays.asList(
-                           "java",
-                           "-cp",
-                           "FRAMEWORK_CP:" + stormjar.getAbsolutePath(),
-                           "-Dlogging.sensitivity=S3",
-                           "-Dlogfile.name=worker.log",
-                           "-Dstorm.home=" + stormHome,
-                           "-Dworkers.artifacts=" + stormLocal,
-                           "-Dstorm.id=" + topoId,
-                           "-Dworker.id=" + workerId,
-                           "-Dworker.port=" + port,
-                           "-Dstorm.log.dir=" + stormLogDir,
-                           "-Dlog4j.configurationFile=" + workerConf,
-                           "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector",
-                           "-Dstorm.local.dir=" + stormLocal,
-                           "-Dworker.memory_limit_mb=768",
-                           "org.apache.storm.LogWriter",
-                           "java",
-                           "-server",
-                           "-Dlogging.sensitivity=S3",
-                           "-Dlogfile.name=worker.log",
-                           "-Dstorm.home=" + stormHome,
-                           "-Dworkers.artifacts=" + stormLocal,
-                           "-Dstorm.id=" + topoId,
-                           "-Dworker.id=" + workerId,
-                           "-Dworker.port=" + port,
-                           "-Dstorm.log.dir=" + stormLogDir,
-                           "-Dlog4j.configurationFile=" + workerConf,
-                           "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector",
-                           "-Dstorm.local.dir=" + stormLocal,
-                           "-Dworker.memory_limit_mb=768",
-                           "-Dtesting=true",
-                           "-Djava.library.path=JLP",
-                           "-Dstorm.conf.file=",
-                           "-Dstorm.options=",
-                           "-Djava.io.tmpdir=" + workerTmpDir,
-                           "-cp",
-                           "FRAMEWORK_CP:" + stormjar.getAbsolutePath(),
-                           "org.apache.storm.daemon.worker.Worker",
-                           topoId,
-                           "SUPERVISOR",
-                           String.valueOf(supervisorPort),
-                           String.valueOf(port),
-                           workerId
-                       ), cmd.cmd);
-                       assertEquals(new File(workerRoot), cmd.pwd);
-                   },
-                   ConfigUtils.STORM_HOME, stormHome,
-                   "storm.log.dir", stormLogDir);
+            assertEquals(1, mc.workerCmds.size());
+            CommandRun cmd = mc.workerCmds.get(0);
+            mc.workerCmds.clear();
+            assertListEquals(Arrays.asList(
+                "java",
+                "-cp",
+                "FRAMEWORK_CP:" + stormjar.getAbsolutePath(),
+                "-Dlogging.sensitivity=S3",
+                "-Dlogfile.name=worker.log",
+                "-Dstorm.home=" + stormHome,
+                "-Dworkers.artifacts=" + stormLocal,
+                "-Dstorm.id=" + topoId,
+                "-Dworker.id=" + workerId,
+                "-Dworker.port=" + port,
+                "-Dstorm.log.dir=" + stormLogDir,
+                "-Dlog4j.configurationFile=" + workerConf,
+                "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector",
+                "-Dstorm.local.dir=" + stormLocal,
+                "-Dworker.memory_limit_mb=768",
+                "org.apache.storm.LogWriter",
+                "java",
+                "-server",
+                "-Dlogging.sensitivity=S3",
+                "-Dlogfile.name=worker.log",
+                "-Dstorm.home=" + stormHome,
+                "-Dworkers.artifacts=" + stormLocal,
+                "-Dstorm.id=" + topoId,
+                "-Dworker.id=" + workerId,
+                "-Dworker.port=" + port,
+                "-Dstorm.log.dir=" + stormLogDir,
+                "-Dlog4j.configurationFile=" + workerConf,
+                "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector",
+                "-Dstorm.local.dir=" + stormLocal,
+                "-Dworker.memory_limit_mb=768",
+                "-Dtesting=true",
+                "-Djava.library.path=JLP",
+                "-Dstorm.conf.file=",
+                "-Dstorm.options=",
+                "-Djava.io.tmpdir=" + workerTmpDir,
+                "-cp",
+                "FRAMEWORK_CP:" + stormjar.getAbsolutePath(),
+                "org.apache.storm.daemon.worker.Worker",
+                topoId,
+                "SUPERVISOR",
+                String.valueOf(supervisorPort),
+                String.valueOf(port),
+                workerId
+            ), cmd.cmd);
+            assertEquals(new File(workerRoot), cmd.pwd);
+        },
+            ConfigUtils.STORM_HOME, stormHome,
+            "storm.log.dir", stormLogDir);
     }
 
     @Test
@@ -431,64 +432,63 @@ public class BasicContainerTest {
         LocalState ls = mock(LocalState.class);
 
         checkpoint(() -> {
-                       MockBasicContainer mc = new MockBasicContainer(ContainerType.LAUNCH, superConf,
-                                                                      "SUPERVISOR", supervisorPort, port, la, null, ls, workerId, new
-                                                                          HashMap<>(), ops,
-                                                                      "profile");
+            MockBasicContainer mc = new MockBasicContainer(ContainerType.LAUNCH, superConf,
+                "SUPERVISOR", supervisorPort, port, la, null, ls, workerId, new StormMetricsRegistry(),
+                new HashMap<>(), ops, "profile");
 
-                       mc.launch();
+            mc.launch();
 
-                       assertEquals(1, mc.workerCmds.size());
-                       CommandRun cmd = mc.workerCmds.get(0);
-                       mc.workerCmds.clear();
-                       assertListEquals(Arrays.asList(
-                           "java",
-                           "-cp",
-                           "FRAMEWORK_CP:" + stormjar.getAbsolutePath(),
-                           "-Dlogging.sensitivity=S3",
-                           "-Dlogfile.name=worker.log",
-                           "-Dstorm.home=" + stormHome,
-                           "-Dworkers.artifacts=" + stormLocal,
-                           "-Dstorm.id=" + topoId,
-                           "-Dworker.id=" + workerId,
-                           "-Dworker.port=" + port,
-                           "-Dstorm.log.dir=" + stormLogDir,
-                           "-Dlog4j.configurationFile=" + workerConf,
-                           "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector",
-                           "-Dstorm.local.dir=" + stormLocal,
-                           "-Dworker.memory_limit_mb=768",
-                           "org.apache.storm.LogWriter",
-                           "java",
-                           "-server",
-                           "-Dlogging.sensitivity=S3",
-                           "-Dlogfile.name=worker.log",
-                           "-Dstorm.home=" + stormHome,
-                           "-Dworkers.artifacts=" + stormLocal,
-                           "-Dstorm.id=" + topoId,
-                           "-Dworker.id=" + workerId,
-                           "-Dworker.port=" + port,
-                           "-Dstorm.log.dir=" + stormLogDir,
-                           "-Dlog4j.configurationFile=" + workerConf,
-                           "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector",
-                           "-Dstorm.local.dir=" + stormLocal,
-                           "-Dworker.memory_limit_mb=768",
-                           "-Dtesting=true",
-                           "-Djava.library.path=JLP",
-                           "-Dstorm.conf.file=",
-                           "-Dstorm.options=",
-                           "-Djava.io.tmpdir=" + workerTmpDir,
-                           "-cp",
-                           "FRAMEWORK_CP:" + stormjar.getAbsolutePath(),
-                           "org.apache.storm.daemon.worker",
-                           topoId,
-                           "SUPERVISOR",
-                           String.valueOf(port),
-                           workerId
-                       ), cmd.cmd);
-                       assertEquals(new File(workerRoot), cmd.pwd);
-                   },
-                   ConfigUtils.STORM_HOME, stormHome,
-                   "storm.log.dir", stormLogDir);
+            assertEquals(1, mc.workerCmds.size());
+            CommandRun cmd = mc.workerCmds.get(0);
+            mc.workerCmds.clear();
+            assertListEquals(Arrays.asList(
+                "java",
+                "-cp",
+                "FRAMEWORK_CP:" + stormjar.getAbsolutePath(),
+                "-Dlogging.sensitivity=S3",
+                "-Dlogfile.name=worker.log",
+                "-Dstorm.home=" + stormHome,
+                "-Dworkers.artifacts=" + stormLocal,
+                "-Dstorm.id=" + topoId,
+                "-Dworker.id=" + workerId,
+                "-Dworker.port=" + port,
+                "-Dstorm.log.dir=" + stormLogDir,
+                "-Dlog4j.configurationFile=" + workerConf,
+                "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector",
+                "-Dstorm.local.dir=" + stormLocal,
+                "-Dworker.memory_limit_mb=768",
+                "org.apache.storm.LogWriter",
+                "java",
+                "-server",
+                "-Dlogging.sensitivity=S3",
+                "-Dlogfile.name=worker.log",
+                "-Dstorm.home=" + stormHome,
+                "-Dworkers.artifacts=" + stormLocal,
+                "-Dstorm.id=" + topoId,
+                "-Dworker.id=" + workerId,
+                "-Dworker.port=" + port,
+                "-Dstorm.log.dir=" + stormLogDir,
+                "-Dlog4j.configurationFile=" + workerConf,
+                "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector",
+                "-Dstorm.local.dir=" + stormLocal,
+                "-Dworker.memory_limit_mb=768",
+                "-Dtesting=true",
+                "-Djava.library.path=JLP",
+                "-Dstorm.conf.file=",
+                "-Dstorm.options=",
+                "-Djava.io.tmpdir=" + workerTmpDir,
+                "-cp",
+                "FRAMEWORK_CP:" + stormjar.getAbsolutePath(),
+                "org.apache.storm.daemon.worker",
+                topoId,
+                "SUPERVISOR",
+                String.valueOf(port),
+                workerId
+            ), cmd.cmd);
+            assertEquals(new File(workerRoot), cmd.pwd);
+        },
+            ConfigUtils.STORM_HOME, stormHome,
+            "storm.log.dir", stormLogDir);
     }
 
     @Test
@@ -533,64 +533,63 @@ public class BasicContainerTest {
         LocalState ls = mock(LocalState.class);
 
         checkpoint(() -> {
-                       MockBasicContainer mc = new MockBasicContainer(ContainerType.LAUNCH, superConf,
-                                                                      "SUPERVISOR", supervisorPort, port, la, null, ls, workerId, new
-                                                                          HashMap<>(), ops,
-                                                                      "profile");
+            MockBasicContainer mc = new MockBasicContainer(ContainerType.LAUNCH, superConf,
+                "SUPERVISOR", supervisorPort, port, la, null, ls, workerId, new StormMetricsRegistry(),
+                new HashMap<>(), ops, "profile");
 
-                       mc.launch();
+            mc.launch();
 
-                       assertEquals(1, mc.workerCmds.size());
-                       CommandRun cmd = mc.workerCmds.get(0);
-                       mc.workerCmds.clear();
-                       assertListEquals(Arrays.asList(
-                           "java",
-                           "-cp",
-                           "FRAMEWORK_CP:" + stormjar.getAbsolutePath(),
-                           "-Dlogging.sensitivity=S3",
-                           "-Dlogfile.name=worker.log",
-                           "-Dstorm.home=" + stormHome,
-                           "-Dworkers.artifacts=" + stormLocal,
-                           "-Dstorm.id=" + topoId,
-                           "-Dworker.id=" + workerId,
-                           "-Dworker.port=" + port,
-                           "-Dstorm.log.dir=" + stormLogDir,
-                           "-Dlog4j.configurationFile=" + workerConf,
-                           "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector",
-                           "-Dstorm.local.dir=" + stormLocal,
-                           "-Dworker.memory_limit_mb=768",
-                           "backtype.storm.LogWriter",
-                           "java",
-                           "-server",
-                           "-Dlogging.sensitivity=S3",
-                           "-Dlogfile.name=worker.log",
-                           "-Dstorm.home=" + stormHome,
-                           "-Dworkers.artifacts=" + stormLocal,
-                           "-Dstorm.id=" + topoId,
-                           "-Dworker.id=" + workerId,
-                           "-Dworker.port=" + port,
-                           "-Dstorm.log.dir=" + stormLogDir,
-                           "-Dlog4j.configurationFile=" + workerConf,
-                           "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector",
-                           "-Dstorm.local.dir=" + stormLocal,
-                           "-Dworker.memory_limit_mb=768",
-                           "-Dtesting=true",
-                           "-Djava.library.path=JLP",
-                           "-Dstorm.conf.file=",
-                           "-Dstorm.options=",
-                           "-Djava.io.tmpdir=" + workerTmpDir,
-                           "-cp",
-                           "FRAMEWORK_CP:" + stormjar.getAbsolutePath(),
-                           "backtype.storm.daemon.worker",
-                           topoId,
-                           "SUPERVISOR",
-                           String.valueOf(port),
-                           workerId
-                       ), cmd.cmd);
-                       assertEquals(new File(workerRoot), cmd.pwd);
-                   },
-                   ConfigUtils.STORM_HOME, stormHome,
-                   "storm.log.dir", stormLogDir);
+            assertEquals(1, mc.workerCmds.size());
+            CommandRun cmd = mc.workerCmds.get(0);
+            mc.workerCmds.clear();
+            assertListEquals(Arrays.asList(
+                "java",
+                "-cp",
+                "FRAMEWORK_CP:" + stormjar.getAbsolutePath(),
+                "-Dlogging.sensitivity=S3",
+                "-Dlogfile.name=worker.log",
+                "-Dstorm.home=" + stormHome,
+                "-Dworkers.artifacts=" + stormLocal,
+                "-Dstorm.id=" + topoId,
+                "-Dworker.id=" + workerId,
+                "-Dworker.port=" + port,
+                "-Dstorm.log.dir=" + stormLogDir,
+                "-Dlog4j.configurationFile=" + workerConf,
+                "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector",
+                "-Dstorm.local.dir=" + stormLocal,
+                "-Dworker.memory_limit_mb=768",
+                "backtype.storm.LogWriter",
+                "java",
+                "-server",
+                "-Dlogging.sensitivity=S3",
+                "-Dlogfile.name=worker.log",
+                "-Dstorm.home=" + stormHome,
+                "-Dworkers.artifacts=" + stormLocal,
+                "-Dstorm.id=" + topoId,
+                "-Dworker.id=" + workerId,
+                "-Dworker.port=" + port,
+                "-Dstorm.log.dir=" + stormLogDir,
+                "-Dlog4j.configurationFile=" + workerConf,
+                "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector",
+                "-Dstorm.local.dir=" + stormLocal,
+                "-Dworker.memory_limit_mb=768",
+                "-Dtesting=true",
+                "-Djava.library.path=JLP",
+                "-Dstorm.conf.file=",
+                "-Dstorm.options=",
+                "-Djava.io.tmpdir=" + workerTmpDir,
+                "-cp",
+                "FRAMEWORK_CP:" + stormjar.getAbsolutePath(),
+                "backtype.storm.daemon.worker",
+                topoId,
+                "SUPERVISOR",
+                String.valueOf(port),
+                workerId
+            ), cmd.cmd);
+            assertEquals(new File(workerRoot), cmd.pwd);
+        },
+            ConfigUtils.STORM_HOME, stormHome,
+            "storm.log.dir", stormLogDir);
     }
 
     @Test
@@ -612,8 +611,8 @@ public class BasicContainerTest {
         LocalState ls = mock(LocalState.class);
 
         MockBasicContainer mc = new MockBasicContainer(ContainerType.LAUNCH, superConf,
-                                                       "SUPERVISOR", supervisorPort, port, la, null, ls, workerId, new HashMap<>(), ops,
-                                                       "profile");
+            "SUPERVISOR", supervisorPort, port, la, null, ls, workerId, new StormMetricsRegistry(),
+            new HashMap<>(), ops, "profile");
 
         assertListEquals(Arrays.asList(
             "-Xloggc:/tmp/storm/logs/gc.worker-9999-s-01-w-01-9999.log",
@@ -656,10 +655,10 @@ public class BasicContainerTest {
         public final List<CommandRun> workerCmds = new ArrayList<>();
         public MockBasicContainer(ContainerType type, Map<String, Object> conf, String supervisorId, int supervisorPort,
                                   int port, LocalAssignment assignment, ResourceIsolationInterface resourceIsolationManager,
-                                  LocalState localState, String workerId, Map<String, Object> topoConf, AdvancedFSOps ops,
-                                  String profileCmd) throws IOException {
+                                  LocalState localState, String workerId, StormMetricsRegistry metricsRegistry, 
+                                  Map<String, Object> topoConf, AdvancedFSOps ops, String profileCmd) throws IOException {
             super(type, conf, supervisorId, supervisorPort, port, assignment, resourceIsolationManager, localState,
-                  workerId, topoConf, ops, profileCmd);
+                  workerId, metricsRegistry,new ContainerMemoryTracker(metricsRegistry), topoConf, ops, profileCmd);
         }
 
         @Override

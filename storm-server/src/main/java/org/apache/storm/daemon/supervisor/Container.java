@@ -33,8 +33,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import org.apache.storm.Config;
 import org.apache.storm.DaemonConfig;
 import org.apache.storm.container.ResourceIsolationInterface;
@@ -65,42 +65,13 @@ public abstract class Container implements Killable {
     private static final String SYSTEM_COMPONENT_ID = "System";
     private static final String INVALID_EXECUTOR_ID = "-1";
     private static final String INVALID_STREAM_ID = "None";
-    private static final ConcurrentHashMap<Integer, TopoAndMemory> _usedMemory =
-        new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<Integer, TopoAndMemory> _reservedMemory =
-        new ConcurrentHashMap<>();
-
-    private static final Meter numCleanupExceptions = StormMetricsRegistry.registerMeter("supervisor:num-cleanup-exceptions");
-    private static final Meter numKillExceptions = StormMetricsRegistry.registerMeter("supervisor:num-kill-exceptions");
-    private static final Meter numForceKillExceptions = StormMetricsRegistry.registerMeter("supervisor:num-force-kill-exceptions");
-    private static final Meter numForceKill = StormMetricsRegistry.registerMeter("supervisor:num-workers-force-kill");
-    private static final Timer shutdownDuration = StormMetricsRegistry.registerTimer("supervisor:worker-shutdown-duration-ns");
-    private static final Timer cleanupDuration = StormMetricsRegistry.registerTimer("supervisor:worker-per-call-clean-up-duration-ns");
-
-    static {
-        StormMetricsRegistry.registerGauge(
-            "supervisor:current-used-memory-mb",
-            () -> {
-                Long val =
-                    _usedMemory.values().stream().mapToLong((topoAndMem) -> topoAndMem.memory).sum();
-                int ret = val.intValue();
-                if (val > Integer.MAX_VALUE) { // Would only happen at 2 PB so we are OK for now
-                    ret = Integer.MAX_VALUE;
-                }
-                return ret;
-            });
-        StormMetricsRegistry.registerGauge(
-            "supervisor:current-reserved-memory-mb",
-            () -> {
-                Long val =
-                    _reservedMemory.values().stream().mapToLong((topoAndMem) -> topoAndMem.memory).sum();
-                int ret = val.intValue();
-                if (val > Integer.MAX_VALUE) { // Would only happen at 2 PB so we are OK for now
-                    ret = Integer.MAX_VALUE;
-                }
-                return ret;
-            });
-    }
+    
+    private final Meter numCleanupExceptions;
+    private final Meter numKillExceptions;
+    private final Meter numForceKillExceptions;
+    private final Meter numForceKill;
+    private final Timer shutdownDuration;
+    private final Timer cleanupDuration;
 
     protected final Map<String, Object> _conf;
     protected final Map<String, Object> _topoConf; //Not set if RECOVER_PARTIAL
@@ -114,6 +85,7 @@ public abstract class Container implements Killable {
     protected final boolean _symlinksDisabled;
     protected String _workerId;
     protected ContainerType _type;
+    protected ContainerMemoryTracker containerMemoryTracker;
     private long lastMetricProcessTime = 0L;
     private Timer.Context shutdownTimer = null;
 
@@ -131,11 +103,14 @@ public abstract class Container implements Killable {
      * @param topoConf                 the config of the topology (mostly for testing) if null and not a partial recovery the real conf is
      *                                 read.
      * @param ops                      file system operations (mostly for testing) if null a new one is made
+     * @param metricsRegistry          The metrics registry.
+     * @param containerMemoryTracker   The shared memory tracker for the supervisor's containers
      * @throws IOException on any error.
      */
     protected Container(ContainerType type, Map<String, Object> conf, String supervisorId, int supervisorPort,
                         int port, LocalAssignment assignment, ResourceIsolationInterface resourceIsolationManager,
-                        String workerId, Map<String, Object> topoConf, AdvancedFSOps ops) throws IOException {
+                        String workerId, Map<String, Object> topoConf, AdvancedFSOps ops,
+                        StormMetricsRegistry metricsRegistry, ContainerMemoryTracker containerMemoryTracker) throws IOException {
         assert (type != null);
         assert (conf != null);
         assert (supervisorId != null);
@@ -180,6 +155,13 @@ public abstract class Container implements Killable {
                 _topoConf = topoConf;
             }
         }
+        this.numCleanupExceptions = metricsRegistry.registerMeter("supervisor:num-cleanup-exceptions");
+        this.numKillExceptions = metricsRegistry.registerMeter("supervisor:num-kill-exceptions");
+        this.numForceKillExceptions = metricsRegistry.registerMeter("supervisor:num-force-kill-exceptions");
+        this.numForceKill = metricsRegistry.registerMeter("supervisor:num-workers-force-kill");
+        this.shutdownDuration = metricsRegistry.registerTimer("supervisor:worker-shutdown-duration-ns");
+        this.cleanupDuration = metricsRegistry.registerTimer("supervisor:worker-per-call-clean-up-duration-ns");
+        this.containerMemoryTracker = containerMemoryTracker;
     }
 
     @Override
@@ -219,11 +201,11 @@ public abstract class Container implements Killable {
             shutdownTimer = shutdownDuration.time();
         }
         try {
-            Set<Long> pids = getAllPids();
+        Set<Long> pids = getAllPids();
 
-            for (Long pid : pids) {
-                kill(pid);
-            }
+        for (Long pid : pids) {
+            kill(pid);
+        }
         } catch (IOException e) {
             numKillExceptions.mark();
             throw e;
@@ -235,11 +217,11 @@ public abstract class Container implements Killable {
         LOG.info("Force Killing {}:{}", _supervisorId, _workerId);
         numForceKill.mark();
         try {
-            Set<Long> pids = getAllPids();
+        Set<Long> pids = getAllPids();
 
-            for (Long pid : pids) {
-                forceKill(pid);
-            }
+        for (Long pid : pids) {
+            forceKill(pid);
+        }
         } catch (IOException e) {
             numForceKillExceptions.mark();
             throw e;
@@ -355,9 +337,8 @@ public abstract class Container implements Killable {
     @Override
     public void cleanUp() throws IOException {
         try (Timer.Context t = cleanupDuration.time()) {
-            _usedMemory.remove(_port);
-            _reservedMemory.remove(_port);
-            cleanUpForRestart();
+        containerMemoryTracker.remove(_port);
+        cleanUpForRestart();
         } catch (IOException e) {
             //This may or may not be reported depending on when process exits
             numCleanupExceptions.mark();
@@ -626,8 +607,8 @@ public abstract class Container implements Killable {
         _type.assertFull();
         long used = getMemoryUsageMb();
         long reserved = getMemoryReservationMb();
-        _usedMemory.put(_port, new TopoAndMemory(_topologyId, used));
-        _reservedMemory.put(_port, new TopoAndMemory(_topologyId, reserved));
+        containerMemoryTracker.setUsedMemoryMb(_port, _topologyId, used);
+        containerMemoryTracker.setReservedMemoryMb(_port, _topologyId, reserved);
     }
 
     /**
@@ -635,12 +616,7 @@ public abstract class Container implements Killable {
      */
     public long getTotalTopologyMemoryUsed() {
         updateMemoryAccounting();
-        return _usedMemory
-            .values()
-            .stream()
-            .filter((topoAndMem) -> _topologyId.equals(topoAndMem.topoId))
-            .mapToLong((topoAndMem) -> topoAndMem.memory)
-            .sum();
+        return containerMemoryTracker.getUsedMemoryMb(_topologyId);
     }
 
     /**
@@ -652,12 +628,7 @@ public abstract class Container implements Killable {
     public long getTotalTopologyMemoryReserved(LocalAssignment withUpdatedLimits) {
         updateMemoryAccounting();
         long ret =
-            _reservedMemory
-                .values()
-                .stream()
-                .filter((topoAndMem) -> _topologyId.equals(topoAndMem.topoId))
-                .mapToLong((topoAndMem) -> topoAndMem.memory)
-                .sum();
+            containerMemoryTracker.getReservedMemoryMb(_topologyId);
         if (withUpdatedLimits.is_set_total_node_shared()) {
             ret += withUpdatedLimits.get_total_node_shared();
         }
@@ -668,11 +639,7 @@ public abstract class Container implements Killable {
      * Get the number of workers for this topology.
      */
     public long getTotalWorkersForThisTopology() {
-        return _usedMemory
-            .values()
-            .stream()
-            .filter((topoAndMem) -> _topologyId.equals(topoAndMem.topoId))
-            .count();
+        return containerMemoryTracker.getAssignedWorkerCount(_topologyId);
     }
 
     /**
@@ -732,7 +699,8 @@ public abstract class Container implements Killable {
      */
     void processMetrics(OnlyLatestExecutor<Integer> exec, WorkerMetricsProcessor processor) {
         try {
-            if (_usedMemory.get(_port) != null) {
+            Optional<Long> usedMemoryForPort = containerMemoryTracker.getUsedMemoryMb(_port);
+            if (usedMemoryForPort.isPresent()) {
                 // Make sure we don't process too frequently.
                 long nextMetricProcessTime = this.lastMetricProcessTime + 60L * 1000L;
                 long currentTimeMsec = System.currentTimeMillis();
@@ -744,8 +712,7 @@ public abstract class Container implements Killable {
 
                 // create metric for memory
                 long timestamp = System.currentTimeMillis();
-                double value = _usedMemory.get(_port).memory;
-                WorkerMetricPoint workerMetric = new WorkerMetricPoint(MEMORY_USED_METRIC, timestamp, value, SYSTEM_COMPONENT_ID,
+                WorkerMetricPoint workerMetric = new WorkerMetricPoint(MEMORY_USED_METRIC, timestamp, usedMemoryForPort.get(), SYSTEM_COMPONENT_ID,
                                                                        INVALID_EXECUTOR_ID, INVALID_STREAM_ID);
 
                 WorkerMetricList metricList = new WorkerMetricList();
@@ -792,21 +759,6 @@ public abstract class Container implements Killable {
 
         public boolean isOnlyKillable() {
             return _onlyKillable;
-        }
-    }
-
-    private static class TopoAndMemory {
-        public final String topoId;
-        public final long memory;
-
-        public TopoAndMemory(String id, long mem) {
-            topoId = id;
-            memory = mem;
-        }
-
-        @Override
-        public String toString() {
-            return "{TOPO: " + topoId + " at " + memory + " MB}";
         }
     }
 }
