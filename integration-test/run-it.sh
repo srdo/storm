@@ -30,7 +30,7 @@ function list_storm_processes() {
     (ps -ef | grep -i -e zookeeper | grep -v grep) && (ps -ef | grep -i -e storm.home  | grep -v grep)
 }
 
-if [[ "$TRAVIS_JDK_VERSION" == "oraclejdk10" ]]
+if [[ "$TRAVIS_JDK_VERSION" == "openjdk11" ]]
 then
   #Work around https://github.com/travis-ci/travis-ci/issues/9784
   chmod o+rx /home/travis
