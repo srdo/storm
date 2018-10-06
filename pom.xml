@@ -247,7 +247,7 @@
         <test.extra.args>-Djava.net.preferIPv4Stack=true</test.extra.args>
 
         <!-- dependency versions -->
-        <clojure.version>1.7.0</clojure.version>
+        <clojure.version>1.10.0-beta3</clojure.version>
         <commons-compress.version>1.16.1</commons-compress.version>
         <commons-io.version>2.6</commons-io.version>
         <commons-lang.version>2.6</commons-lang.version>
@@ -268,7 +268,7 @@
         <jgrapht.version>0.9.0</jgrapht.version>
         <guava.version>16.0.1</guava.version>
         <auto-service.version>1.0-rc3</auto-service.version>
-        <netty.version>4.1.25.Final</netty.version>
+        <netty.version>4.1.30.Final</netty.version>
         <sysout-over-slf4j.version>1.0.2</sysout-over-slf4j.version>
         <log4j-over-slf4j.version>1.6.6</log4j-over-slf4j.version>
         <log4j.version>2.11.1</log4j.version>

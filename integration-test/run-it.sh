@@ -41,20 +41,18 @@ sudo dd if=/dev/zero of=/swapfile.img bs=4096 count=1M
 sudo mkswap /swapfile.img
 sudo swapon /swapfile.img
 
-if [[ "${USER}" == "vagrant" ]]; then # install oracle jdk8 or jdk10
+if [[ "${USER}" == "vagrant" ]]; then # install oracle jdk8 or openjdk11
     sudo apt-get update
     sudo apt-get -y install python-software-properties
-    if [[ "${JDK_VERSION}" -ne "10" ]]
+    if [[ "${JDK_VERSION}" -ne "11" ]]
     then
       sudo apt-add-repository -y ppa:webupd8team/java
       sudo apt-get update
       echo "oracle-java8-installer shared/accepted-oracle-license-v1-1 select true" | sudo debconf-set-selections
       sudo apt-get install -y oracle-java8-installer
     else 
-      sudo add-apt-repository ppa:linuxuprising/java
       sudo apt-get update
-      echo "oracle-java10-installer shared/accepted-oracle-license-v1-1 select true" | sudo debconf-set-selections
-      sudo apt-get install -y oracle-java10-installer
+      sudo apt-get install -y openjdk-11-jdk
     fi
     sudo apt-get -y install maven
     sudo apt-get install unzip
@@ -78,7 +76,7 @@ echo "Using storm version:" ${STORM_VERSION}
 list_storm_processes || true
 sudo bash "${SCRIPT_DIR}/config/common.sh"
 sudo bash "${SCRIPT_DIR}/config/install-storm.sh" "$storm_binary_zip"
-if [[ "$TRAVIS_JDK_VERSION" == "oraclejdk10" ]] || [[ "${JDK_VERSION}" == "10" ]]
+if [[ "$TRAVIS_JDK_VERSION" == "openjdk11" ]] || [[ "${JDK_VERSION}" == "11" ]]
 then
   cat "${SCRIPT_DIR}/config/storm-java9.yaml" | sudo tee -a /usr/share/storm/conf/storm.yaml
 fi
