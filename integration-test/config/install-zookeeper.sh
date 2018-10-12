@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 # $1 is the Zookeeper version to install
+set -x
+sudo apt-get update
 apt-cache show zookeeper
 apt-get --yes install zookeeper=$1 zookeeperd=$1
 service zookeeper stop
