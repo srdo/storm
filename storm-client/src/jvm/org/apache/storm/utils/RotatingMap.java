@@ -17,6 +17,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Expires keys that have not been updated in the configured number of seconds. The algorithm used will take between expirationSecs and
@@ -66,6 +68,12 @@ public class RotatingMap<K, V> {
         return dead;
     }
 
+    public Set<K> keySet() {
+        return _buckets.stream()
+            .flatMap(bucket -> bucket.keySet().stream())
+            .collect(Collectors.toSet());
+    }
+    
     public boolean containsKey(K key) {
         for (HashMap<K, V> bucket : _buckets) {
             if (bucket.containsKey(key)) {

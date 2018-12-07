@@ -233,6 +233,8 @@ public class StormCommon {
         for (String id : spoutIds) {
             inputs.put(Utils.getGlobalStreamId(id, Acker.ACKER_INIT_STREAM_ID),
                        Thrift.prepareFieldsGrouping(Arrays.asList("id")));
+            inputs.put(Utils.getGlobalStreamId(id, Acker.ACKER_SPOUT_SYNC_PENDING_STREAM_ID),
+                       Thrift.prepareDirectGrouping());
         }
 
         for (String id : boltIds) {
@@ -256,10 +258,12 @@ public class StormCommon {
             ObjectReader.getInt(conf.get(Config.TOPOLOGY_ACKER_EXECUTORS), ObjectReader.getInt(conf.get(Config.TOPOLOGY_WORKERS)));
         Map<GlobalStreamId, Grouping> inputs = ackerInputs(topology);
 
-        Map<String, StreamInfo> outputStreams = new HashMap<String, StreamInfo>();
+        Map<String, StreamInfo> outputStreams = new HashMap<>();
         outputStreams.put(Acker.ACKER_ACK_STREAM_ID, Thrift.directOutputFields(Arrays.asList("id", "time-delta-ms")));
         outputStreams.put(Acker.ACKER_FAIL_STREAM_ID, Thrift.directOutputFields(Arrays.asList("id", "time-delta-ms")));
+        outputStreams.put(Acker.ACKER_FAIL_TIMEOUT_STREAM_ID, Thrift.directOutputFields(Arrays.asList("id", "time-delta-ms")));
         outputStreams.put(Acker.ACKER_RESET_TIMEOUT_STREAM_ID, Thrift.directOutputFields(Arrays.asList("id", "time-delta-ms")));
+        outputStreams.put(Acker.ACKER_SPOUT_SYNC_PENDING_STREAM_ID, Thrift.directOutputFields(Arrays.asList("expired-root-ids")));
 
         Map<String, Object> ackerConf = new HashMap<>();
         ackerConf.put(Config.TOPOLOGY_TASKS, ackerNum);
@@ -277,16 +281,21 @@ public class StormCommon {
         for (SpoutSpec spout : topology.get_spouts().values()) {
             ComponentCommon common = spout.get_common();
             Map<String, Object> spoutConf = componentConf(spout);
-            spoutConf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS,
-                          ObjectReader.getInt(conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)));
+            spoutConf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, 1);
             common.set_json_conf(JSONValue.toJSONString(spoutConf));
             common.put_to_streams(Acker.ACKER_INIT_STREAM_ID,
                                   Thrift.outputFields(Arrays.asList("id", "init-val", "spout-task")));
+            common.put_to_streams(Acker.ACKER_SPOUT_SYNC_PENDING_STREAM_ID,
+                                 Thrift.outputFields(Arrays.asList("pending-root-ids")));
             common.put_to_inputs(Utils.getGlobalStreamId(Acker.ACKER_COMPONENT_ID, Acker.ACKER_ACK_STREAM_ID),
                                  Thrift.prepareDirectGrouping());
             common.put_to_inputs(Utils.getGlobalStreamId(Acker.ACKER_COMPONENT_ID, Acker.ACKER_FAIL_STREAM_ID),
                                  Thrift.prepareDirectGrouping());
+            common.put_to_inputs(Utils.getGlobalStreamId(Acker.ACKER_COMPONENT_ID, Acker.ACKER_FAIL_TIMEOUT_STREAM_ID),
+                                 Thrift.prepareDirectGrouping());
             common.put_to_inputs(Utils.getGlobalStreamId(Acker.ACKER_COMPONENT_ID, Acker.ACKER_RESET_TIMEOUT_STREAM_ID),
+                                 Thrift.prepareDirectGrouping());
+            common.put_to_inputs(Utils.getGlobalStreamId(Acker.ACKER_COMPONENT_ID, Acker.ACKER_SPOUT_SYNC_PENDING_STREAM_ID),
                                  Thrift.prepareDirectGrouping());
         }
 

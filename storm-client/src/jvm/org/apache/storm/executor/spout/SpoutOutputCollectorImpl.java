@@ -13,8 +13,11 @@
 package org.apache.storm.executor.spout;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import org.apache.storm.daemon.Acker;
 import org.apache.storm.daemon.Task;
 import org.apache.storm.executor.TupleInfo;
@@ -22,10 +25,11 @@ import org.apache.storm.spout.ISpout;
 import org.apache.storm.spout.ISpoutOutputCollector;
 import org.apache.storm.tuple.AddressedTuple;
 import org.apache.storm.tuple.MessageId;
+import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.TupleImpl;
 import org.apache.storm.tuple.Values;
+import org.apache.storm.utils.ArrayBackedImmutableIntegerMap;
 import org.apache.storm.utils.MutableLong;
-import org.apache.storm.utils.RotatingMap;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,15 +47,17 @@ public class SpoutOutputCollectorImpl implements ISpoutOutputCollector {
     private final Random random;
     private final Boolean isEventLoggers;
     private final Boolean isDebug;
-    private final RotatingMap<Long, TupleInfo> pending;
+    private final Map<Long, TupleInfo> pending;
+    private final ArrayBackedImmutableIntegerMap<Set<Long>> ackerTaskToTupleRootId;
     private final long spoutExecutorThdId;
-    private TupleInfo globalTupleInfo = new TupleInfo();
+    private final TupleInfo globalTupleInfo = new TupleInfo();
         // thread safety: assumes Collector.emit*() calls are externally synchronized (if needed).
 
     @SuppressWarnings("unused")
     public SpoutOutputCollectorImpl(ISpout spout, SpoutExecutor executor, Task taskData,
                                     MutableLong emittedCount, boolean hasAckers, Random random,
-                                    Boolean isEventLoggers, Boolean isDebug, RotatingMap<Long, TupleInfo> pending) {
+                                    Boolean isEventLoggers, Boolean isDebug, Map<Long, TupleInfo> pending,
+                                    ArrayBackedImmutableIntegerMap<Set<Long>> ackerTaskToTupleRootId) {
         this.executor = executor;
         this.taskData = taskData;
         this.taskId = taskData.getTaskId();
@@ -61,6 +67,7 @@ public class SpoutOutputCollectorImpl implements ISpoutOutputCollector {
         this.isEventLoggers = isEventLoggers;
         this.isDebug = isDebug;
         this.pending = pending;
+        this.ackerTaskToTupleRootId = ackerTaskToTupleRootId;
         this.spoutExecutorThdId = executor.getThreadId();
     }
 
@@ -157,8 +164,12 @@ public class SpoutOutputCollectorImpl implements ISpoutOutputCollector {
             }
 
             pending.put(rootId, info);
-            List<Object> ackInitTuple = new Values(rootId, Utils.bitXorVals(ackSeq), this.taskId);
-            taskData.sendUnanchored(Acker.ACKER_INIT_STREAM_ID, ackInitTuple, executor.getExecutorTransfer(), executor.getPendingEmits());
+            List<Object> ackInitValues = new Values(rootId, Utils.bitXorVals(ackSeq), this.taskId);
+            Tuple ackInitTuple = taskData.getTuple(Acker.ACKER_INIT_STREAM_ID, ackInitValues);
+            List<Integer> ackerTaskIds = taskData.getOutgoingTasks(Acker.ACKER_INIT_STREAM_ID, ackInitValues);
+            taskData.sendUnanchored(ackerTaskIds, ackInitTuple, executor.getExecutorTransfer(), executor.getPendingEmits());
+            //Ack init stream uses field grouping, so exactly one acker task will be sent the init
+            ackerTaskToTupleRootId.get(ackerTaskIds.get(0)).add(rootId);
         } else if (messageId != null) {
             // Reusing TupleInfo object as we directly call executor.ackSpoutMsg() & are not sending msgs. perf critical
             if (isDebug) {

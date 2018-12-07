@@ -201,11 +201,15 @@ public class Task {
         return taskMetrics;
     }
 
-    // Non Blocking call. If cannot emit to destination immediately, such tuples will be added to `pendingEmits` argument
     public void sendUnanchored(String stream, List<Object> values, ExecutorTransfer transfer, Queue<AddressedTuple> pendingEmits) {
         Tuple tuple = getTuple(stream, values);
-        List<Integer> tasks = getOutgoingTasks(stream, values);
-        for (Integer t : tasks) {
+        List<Integer> outgoingTasks = getOutgoingTasks(stream, values);
+        sendUnanchored(outgoingTasks, tuple, transfer, pendingEmits);
+    }
+    
+    // Non Blocking call. If cannot emit to destination immediately, such tuples will be added to `pendingEmits` argument
+    public void sendUnanchored(List<Integer> outgoingTasks, Tuple tuple, ExecutorTransfer transfer, Queue<AddressedTuple> pendingEmits) {
+        for (Integer t : outgoingTasks) {
             AddressedTuple addressedTuple = new AddressedTuple(t, tuple);
             transfer.tryTransfer(addressedTuple, pendingEmits);
         }

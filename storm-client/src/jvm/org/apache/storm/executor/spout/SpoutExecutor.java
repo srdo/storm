@@ -13,10 +13,16 @@
 package org.apache.storm.executor.spout;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import org.apache.storm.Config;
 import org.apache.storm.Constants;
 import org.apache.storm.ICredentialsListener;
@@ -40,13 +46,15 @@ import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.stats.ClientStatsUtil;
 import org.apache.storm.stats.SpoutExecutorStats;
 import org.apache.storm.tuple.AddressedTuple;
+import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.TupleImpl;
+import org.apache.storm.tuple.Values;
 import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.JCQueue;
 import org.apache.storm.utils.MutableLong;
 import org.apache.storm.utils.ObjectReader;
 import org.apache.storm.utils.ReflectionUtils;
-import org.apache.storm.utils.RotatingMap;
+import org.apache.storm.utils.ArrayBackedImmutableIntegerMap;
 import org.apache.storm.utils.Time;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
@@ -69,7 +77,8 @@ public class SpoutExecutor extends Executor {
     private Integer maxSpoutPending;
     private List<ISpout> spouts;
     private List<SpoutOutputCollector> outputCollectors;
-    private RotatingMap<Long, TupleInfo> pending;
+    private Map<Long, TupleInfo> pending;
+    private ArrayBackedImmutableIntegerMap<Set<Long>> ackerTaskToTupleRootId;
     private long threadId = 0;
 
     public SpoutExecutor(final WorkerState workerData, final List<Long> executorId, Map<String, String> credentials) {
@@ -110,16 +119,11 @@ public class SpoutExecutor extends Executor {
                 this.spouts.add((ISpout) task.getTaskObject());
             }
         }
-        this.pending = new RotatingMap<>(2, new RotatingMap.ExpiredCallback<Long, TupleInfo>() {
-            @Override
-            public void expire(Long key, TupleInfo tupleInfo) {
-                Long timeDelta = null;
-                if (tupleInfo.getTimestamp() != 0) {
-                    timeDelta = Time.deltaMs(tupleInfo.getTimestamp());
-                }
-                failSpoutMsg(SpoutExecutor.this, idToTask.get(tupleInfo.getTaskId() - idToTaskBase), timeDelta, tupleInfo, "TIMEOUT");
-            }
-        });
+        this.pending = new HashMap<>();
+        List<Integer> ackerTasks = workerData.getWorkerTopologyContext().getComponentTasks(Acker.ACKER_COMPONENT_ID);
+        Map<Integer, Set<Long>> ackers = ackerTasks.stream()
+            .collect(Collectors.toMap(id -> id, id -> new HashSet<>()));
+        this.ackerTaskToTupleRootId = new ArrayBackedImmutableIntegerMap<>(ackers);
 
         this.spoutThrottlingMetrics.registerAll(topoConf, idToTask.get(taskIds.get(0) - idToTaskBase).getUserContext());
         this.errorReportingMetrics.registerAll(topoConf, idToTask.get(taskIds.get(0) - idToTaskBase).getUserContext());
@@ -132,7 +136,7 @@ public class SpoutExecutor extends Executor {
             ISpout spoutObject = (ISpout) taskData.getTaskObject();
             spoutOutputCollector = new SpoutOutputCollectorImpl(
                 spoutObject, this, taskData, emittedCount,
-                hasAckers, rand, hasEventLoggers, isDebug, pending);
+                hasAckers, rand, hasEventLoggers, isDebug, pending, ackerTaskToTupleRootId);
             SpoutOutputCollector outputCollector = new SpoutOutputCollector(spoutOutputCollector);
             this.outputCollectors.add(outputCollector);
 
@@ -292,7 +296,9 @@ public class SpoutExecutor extends Executor {
         if (Constants.SYSTEM_FLUSH_STREAM_ID.equals(streamId)) {
             spoutOutputCollector.flush();
         } else if (streamId.equals(Constants.SYSTEM_TICK_STREAM_ID)) {
-            pending.rotate();
+            sendSyncTupleToAckers(idToTask.get(taskId - idToTaskBase));
+        } else if (streamId.equals(Acker.ACKER_SPOUT_SYNC_PENDING_STREAM_ID)) {
+            processSyncTupleFromAcker(taskId, tuple);
         } else if (streamId.equals(Constants.METRICS_TICK_STREAM_ID)) {
             metricsTick(idToTask.get(taskId - idToTaskBase), tuple);
         } else if (streamId.equals(Constants.CREDENTIALS_CHANGED_STREAM_ID)) {
@@ -301,19 +307,17 @@ public class SpoutExecutor extends Executor {
                 ((ICredentialsListener) spoutObj).setCredentials((Map<String, String>) tuple.getValue(0));
             }
         } else if (streamId.equals(Acker.ACKER_RESET_TIMEOUT_STREAM_ID)) {
-            Long id = (Long) tuple.getValue(0);
-            TupleInfo pendingForId = pending.get(id);
-            if (pendingForId != null) {
-                pending.put(id, pendingForId);
-            }
+            //TODO: Is obsolete, figure out if we need to keep it for migration or if it can be deleted now
         } else {
-            Long id = (Long) tuple.getValue(0);
+            Long rootId = (Long) tuple.getValue(0);
             Long timeDeltaMs = (Long) tuple.getValue(1);
-            TupleInfo tupleInfo = pending.remove(id);
+            TupleInfo tupleInfo = pending.remove(rootId);
             if (tupleInfo != null && tupleInfo.getMessageId() != null) {
                 if (taskId != tupleInfo.getTaskId()) {
                     throw new RuntimeException("Fatal error, mismatched task ids: " + taskId + " " + tupleInfo.getTaskId());
                 }
+                int ackerTaskId = tuple.getSourceTask();
+                ackerTaskToTupleRootId.get(ackerTaskId).remove(rootId);
                 Long timeDelta = null;
                 if (hasAckers) {
                     long startTimeMs = tupleInfo.getTimestamp();
@@ -325,6 +329,8 @@ public class SpoutExecutor extends Executor {
                     ackSpoutMsg(this, idToTask.get(taskId - idToTaskBase), timeDelta, tupleInfo);
                 } else if (streamId.equals(Acker.ACKER_FAIL_STREAM_ID)) {
                     failSpoutMsg(this, idToTask.get(taskId - idToTaskBase), timeDelta, tupleInfo, "FAIL-STREAM");
+                } else if (streamId.equals(Acker.ACKER_FAIL_TIMEOUT_STREAM_ID)) {
+                    failSpoutMsg(this, idToTask.get(taskId - idToTaskBase), timeDelta, tupleInfo, "TIMEOUT");
                 }
             }
         }
@@ -365,6 +371,35 @@ public class SpoutExecutor extends Executor {
             }
         } catch (Exception e) {
             throw Utils.wrapInRuntime(e);
+        }
+    }
+    
+    private void sendSyncTupleToAckers(Task taskData) {
+        for (ArrayBackedImmutableIntegerMap.Entry<Set<Long>> entry : ackerTaskToTupleRootId) {
+            if (entry.getElement() != null) {
+                int ackerTaskId = entry.getId();
+                Tuple syncTuple = taskData.getTuple(Acker.ACKER_SPOUT_SYNC_PENDING_STREAM_ID, new Values(new HashSet<>(entry.getElement())));
+                taskData.sendUnanchored(Collections.singletonList(ackerTaskId), syncTuple, executorTransfer, pendingEmits);
+            }
+        }
+    }
+    
+    private void processSyncTupleFromAcker(int taskId, TupleImpl tuple) {
+        Set<Long> expiredRootIds = (Set<Long>) tuple.getValue(0);
+        int ackerTaskId = tuple.getSourceTask();
+        ackerTaskToTupleRootId.get(ackerTaskId).removeAll(expiredRootIds);
+        for (Long expiredRootId : expiredRootIds) {
+            TupleInfo tupleInfo = pending.get(expiredRootId);
+            if (tupleInfo != null) {
+                if (taskId != tupleInfo.getTaskId()) {
+                    throw new RuntimeException("Fatal error, mismatched task ids: " + taskId + " " + tupleInfo.getTaskId());
+                }
+                Long timeDelta = null;
+                if (tupleInfo.getTimestamp() != 0) {
+                    timeDelta = Time.deltaMs(tupleInfo.getTimestamp());
+                }
+                failSpoutMsg(this, idToTask.get(taskId - idToTaskBase), timeDelta, tupleInfo, "TIMEOUT");
+            }
         }
     }
 
