@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockingDetails;
@@ -36,10 +37,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.MockConsumer;
+import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.storm.kafka.spout.internal.ConsumerFactory;
 import org.apache.storm.kafka.spout.subscription.ManualPartitioner;
@@ -72,9 +76,9 @@ public class SpoutWithMockedConsumerSetupHelper {
         if (!mockingDetails(topicFilter).isMock() || !mockingDetails(topicPartitioner).isMock()) {
             throw new IllegalStateException("Use a mocked TopicFilter and a mocked ManualPartitioner when using this method, it helps avoid complex stubbing");
         }
-        
+
         Set<TopicPartition> assignedPartitionsSet = new HashSet<>(Arrays.asList(assignedPartitions));
-        
+
         TopicAssigner assigner = mock(TopicAssigner.class);
         doAnswer(invocation -> {
             ConsumerRebalanceListener listener = invocation.getArgument(2);
@@ -82,13 +86,36 @@ public class SpoutWithMockedConsumerSetupHelper {
             return null;
         }).when(assigner).assignPartitions(any(), any(), any());
         when(consumerMock.assignment()).thenReturn(assignedPartitionsSet);
-        
+
         ConsumerFactory<K, V> consumerFactory = (kafkaSpoutConfig) -> consumerMock;
         KafkaSpout<K, V> spout = new KafkaSpout<>(spoutConfig, consumerFactory, assigner);
-        
+
         spout.open(topoConf, contextMock, collectorMock);
         spout.activate();
 
+        return spout;
+    }
+
+    public static <K, V> KafkaSpout<K, V> setupSpout2(KafkaSpoutConfig<K, V> spoutConfig, Map<String, Object> topoConf,
+        TopologyContext contextMock, SpoutOutputCollector collectorMock, MockConsumer<K, V> mockConsumer, TopicPartitionWithOffsetRange... assignedPartitions) {
+        List<TopicPartitionWithOffsetRange> partitions = Arrays.asList(assignedPartitions);
+        partitions.stream()
+            .map(tpWithRange -> tpWithRange.getTp())
+            .forEach(
+                tp -> mockConsumer.updatePartitions(tp.topic(), 
+                    Collections.singletonList(new PartitionInfo(tp.topic(), tp.partition(), null, null, null))));
+        Map<TopicPartition, Long> beginningOffsets = partitions.stream()
+            .filter(tpWithOffset -> tpWithOffset.getBeginningOffset() != null)
+            .collect(Collectors.toMap(tpWithOffset -> tpWithOffset.getTp(), tpWithOffset -> tpWithOffset.getBeginningOffset()));
+        mockConsumer.updateBeginningOffsets(beginningOffsets);
+        Map<TopicPartition, Long> endOffsets = partitions.stream()
+            .filter(tpWithOffset -> tpWithOffset.getEndOffset() != null)
+            .collect(Collectors.toMap(tpWithOffset -> tpWithOffset.getTp(), tpWithOffset -> tpWithOffset.getEndOffset()));
+        mockConsumer.updateEndOffsets(endOffsets);
+
+        KafkaSpout<K, V> spout = new KafkaSpout<>(spoutConfig, ignored -> mockConsumer, new TopicAssigner());
+        spout.open(topoConf, contextMock, collectorMock);
+        spout.activate();
         return spout;
     }
 
@@ -109,9 +136,15 @@ public class SpoutWithMockedConsumerSetupHelper {
         }
         return recordsForPartition;
     }
+    
+    public static <K, V> void addRecords(MockConsumer<K, V> mockConsumer, TopicPartition topic, long startingOffset, int numRecords) {
+        List<ConsumerRecord<K, V>> records = createRecords(topic, startingOffset, numRecords);
+        records.forEach(record -> mockConsumer.addRecord(record));
+    }
 
     /**
      * Creates messages for the input offsets, emits the messages by calling nextTuple once per offset and returns the captured message ids
+     *
      * @param <K> The Kafka key type
      * @param <V> The Kafka value type
      * @param spout The spout
@@ -128,6 +161,7 @@ public class SpoutWithMockedConsumerSetupHelper {
 
     /**
      * Creates messages for the input offsets, emits the messages by calling nextTuple once per offset and returns the captured message ids
+     *
      * @param <K> The Kafka key type
      * @param <V> The Kafka value type
      * @param spout The spout
@@ -158,6 +192,16 @@ public class SpoutWithMockedConsumerSetupHelper {
 
         ArgumentCaptor<KafkaSpoutMessageId> messageIds = ArgumentCaptor.forClass(KafkaSpoutMessageId.class);
         verify(collectorMock, times(expectedEmits)).emit(anyString(), anyList(), messageIds.capture());
+        return messageIds.getAllValues();
+    }
+    
+    public static <K, V> List<KafkaSpoutMessageId> callNextTupleAndGetEmittedIds(KafkaSpout<K, V> spout, MockConsumer<K, V> mockConsumer, int expectedEmits, SpoutOutputCollector collectorMock) {
+        for (int i = 0; i < expectedEmits; i++) {
+            spout.nextTuple();
+        }
+        ArgumentCaptor<KafkaSpoutMessageId> messageIds = ArgumentCaptor.forClass(KafkaSpoutMessageId.class);
+        verify(collectorMock, times(expectedEmits)).emit(anyString(), anyList(), messageIds.capture());
+        clearInvocations(collectorMock);
         return messageIds.getAllValues();
     }
 

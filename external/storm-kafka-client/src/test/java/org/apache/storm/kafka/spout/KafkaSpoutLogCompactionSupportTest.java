@@ -34,12 +34,16 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.storm.kafka.spout.config.builder.SingleTopicKafkaSpoutConfiguration;
 import org.apache.storm.kafka.spout.subscription.ManualPartitioner;
+import org.apache.storm.kafka.spout.subscription.NamedTopicFilter;
+import org.apache.storm.kafka.spout.subscription.TopicAssigner;
 import org.apache.storm.kafka.spout.subscription.TopicFilter;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
@@ -59,7 +63,7 @@ public class KafkaSpoutLogCompactionSupportTest {
     private final SpoutOutputCollector collectorMock = mock(SpoutOutputCollector.class);
     private final Map<String, Object> conf = new HashMap<>();
     private final TopicPartition partition = new TopicPartition(SingleTopicKafkaSpoutConfiguration.TOPIC, 1);
-    private KafkaConsumer<String, String> consumerMock;
+    private final MockConsumer<String, String> mockConsumer = new MockConsumer<>(OffsetResetStrategy.EARLIEST);
     private KafkaSpoutConfig<String, String> spoutConfig;
 
     @Captor
@@ -68,52 +72,34 @@ public class KafkaSpoutLogCompactionSupportTest {
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        spoutConfig = createKafkaSpoutConfigBuilder(mock(TopicFilter.class), mock(ManualPartitioner.class), -1)
-            .setOffsetCommitPeriodMs(offsetCommitPeriodMs)
-            .build();
-        consumerMock = mock(KafkaConsumer.class);
+        spoutConfig = new KafkaSpoutConfig
+                .Builder<String, String>("none", new NamedTopicFilter(partition.topic()), (allTopics, context) -> new HashSet<>(allTopics))
+                .setOffsetCommitPeriodMs(offsetCommitPeriodMs)
+                .build();
     }
 
     @Test
     public void testCommitSuccessWithOffsetVoids() {
         //Verify that the commit logic can handle offset voids due to log compaction
         try (SimulatedTime simulatedTime = new SimulatedTime()) {
-            KafkaSpout<String, String> spout = SpoutWithMockedConsumerSetupHelper.setupSpout(spoutConfig, conf, contextMock, collectorMock, consumerMock, partition);
-            Map<TopicPartition, List<ConsumerRecord<String, String>>> records = new HashMap<>();
-            List<ConsumerRecord<String, String>> recordsForPartition = new ArrayList<>();
-            // Offsets emitted are 0,1,2,3,4,<void>,8,9
-            recordsForPartition.addAll(SpoutWithMockedConsumerSetupHelper.createRecords(partition, 0, 5));
-            recordsForPartition.addAll(SpoutWithMockedConsumerSetupHelper.createRecords(partition, 8, 2));
-            records.put(partition, recordsForPartition);
+            KafkaSpout<String, String> spout = SpoutWithMockedConsumerSetupHelper.setupSpout2(spoutConfig, conf, contextMock, collectorMock,
+                mockConsumer, new TopicPartitionWithOffsetRange(partition, 0L, null));
+            
+            // Offsets populated are 0,1,2,3,4,<void>,8,9
+            SpoutWithMockedConsumerSetupHelper.addRecords(mockConsumer, partition, 0L, 5);
+            SpoutWithMockedConsumerSetupHelper.addRecords(mockConsumer, partition, 8L, 2);
+            
+            List<KafkaSpoutMessageId> messageIds = SpoutWithMockedConsumerSetupHelper.callNextTupleAndGetEmittedIds(spout, mockConsumer, 7, collectorMock);
 
-            when(consumerMock.poll(anyLong()))
-                    .thenReturn(new ConsumerRecords<>(records));
-
-            for (int i = 0; i < recordsForPartition.size(); i++) {
-                spout.nextTuple();
-            }
-
-            ArgumentCaptor<KafkaSpoutMessageId> messageIds = ArgumentCaptor.forClass(KafkaSpoutMessageId.class);
-            verify(collectorMock, times(recordsForPartition.size())).emit(anyString(), anyList(), messageIds.capture());
-
-            for (KafkaSpoutMessageId messageId : messageIds.getAllValues()) {
+            for (KafkaSpoutMessageId messageId : messageIds) {
                 spout.ack(messageId);
             }
 
-            // Advance time and then trigger first call to kafka consumer commit; the commit must progress to offset 9
+            // Advance time and then trigger first call to kafka consumer commit; the committed offset must be 10, indicating that 9 is the last fully processed offset
             Time.advanceTime(KafkaSpout.TIMER_DELAY_MS + offsetCommitPeriodMs);
-            when(consumerMock.poll(anyLong()))
-                    .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
             spout.nextTuple();
 
-            InOrder inOrder = inOrder(consumerMock);
-            inOrder.verify(consumerMock).commitSync(commitCapture.capture());
-            inOrder.verify(consumerMock).poll(anyLong());
-
-            //verify that Offset 10 was last committed offset, since this is the offset the spout should resume at
-            Map<TopicPartition, OffsetAndMetadata> commits = commitCapture.getValue();
-            assertTrue(commits.containsKey(partition));
-            assertEquals(10, commits.get(partition).offset());
+            assertThat(mockConsumer.committed(partition).offset(), is(10L));
         }
     }
     
@@ -127,14 +113,13 @@ public class KafkaSpoutLogCompactionSupportTest {
          */
         try (SimulatedTime simulatedTime = new SimulatedTime()) {
             TopicPartition partitionTwo = new TopicPartition(SingleTopicKafkaSpoutConfiguration.TOPIC, 2);
-            KafkaSpout<String, String> spout = SpoutWithMockedConsumerSetupHelper.setupSpout(spoutConfig, conf, contextMock, collectorMock, consumerMock, partition, partitionTwo);
-            
-            List<KafkaSpoutMessageId> firstPartitionMsgIds = SpoutWithMockedConsumerSetupHelper
-                .pollAndEmit(spout, consumerMock, 3, collectorMock, partition, 0, 1, 2);
-            reset(collectorMock);
-            List<KafkaSpoutMessageId> secondPartitionMsgIds = SpoutWithMockedConsumerSetupHelper
-                .pollAndEmit(spout, consumerMock, 3, collectorMock, partitionTwo, 0, 1, 2);
-            reset(collectorMock);
+            KafkaSpout<String, String> spout = SpoutWithMockedConsumerSetupHelper.setupSpout2(spoutConfig, conf, contextMock, collectorMock,
+                mockConsumer, new TopicPartitionWithOffsetRange(partition, 0L, null), new TopicPartitionWithOffsetRange(partitionTwo, 0L, null));
+
+            SpoutWithMockedConsumerSetupHelper.addRecords(mockConsumer, partition, 0L, 3);
+            List<KafkaSpoutMessageId> firstPartitionMsgIds = SpoutWithMockedConsumerSetupHelper.callNextTupleAndGetEmittedIds(spout, mockConsumer, 3, collectorMock);
+            SpoutWithMockedConsumerSetupHelper.addRecords(mockConsumer, partitionTwo, 0L, 3);
+            List<KafkaSpoutMessageId> secondPartitionMsgIds = SpoutWithMockedConsumerSetupHelper.callNextTupleAndGetEmittedIds(spout, mockConsumer, 3, collectorMock);
             
             for(int i = 0; i < 3; i++) {
                 spout.fail(firstPartitionMsgIds.get(i));
@@ -222,36 +207,31 @@ public class KafkaSpoutLogCompactionSupportTest {
     public void testCommitTupleAfterCompactionGap() {
         //If there is an acked tupled after a compaction gap, the spout should commit it immediately
         try (SimulatedTime simulatedTime = new SimulatedTime()) {
-            KafkaSpout<String, String> spout = SpoutWithMockedConsumerSetupHelper.setupSpout(spoutConfig, conf, contextMock, collectorMock, consumerMock, partition);
+            KafkaSpout<String, String> spout = SpoutWithMockedConsumerSetupHelper.setupSpout2(spoutConfig, conf, contextMock, collectorMock,
+                mockConsumer, new TopicPartitionWithOffsetRange(partition, 0L, null));
             
-            List<KafkaSpoutMessageId> firstMessage = SpoutWithMockedConsumerSetupHelper
-                .pollAndEmit(spout, consumerMock, 1, collectorMock, partition, 0);
-            reset(collectorMock);
+            SpoutWithMockedConsumerSetupHelper.addRecords(mockConsumer, partition, 0L, 1);
             
-            List<KafkaSpoutMessageId> messageAfterGap = SpoutWithMockedConsumerSetupHelper.pollAndEmit(spout, consumerMock, 1, collectorMock, partition, 2);
-            reset(collectorMock);
+            List<KafkaSpoutMessageId> firstMessage = SpoutWithMockedConsumerSetupHelper.callNextTupleAndGetEmittedIds(spout, mockConsumer, 1, collectorMock);
+            
+            SpoutWithMockedConsumerSetupHelper.addRecords(mockConsumer, partition, 2L, 1);
+            
+            List<KafkaSpoutMessageId> messageAfterGap = SpoutWithMockedConsumerSetupHelper.callNextTupleAndGetEmittedIds(spout, mockConsumer, 1, collectorMock);
             
             spout.ack(firstMessage.get(0));
             
             Time.advanceTime(KafkaSpout.TIMER_DELAY_MS + offsetCommitPeriodMs);
             spout.nextTuple();
-            verify(consumerMock).commitSync(commitCapture.capture());
-            Map<TopicPartition, OffsetAndMetadata> committed = commitCapture.getValue();
-            assertThat(committed.keySet(), is(Collections.singleton(partition)));
             assertThat("The consumer should have committed the offset before the gap",
-                committed.get(partition).offset(), is(1L));
-            reset(consumerMock);
+                mockConsumer.committed(partition).offset(), is(1L));
             
             spout.ack(messageAfterGap.get(0));
             
             Time.advanceTime(KafkaSpout.TIMER_DELAY_MS + offsetCommitPeriodMs);
             spout.nextTuple();
             
-            verify(consumerMock).commitSync(commitCapture.capture());
-            committed = commitCapture.getValue();
-            assertThat(committed.keySet(), is(Collections.singleton(partition)));
             assertThat("The consumer should have committed the offset after the gap, since offset 1 wasn't emitted and both 0 and 2 are acked",
-                committed.get(partition).offset(), is(3L));
+                mockConsumer.committed(partition).offset(), is(3L));
         }
     }
 
