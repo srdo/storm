@@ -223,7 +223,7 @@ public class KafkaSpout<K, V> extends BaseRichSpout {
                 final long fetchOffset = doSeek(newTp, committedOffset);
                 LOG.debug("Set consumer position to [{}] for topic-partition [{}] with [{}] and committed offset [{}]",
                     fetchOffset, newTp, firstPollOffsetStrategy, committedOffset);
-                if (isAtLeastOnceProcessing() && !offsetManagers.containsKey(newTp)) {
+                if (isAtLeastOnceProcessing()) {
                     offsetManagers.put(newTp, new OffsetManager(newTp, fetchOffset));
                 }
             }

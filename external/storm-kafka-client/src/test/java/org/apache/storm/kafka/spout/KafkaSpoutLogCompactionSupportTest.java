@@ -15,36 +15,24 @@
  */
 package org.apache.storm.kafka.spout;
 
-import static org.apache.storm.kafka.spout.config.builder.SingleTopicKafkaSpoutConfiguration.createKafkaSpoutConfigBuilder;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.hasKey;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.*;
-import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.storm.kafka.spout.config.builder.SingleTopicKafkaSpoutConfiguration;
-import org.apache.storm.kafka.spout.subscription.ManualPartitioner;
 import org.apache.storm.kafka.spout.subscription.NamedTopicFilter;
-import org.apache.storm.kafka.spout.subscription.TopicAssigner;
-import org.apache.storm.kafka.spout.subscription.TopicFilter;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.utils.Time;
@@ -53,7 +41,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InOrder;
 import org.mockito.MockitoAnnotations;
 
 public class KafkaSpoutLogCompactionSupportTest {
@@ -72,10 +59,9 @@ public class KafkaSpoutLogCompactionSupportTest {
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        spoutConfig = new KafkaSpoutConfig
-                .Builder<String, String>("none", new NamedTopicFilter(partition.topic()), (allTopics, context) -> new HashSet<>(allTopics))
-                .setOffsetCommitPeriodMs(offsetCommitPeriodMs)
-                .build();
+        spoutConfig = SingleTopicKafkaSpoutConfiguration.createKafkaSpoutConfigBuilderForMockConsumer(partition.topic())
+            .setOffsetCommitPeriodMs(offsetCommitPeriodMs)
+            .build();
     }
 
     @Test
@@ -84,11 +70,11 @@ public class KafkaSpoutLogCompactionSupportTest {
         try (SimulatedTime simulatedTime = new SimulatedTime()) {
             KafkaSpout<String, String> spout = SpoutWithMockedConsumerSetupHelper.setupSpout2(spoutConfig, conf, contextMock, collectorMock,
                 mockConsumer, new TopicPartitionWithOffsetRange(partition, 0L, null));
-            
+
             // Offsets populated are 0,1,2,3,4,<void>,8,9
             SpoutWithMockedConsumerSetupHelper.addRecords(mockConsumer, partition, 0L, 5);
             SpoutWithMockedConsumerSetupHelper.addRecords(mockConsumer, partition, 8L, 2);
-            
+
             List<KafkaSpoutMessageId> messageIds = SpoutWithMockedConsumerSetupHelper.callNextTupleAndGetEmittedIds(spout, mockConsumer, 7, collectorMock);
 
             for (KafkaSpoutMessageId messageId : messageIds) {
@@ -102,14 +88,13 @@ public class KafkaSpoutLogCompactionSupportTest {
             assertThat(mockConsumer.committed(partition).offset(), is(10L));
         }
     }
-    
+
     @Test
     public void testWillSkipRetriableTuplesIfOffsetsAreCompactedAway() {
         /*
-          Verify that failed offsets will only retry if the corresponding message exists. 
-          When log compaction is enabled in Kafka it is possible that a tuple can fail, 
-          and then be impossible to retry because the message in Kafka has been deleted.
-          The spout needs to quietly ack such tuples to allow commits to progress past the deleted offset.
+         * Verify that failed offsets will only retry if the corresponding message exists. When log compaction is enabled in Kafka it is
+         * possible that a tuple can fail, and then be impossible to retry because the message in Kafka has been deleted. The spout needs to
+         * quietly ack such tuples to allow commits to progress past the deleted offset.
          */
         try (SimulatedTime simulatedTime = new SimulatedTime()) {
             TopicPartition partitionTwo = new TopicPartition(SingleTopicKafkaSpoutConfiguration.TOPIC, 2);
@@ -120,116 +105,108 @@ public class KafkaSpoutLogCompactionSupportTest {
             List<KafkaSpoutMessageId> firstPartitionMsgIds = SpoutWithMockedConsumerSetupHelper.callNextTupleAndGetEmittedIds(spout, mockConsumer, 3, collectorMock);
             SpoutWithMockedConsumerSetupHelper.addRecords(mockConsumer, partitionTwo, 0L, 3);
             List<KafkaSpoutMessageId> secondPartitionMsgIds = SpoutWithMockedConsumerSetupHelper.callNextTupleAndGetEmittedIds(spout, mockConsumer, 3, collectorMock);
-            
-            for(int i = 0; i < 3; i++) {
+
+            for (int i = 0; i < 3; i++) {
                 spout.fail(firstPartitionMsgIds.get(i));
                 spout.fail(secondPartitionMsgIds.get(i));
             }
-            
+
             Time.advanceTime(50);
-            
+
             //The failed tuples are ready for retry. Make it appear like 0 and 1 on the first partition were compacted away.
             //In this case the second partition acts as control to verify that we only skip past offsets that are no longer present.
-            Map<TopicPartition, int[]> retryOffsets = new HashMap<>();
-            retryOffsets.put(partition, new int[] {2});
-            retryOffsets.put(partitionTwo, new int[] {0, 1, 2});
-            int expectedEmits = 4; //2 on first partition, 0-2 on second partition
-            List<KafkaSpoutMessageId> retryMessageIds = SpoutWithMockedConsumerSetupHelper.pollAndEmit(spout, consumerMock, expectedEmits, collectorMock, retryOffsets);
-            
+            Map<TopicPartition, Long> truncatedBeginningOffsets = new HashMap<>();
+            truncatedBeginningOffsets.put(partition, 2L);
+            truncatedBeginningOffsets.put(partitionTwo, 0L);
+            mockConsumer.updateBeginningOffsets(truncatedBeginningOffsets);
+            //Offset 2 on first partition, 0-2 on second partition
+            List<KafkaSpoutMessageId> retryMessageIds = SpoutWithMockedConsumerSetupHelper.callNextTupleAndGetEmittedIds(spout, mockConsumer, 4, collectorMock);
+
             Time.advanceTime(KafkaSpout.TIMER_DELAY_MS + offsetCommitPeriodMs);
             spout.nextTuple();
-            
-            verify(consumerMock).commitSync(commitCapture.capture());
-            Map<TopicPartition, OffsetAndMetadata> committed = commitCapture.getValue();
-            assertThat(committed.keySet(), is(Collections.singleton(partition)));
-            assertThat("The first partition should have committed up to the first retriable tuple that is not missing", committed.get(partition).offset(), is(2L));
-            
-            for(KafkaSpoutMessageId msgId : retryMessageIds) {
+
+            assertThat("The first partition should have committed up to the first retriable tuple that is not missing",
+                mockConsumer.committed(partition).offset(), is(2L));
+            assertThat("Nothing should be ready to commit on partition 2", mockConsumer.committed(partitionTwo), nullValue());
+
+            for (KafkaSpoutMessageId msgId : retryMessageIds) {
                 spout.ack(msgId);
             }
-            
+
             //The spout should now commit all the offsets, since all offsets are either acked or were missing when retrying
             Time.advanceTime(KafkaSpout.TIMER_DELAY_MS + offsetCommitPeriodMs);
             spout.nextTuple();
 
-            verify(consumerMock, times(2)).commitSync(commitCapture.capture());
-            committed = commitCapture.getValue();
-            assertThat(committed, hasKey(partition));
-            assertThat(committed, hasKey(partitionTwo));
-            assertThat(committed.get(partition).offset(), is(3L));
-            assertThat(committed.get(partitionTwo).offset(), is(3L));
+            assertThat(mockConsumer.committed(partition).offset(), is(3L));
+            assertThat(mockConsumer.committed(partitionTwo).offset(), is(3L));
         }
     }
-    
+
     @Test
     public void testWillSkipRetriableTuplesIfOffsetsAreCompactedAwayWithoutAckingPendingTuples() {
         //Demonstrate that the spout doesn't ack pending tuples when skipping compacted tuples. The pending tuples should be allowed to finish normally.
         try (SimulatedTime simulatedTime = new SimulatedTime()) {
-            KafkaSpout<String, String> spout = SpoutWithMockedConsumerSetupHelper.setupSpout(spoutConfig, conf, contextMock, collectorMock, consumerMock, partition);
-            
-            List<KafkaSpoutMessageId> firstPartitionMsgIds = SpoutWithMockedConsumerSetupHelper
-                .pollAndEmit(spout, consumerMock, 3, collectorMock, partition, 0, 1, 2);
-            reset(collectorMock);
-            
-            spout.fail(firstPartitionMsgIds.get(0));            
+            KafkaSpout<String, String> spout = SpoutWithMockedConsumerSetupHelper.setupSpout2(spoutConfig, conf, contextMock, collectorMock,
+                mockConsumer, new TopicPartitionWithOffsetRange(partition, 0L, null));
+
+            SpoutWithMockedConsumerSetupHelper.addRecords(mockConsumer, partition, 0L, 3);
+            List<KafkaSpoutMessageId> firstPartitionMsgIds = SpoutWithMockedConsumerSetupHelper.callNextTupleAndGetEmittedIds(spout, mockConsumer, 3, collectorMock);
+
+            spout.fail(firstPartitionMsgIds.get(0));
             spout.fail(firstPartitionMsgIds.get(2));
-            
+
             Time.advanceTime(50);
-            
+
             //The failed tuples are ready for retry. Make it appear like 0 and 1 were compacted away.
-            List<KafkaSpoutMessageId> retryMessageIds = SpoutWithMockedConsumerSetupHelper.pollAndEmit(spout, consumerMock, 1, collectorMock, partition, 2);
-            for(KafkaSpoutMessageId msgId : retryMessageIds) {
+            mockConsumer.updateBeginningOffsets(Collections.singletonMap(partition, 2L));
+            List<KafkaSpoutMessageId> retryMessageIds = SpoutWithMockedConsumerSetupHelper.callNextTupleAndGetEmittedIds(spout, mockConsumer, 1, collectorMock);
+            assertThat(retryMessageIds.get(0).offset(), is(2L));
+            for (KafkaSpoutMessageId msgId : retryMessageIds) {
                 spout.ack(msgId);
             }
-            
+
             Time.advanceTime(KafkaSpout.TIMER_DELAY_MS + offsetCommitPeriodMs);
             spout.nextTuple();
-            
-            verify(consumerMock).commitSync(commitCapture.capture());
-            Map<TopicPartition, OffsetAndMetadata> committed = commitCapture.getValue();
-            assertThat(committed.keySet(), is(Collections.singleton(partition)));
+
             assertThat("The first partition should have committed the missing offset, but no further since the next tuple is pending",
-                committed.get(partition).offset(), is(1L));
-            
+                mockConsumer.committed(partition).offset(), is(1L));
+
             spout.ack(firstPartitionMsgIds.get(1));
-            
+
             Time.advanceTime(KafkaSpout.TIMER_DELAY_MS + offsetCommitPeriodMs);
             spout.nextTuple();
-            
-            verify(consumerMock, times(2)).commitSync(commitCapture.capture());
-            committed = commitCapture.getValue();
-            assertThat(committed.keySet(), is(Collections.singleton(partition)));
-            assertThat("The first partition should have committed all offsets", committed.get(partition).offset(), is(3L));
+
+            assertThat("The first partition should have committed all offsets", mockConsumer.committed(partition).offset(), is(3L));
         }
     }
-    
+
     @Test
     public void testCommitTupleAfterCompactionGap() {
         //If there is an acked tupled after a compaction gap, the spout should commit it immediately
         try (SimulatedTime simulatedTime = new SimulatedTime()) {
             KafkaSpout<String, String> spout = SpoutWithMockedConsumerSetupHelper.setupSpout2(spoutConfig, conf, contextMock, collectorMock,
                 mockConsumer, new TopicPartitionWithOffsetRange(partition, 0L, null));
-            
+
             SpoutWithMockedConsumerSetupHelper.addRecords(mockConsumer, partition, 0L, 1);
-            
+
             List<KafkaSpoutMessageId> firstMessage = SpoutWithMockedConsumerSetupHelper.callNextTupleAndGetEmittedIds(spout, mockConsumer, 1, collectorMock);
-            
+
             SpoutWithMockedConsumerSetupHelper.addRecords(mockConsumer, partition, 2L, 1);
-            
+
             List<KafkaSpoutMessageId> messageAfterGap = SpoutWithMockedConsumerSetupHelper.callNextTupleAndGetEmittedIds(spout, mockConsumer, 1, collectorMock);
-            
+
             spout.ack(firstMessage.get(0));
-            
+
             Time.advanceTime(KafkaSpout.TIMER_DELAY_MS + offsetCommitPeriodMs);
             spout.nextTuple();
             assertThat("The consumer should have committed the offset before the gap",
                 mockConsumer.committed(partition).offset(), is(1L));
-            
+
             spout.ack(messageAfterGap.get(0));
-            
+
             Time.advanceTime(KafkaSpout.TIMER_DELAY_MS + offsetCommitPeriodMs);
             spout.nextTuple();
-            
+
             assertThat("The consumer should have committed the offset after the gap, since offset 1 wasn't emitted and both 0 and 2 are acked",
                 mockConsumer.committed(partition).offset(), is(3L));
         }

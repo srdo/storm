@@ -20,11 +20,13 @@ package org.apache.storm.kafka.spout.config.builder;
 import static org.apache.storm.kafka.spout.FirstPollOffsetStrategy.EARLIEST;
 import static org.apache.storm.kafka.spout.KafkaSpoutConfig.DEFAULT_MAX_RETRIES;
 
+import java.util.HashSet;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.storm.kafka.spout.KafkaSpoutConfig;
 import org.apache.storm.kafka.spout.KafkaSpoutRetryExponentialBackoff;
 import org.apache.storm.kafka.spout.KafkaSpoutRetryService;
 import org.apache.storm.kafka.spout.subscription.ManualPartitioner;
+import org.apache.storm.kafka.spout.subscription.NamedTopicFilter;
 import org.apache.storm.kafka.spout.subscription.TopicFilter;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Values;
@@ -41,6 +43,14 @@ public class SingleTopicKafkaSpoutConfiguration {
 
     public static KafkaSpoutConfig.Builder<String, String> createKafkaSpoutConfigBuilder(TopicFilter topicFilter, ManualPartitioner topicPartitioner, int port) {
         return setCommonSpoutConfig(new KafkaSpoutConfig.Builder<>("127.0.0.1:" + port, topicFilter, topicPartitioner));
+    }
+    
+    public static KafkaSpoutConfig.Builder<String, String> createKafkaSpoutConfigBuilderForMockConsumer(String topic) {
+        return SingleTopicKafkaSpoutConfiguration.setCommonSpoutConfig(
+            new KafkaSpoutConfig.Builder<>(
+                "none",
+                new NamedTopicFilter(topic),
+                (allPartitions, context) -> new HashSet<>(allPartitions)));
     }
 
     public static KafkaSpoutConfig.Builder<String, String> setCommonSpoutConfig(KafkaSpoutConfig.Builder<String, String> config) {

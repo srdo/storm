@@ -16,16 +16,9 @@
 package org.apache.storm.kafka.spout;
 
 import static org.apache.storm.kafka.spout.config.builder.SingleTopicKafkaSpoutConfiguration.createKafkaSpoutConfigBuilder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.inOrder;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
 import java.util.List;
@@ -44,60 +37,43 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InOrder;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class KafkaSpoutRetryLimitTest {
-    
-    @Rule
-    public MockitoRule mockito = MockitoJUnit.rule();
 
     private final long offsetCommitPeriodMs = 2_000;
     private final TopologyContext contextMock = mock(TopologyContext.class);
     private final SpoutOutputCollector collectorMock = mock(SpoutOutputCollector.class);
     private final Map<String, Object> conf = new HashMap<>();
     private final TopicPartition partition = new TopicPartition(SingleTopicKafkaSpoutConfiguration.TOPIC, 1);
-    private KafkaConsumer<String, String> consumerMock;
+    private MockConsumer<String, String> mockConsumer;
     private KafkaSpoutConfig<String, String> spoutConfig;
     
     public static final KafkaSpoutRetryService ZERO_RETRIES_RETRY_SERVICE =
         new KafkaSpoutRetryExponentialBackoff(KafkaSpoutRetryExponentialBackoff.TimeInterval.seconds(0), KafkaSpoutRetryExponentialBackoff.TimeInterval.milliSeconds(0),
             0, KafkaSpoutRetryExponentialBackoff.TimeInterval.milliSeconds(0));
     
-    @Captor
-    private ArgumentCaptor<Map<TopicPartition, OffsetAndMetadata>> commitCapture;
-    
     @Before
     public void setUp() {
-        spoutConfig = createKafkaSpoutConfigBuilder(mock(TopicFilter.class), mock(ManualPartitioner.class), -1)
+        spoutConfig = SingleTopicKafkaSpoutConfiguration.createKafkaSpoutConfigBuilderForMockConsumer(partition.topic())
             .setOffsetCommitPeriodMs(offsetCommitPeriodMs)
             .setRetry(ZERO_RETRIES_RETRY_SERVICE)
             .build();
-        consumerMock = mock(KafkaConsumer.class);
+        mockConsumer = new MockConsumer<>(OffsetResetStrategy.NONE);
     }
     
     @Test
     public void testFailingTupleCompletesAckAfterRetryLimitIsMet() {
         //Spout should ack failed messages after they hit the retry limit
         try (SimulatedTime simulatedTime = new SimulatedTime()) {
-            KafkaSpout<String, String> spout = SpoutWithMockedConsumerSetupHelper.setupSpout(spoutConfig, conf, contextMock, collectorMock, consumerMock, partition);
-            Map<TopicPartition, List<ConsumerRecord<String, String>>> records = new HashMap<>();
-            int lastOffset = 3;
-            int numRecords = lastOffset + 1;
-            records.put(partition, SpoutWithMockedConsumerSetupHelper.createRecords(partition, 0, numRecords));
+            KafkaSpout<String, String> spout = SpoutWithMockedConsumerSetupHelper.setupSpout2(spoutConfig, conf, contextMock, collectorMock, mockConsumer,
+                new TopicPartitionWithOffsetRange(partition, 0L, null));
             
-            when(consumerMock.poll(anyLong()))
-                .thenReturn(new ConsumerRecords<>(records));
+            SpoutWithMockedConsumerSetupHelper.addRecords(mockConsumer, partition, 0L, 4);
+            List<KafkaSpoutMessageId> messageIds = SpoutWithMockedConsumerSetupHelper.callNextTupleAndGetEmittedIds(spout, mockConsumer, 4, collectorMock);
             
-            for (int i = 0; i < numRecords; i++) {
-                spout.nextTuple();
-            }
-            
-            ArgumentCaptor<KafkaSpoutMessageId> messageIds = ArgumentCaptor.forClass(KafkaSpoutMessageId.class);
-            verify(collectorMock, times(numRecords)).emit(anyString(), anyList(), messageIds.capture());
-            
-            for (KafkaSpoutMessageId messageId : messageIds.getAllValues()) {
+            for (KafkaSpoutMessageId messageId : messageIds) {
                 spout.fail(messageId);
             }
 
@@ -105,13 +81,8 @@ public class KafkaSpoutRetryLimitTest {
             Time.advanceTime(KafkaSpout.TIMER_DELAY_MS + offsetCommitPeriodMs);
             spout.nextTuple();
             
-            InOrder inOrder = inOrder(consumerMock);
-            inOrder.verify(consumerMock).commitSync(commitCapture.capture());
-            inOrder.verify(consumerMock).poll(anyLong());
-
             //verify that offset 4 was committed for the given TopicPartition, since processing should resume at 4.
-            assertTrue(commitCapture.getValue().containsKey(partition));
-            assertEquals(lastOffset + 1, ((OffsetAndMetadata) (commitCapture.getValue().get(partition))).offset());
+            assertThat(mockConsumer.committed(partition).offset(), is(4L));
         }
     }
     

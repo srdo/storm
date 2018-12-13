@@ -99,11 +99,18 @@ public class SpoutWithMockedConsumerSetupHelper {
     public static <K, V> KafkaSpout<K, V> setupSpout2(KafkaSpoutConfig<K, V> spoutConfig, Map<String, Object> topoConf,
         TopologyContext contextMock, SpoutOutputCollector collectorMock, MockConsumer<K, V> mockConsumer, TopicPartitionWithOffsetRange... assignedPartitions) {
         List<TopicPartitionWithOffsetRange> partitions = Arrays.asList(assignedPartitions);
-        partitions.stream()
-            .map(tpWithRange -> tpWithRange.getTp())
-            .forEach(
-                tp -> mockConsumer.updatePartitions(tp.topic(), 
-                    Collections.singletonList(new PartitionInfo(tp.topic(), tp.partition(), null, null, null))));
+        
+        Map<String, List<TopicPartitionWithOffsetRange>> partitionsByTopic = partitions.stream()
+            .collect(Collectors.groupingBy(partition -> partition.getTp().topic()));
+        Map<String, List<PartitionInfo>> partitionInfosByTopic = new HashMap<>();
+        for (Entry<String, List<TopicPartitionWithOffsetRange>> entry : partitionsByTopic.entrySet()) {
+            partitionInfosByTopic.put(entry.getKey(), entry.getValue().stream()
+                .map(tpWithRange -> tpWithRange.getTp())
+                .map(tp -> new PartitionInfo(tp.topic(), tp.partition(), null, null, null))
+                .collect(Collectors.toList()));
+        }
+        partitionInfosByTopic.forEach((topic, partitionInfo) -> mockConsumer.updatePartitions(topic, partitionInfo));
+        
         Map<TopicPartition, Long> beginningOffsets = partitions.stream()
             .filter(tpWithOffset -> tpWithOffset.getBeginningOffset() != null)
             .collect(Collectors.toMap(tpWithOffset -> tpWithOffset.getTp(), tpWithOffset -> tpWithOffset.getBeginningOffset()));

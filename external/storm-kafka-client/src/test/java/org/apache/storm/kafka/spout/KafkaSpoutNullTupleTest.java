@@ -17,53 +17,53 @@
  */
 package org.apache.storm.kafka.spout;
 
-
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import java.util.regex.Pattern;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.storm.kafka.NullRecordTranslator;
 import org.apache.storm.kafka.spout.config.builder.SingleTopicKafkaSpoutConfiguration;
 import org.apache.storm.utils.Time;
 import org.junit.jupiter.api.Test;
 
 public class KafkaSpoutNullTupleTest extends KafkaSpoutAbstractTest {
-
+    
     public KafkaSpoutNullTupleTest() {
         super(2_000);
     }
-
-
+    
     @Override
     KafkaSpoutConfig<String, String> createSpoutConfig() {
         return KafkaSpoutConfig.builder("127.0.0.1:" + kafkaUnitExtension.getKafkaUnit().getKafkaPort(),
-                Pattern.compile(SingleTopicKafkaSpoutConfiguration.TOPIC))
-                .setOffsetCommitPeriodMs(commitOffsetPeriodMs)
-                .setRecordTranslator(new NullRecordTranslator<>())
-                .build();
+            Pattern.compile(SingleTopicKafkaSpoutConfiguration.TOPIC))
+            .setProp(ConsumerConfig.GROUP_ID_CONFIG, "kafkaSpoutTestGroup")
+            .setOffsetCommitPeriodMs(commitOffsetPeriodMs)
+            .setRecordTranslator(new NullRecordTranslator<>())
+            .build();
     }
-
+    
     @Test
     public void testShouldCommitAllMessagesIfNotSetToEmitNullTuples() throws Exception {
         final int messageCount = 10;
         prepareSpout(messageCount);
 
         //All null tuples should be commited, meaning they were considered by to be emitted and acked
-        for(int i = 0; i < messageCount; i++) {
+        for (int i = 0; i < messageCount; i++) {
             spout.nextTuple();
         }
-
-        verify(collectorMock,never()).emit(
-                anyString(),
-                anyList(),
-                any());
-
+        
+        verify(collectorMock, never()).emit(
+            anyString(),
+            anyList(),
+            any());
+        
         Time.advanceTime(commitOffsetPeriodMs + KafkaSpout.TIMER_DELAY_MS);
         //Commit offsets
         spout.nextTuple();
-
+        
         verifyAllMessagesCommitted(messageCount);
     }
-
+    
 }
