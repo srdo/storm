@@ -97,6 +97,10 @@ public class ExecutorTransfer {
      */
     public boolean tryTransferLocal(AddressedTuple tuple, JCQueue localQueue, Queue<AddressedTuple> pendingEmits) {
         workerData.checkSerialize(serializer, tuple);
+        boolean isOnSystemStream = Utils.isSystemId(tuple.tuple.getSourceStreamId());
+        if (!isOnSystemStream) {
+            tuple.tuple.getMessageId().getAnchors().forEach(workerData.getActiveAnchorIds()::add);
+        }
         if (pendingEmits != null) {
             if (pendingEmits.isEmpty() && localQueue.tryPublish(tuple)) {
                 queuesToFlush.set(tuple.dest - indexingBase, localQueue);
@@ -106,7 +110,14 @@ public class ExecutorTransfer {
                 return false;
             }
         } else {
-            return localQueue.tryPublish(tuple);
+            if (localQueue.tryPublish(tuple)) {
+                return true;
+            } else {
+                if (!isOnSystemStream) {
+                    tuple.tuple.getMessageId().getAnchors().forEach(workerData.getActiveAnchorIds()::remove);
+                }
+                return false;
+            }
         }
     }
 
