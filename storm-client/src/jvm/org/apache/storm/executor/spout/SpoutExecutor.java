@@ -48,13 +48,13 @@ import org.apache.storm.tuple.AddressedTuple;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.TupleImpl;
 import org.apache.storm.tuple.Values;
+import org.apache.storm.utils.ArrayBackedImmutableIntegerMap;
 import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.JCQueue;
+import org.apache.storm.utils.MutableInt;
 import org.apache.storm.utils.MutableLong;
 import org.apache.storm.utils.ObjectReader;
 import org.apache.storm.utils.ReflectionUtils;
-import org.apache.storm.utils.ArrayBackedImmutableIntegerMap;
-import org.apache.storm.utils.MutableInt;
 import org.apache.storm.utils.Time;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
@@ -257,6 +257,9 @@ public class SpoutExecutor extends Executor {
                 for (AddressedTuple t = pendingEmits.peek(); t != null; t = pendingEmits.peek()) {
                     if (executorTransfer.tryTransfer(t, null)) {
                         pendingEmits.poll();
+                        if (workerData.isAutoTimeoutResetEnabled() && !Utils.isSystemId(t.tuple.getSourceStreamId())) {
+                            t.tuple.getMessageId().getAnchors().forEach(pendingEmitsAnchorIds::remove);
+                        }
                     } else { // to avoid reordering of emits, stop at first failure
                         return false;
                     }

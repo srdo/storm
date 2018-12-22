@@ -18,11 +18,13 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -56,6 +58,7 @@ import org.apache.storm.grouping.LoadMapping;
 import org.apache.storm.metric.api.IMetric;
 import org.apache.storm.metric.api.IMetricsConsumer;
 import org.apache.storm.shade.com.google.common.annotations.VisibleForTesting;
+import org.apache.storm.shade.com.google.common.collect.ConcurrentHashMultiset;
 import org.apache.storm.shade.com.google.common.collect.Lists;
 import org.apache.storm.shade.org.jctools.queues.MpscChunkedArrayQueue;
 import org.apache.storm.shade.org.json.simple.JSONValue;
@@ -109,6 +112,7 @@ public abstract class Executor implements Callable, JCQueue.Consumer {
     protected final boolean ackingEnabled;
     protected final ErrorReportingMetrics errorReportingMetrics;
     protected final MpscChunkedArrayQueue<AddressedTuple> pendingEmits = new MpscChunkedArrayQueue<>(1024, (int)Math.pow(2, 30));
+    protected final ConcurrentHashMultiset<Long> pendingEmitsAnchorIds = ConcurrentHashMultiset.create();
     private final AddressedTuple flushTuple;
     protected ExecutorTransfer executorTransfer;
     protected ArrayList<Task> idToTask;
@@ -124,14 +128,14 @@ public abstract class Executor implements Callable, JCQueue.Consumer {
         this.componentId = workerTopologyContext.getComponentId(taskIds.get(0));
         this.openOrPrepareWasCalled = new AtomicBoolean(false);
         this.topoConf = normalizedComponentConf(workerData.getTopologyConf(), workerTopologyContext, componentId);
-        this.receiveQueue = (workerData.getExecutorReceiveQueueMap().get(executorId));
+        this.receiveQueue = workerData.getExecutorReceiveQueueMap().get(executorId);
         this.stormId = workerData.getTopologyId();
         this.conf = workerData.getConf();
         this.sharedExecutorData = new HashMap();
         this.stormActive = workerData.getIsTopologyActive();
         this.stormComponentDebug = workerData.getStormComponentToDebug();
 
-        this.executorTransfer = new ExecutorTransfer(workerData, topoConf);
+        this.executorTransfer = new ExecutorTransfer(workerData, topoConf, pendingEmitsAnchorIds);
 
         this.suicideFn = workerData.getSuicideCallback();
         try {
@@ -239,6 +243,10 @@ public abstract class Executor implements Callable, JCQueue.Consumer {
 
     public Queue<AddressedTuple> getPendingEmits() {
         return pendingEmits;
+    }
+
+    public ConcurrentHashMultiset<Long> getPendingEmitsAnchorIds() {
+        return pendingEmitsAnchorIds;
     }
 
     /**
@@ -385,6 +393,15 @@ public abstract class Executor implements Callable, JCQueue.Consumer {
         } else {
             LOG.debug("RecvQ is currently full, will retry publishing Flush Tuple later to : {}", getComponentId());
             return false;
+        }
+    }
+    
+    public void publishResetTimeoutTuples(Set<Long> anchorIds) {
+        TupleImpl tuple = new TupleImpl(workerTopologyContext, new Values(anchorIds), Constants.SYSTEM_COMPONENT_ID,
+            (int) Constants.SYSTEM_TASK_ID, Constants.SYSTEM_RESET_TIMEOUT_STREAM_ID);
+        AddressedTuple addressedTuple = new AddressedTuple((int) Constants.SYSTEM_TASK_ID, tuple);
+        if (!receiveQueue.tryPublishDirect(addressedTuple)) {
+            LOG.debug("System task's receive queue is full, will retry publishing reset timeout tuple later.");
         }
     }
 

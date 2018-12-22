@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import org.apache.storm.Config;
@@ -245,6 +246,10 @@ public class StormCommon {
             inputs.put(Utils.getGlobalStreamId(id, Acker.ACKER_RESET_TIMEOUT_STREAM_ID),
                        Thrift.prepareFieldsGrouping(Arrays.asList("id")));
         }
+        inputs.put(Utils.getGlobalStreamId(Constants.SYSTEM_COMPONENT_ID, Acker.ACKER_BATCH_RESET_TIMEOUT_STREAM_ID),
+                   Thrift.prepareDirectGrouping());
+        inputs.put(Utils.getGlobalStreamId(Constants.SYSTEM_COMPONENT_ID, Acker.ACKER_RESET_TIMEOUT_STREAM_ID),
+                   Thrift.prepareFieldsGrouping(Arrays.asList("id")));
         return inputs;
     }
 
@@ -435,8 +440,11 @@ public class StormCommon {
         Map<String, StreamInfo> outputStreams = new HashMap<>();
         outputStreams.put(Constants.SYSTEM_TICK_STREAM_ID, Thrift.outputFields(Arrays.asList("rate_secs")));
         outputStreams.put(Constants.SYSTEM_FLUSH_STREAM_ID, Thrift.outputFields(Arrays.asList()));
+        outputStreams.put(Constants.SYSTEM_RESET_TIMEOUT_STREAM_ID, Thrift.outputFields(Arrays.asList("anchors")));
         outputStreams.put(Constants.METRICS_TICK_STREAM_ID, Thrift.outputFields(Arrays.asList("interval")));
         outputStreams.put(Constants.CREDENTIALS_CHANGED_STREAM_ID, Thrift.outputFields(Arrays.asList("creds")));
+        outputStreams.put(Acker.ACKER_BATCH_RESET_TIMEOUT_STREAM_ID, Thrift.outputFields(Arrays.asList("ids")));
+        outputStreams.put(Acker.ACKER_RESET_TIMEOUT_STREAM_ID, Thrift.outputFields(Arrays.asList("id")));
 
         Map<String, Object> boltConf = new HashMap<>();
         boltConf.put(Config.TOPOLOGY_TASKS, 0);

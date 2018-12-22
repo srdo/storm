@@ -19,8 +19,11 @@ import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -58,6 +61,7 @@ import org.apache.storm.shade.uk.org.lidalia.sysoutslf4j.context.SysOutOverSLF4J
 import org.apache.storm.stats.ClientStatsUtil;
 import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.LocalState;
+import org.apache.storm.utils.MutableLong;
 import org.apache.storm.utils.NimbusClient;
 import org.apache.storm.utils.ObjectReader;
 import org.apache.storm.utils.SupervisorClient;
@@ -276,6 +280,7 @@ public class Worker implements Shutdownable, DaemonCommon {
                                                          workerState::refreshStormActive);
 
         setupFlushTupleTimer(topologyConf, newExecutors);
+        setupResetTimeoutTimer(newExecutors);
         setupBackPressureCheckTimer(topologyConf);
 
         LOG.info("Worker has topology config {}", ConfigUtils.maskPasswords(topologyConf));
@@ -305,6 +310,58 @@ public class Worker implements Shutdownable, DaemonCommon {
                                                         }
         );
         LOG.info("Flush tuple will be generated every {} millis", flushIntervalMillis);
+    }
+    
+    private void setupResetTimeoutTimer(final List<IRunningExecutor> executors) {
+        if (!workerState.isAutoTimeoutResetEnabled()) {
+            LOG.info("Auto timeout reset is disabled");
+            return;
+        }
+
+        final IRunningExecutor systemExecutor = executors.stream()
+            .filter(executor -> executor.getExecutorId().get(0) == Constants.SYSTEM_TASK_ID)
+            .findAny().orElseThrow(() -> new RuntimeException("Missing executor for the System task"));
+
+        int messageTimeoutSecs = ObjectReader.getInt(conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS));
+        //At most twice this interval elapses before we start resetting
+        int resetIntervalSecs = Math.max(1, messageTimeoutSecs / 4);
+        int intervalSpentResettingBeforeWarningMs = (int) TimeUnit.SECONDS.toMillis(messageTimeoutSecs);
+
+        Set<Long> anchorsToResetAndWarnAbout = new HashSet<>();
+        Set<Long> anchorsToReset = new HashSet<>();
+        Set<Long> anchorsInGracePeriod = new HashSet<>();
+
+        MutableLong lastResetAndWarnRotationMs = new MutableLong(Time.currentTimeMillis());
+
+        workerState.resetTupleTimeoutTimer.scheduleRecurring(resetIntervalSecs, resetIntervalSecs, () -> {
+            Set<Long> activeAnchorIds = new HashSet<>(workerState.getActiveInboundAnchorIds().elementSet());
+            for (IRunningExecutor exec : executors) {
+                activeAnchorIds.addAll(exec.getPendingEmitsAnchorIds());
+            }
+
+            if (Time.currentTimeMillis() - lastResetAndWarnRotationMs.get() > intervalSpentResettingBeforeWarningMs) {
+                anchorsToResetAndWarnAbout.addAll(anchorsToReset);
+                anchorsToResetAndWarnAbout.retainAll(activeAnchorIds);
+
+                LOG.debug("The following anchors have been pending for a long time in this worker,"
+                    + " one of the bolts may be overworked: {}", anchorsToResetAndWarnAbout);
+
+                lastResetAndWarnRotationMs.set(Time.currentTimeMillis());
+            }
+
+            anchorsToReset.addAll(anchorsInGracePeriod);
+            anchorsToReset.retainAll(activeAnchorIds);
+
+            anchorsInGracePeriod.clear();
+            anchorsInGracePeriod.addAll(activeAnchorIds);
+
+            Set<Long> allAnchorsToReset = new HashSet<>(anchorsToResetAndWarnAbout);
+            allAnchorsToReset.addAll(anchorsToReset);
+
+            if (!allAnchorsToReset.isEmpty()) {
+                systemExecutor.publishResetTimeoutTuples(allAnchorsToReset);
+            }
+        });
     }
 
     private void setupBackPressureCheckTimer(final Map<String, Object> topologyConf) {
@@ -475,6 +532,7 @@ public class Worker implements Shutdownable, DaemonCommon {
             workerState.resetLogLevelsTimer.close();
             workerState.flushTupleTimer.close();
             workerState.backPressureCheckTimer.close();
+            workerState.resetTupleTimeoutTimer.close();
             
             // this is fine because the only time this is shared is when it's a local context,
             // in which case it's a noop
@@ -508,6 +566,7 @@ public class Worker implements Shutdownable, DaemonCommon {
                && workerState.refreshActiveTimer.isTimerWaiting()
                && workerState.executorHeartbeatTimer.isTimerWaiting()
                && workerState.userTimer.isTimerWaiting()
-               && workerState.flushTupleTimer.isTimerWaiting();
+               && workerState.flushTupleTimer.isTimerWaiting()
+               && workerState.resetTupleTimeoutTimer.isTimerWaiting();
     }
 }

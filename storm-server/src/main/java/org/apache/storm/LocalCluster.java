@@ -690,6 +690,7 @@ public class LocalCluster implements ILocalClusterTrackedTopologyAware, Iface {
 
     /**
      * Wait for the cluster to be idle.  This is intended to be used with Simulated time and is for internal testing.
+     * Note that bolt and spout executors are not included in the idle check.
      *
      * @param timeoutMs the number of ms to wait before throwing an error.
      * @throws InterruptedException if interrupted while waiting.

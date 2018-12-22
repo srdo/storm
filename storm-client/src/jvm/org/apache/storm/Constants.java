@@ -25,6 +25,7 @@ public class Constants {
     public static final String SYSTEM_COMPONENT_ID = "__system";
     public static final String SYSTEM_TICK_STREAM_ID = "__tick";
     public static final String SYSTEM_FLUSH_STREAM_ID = "__flush";
+    public static final String SYSTEM_RESET_TIMEOUT_STREAM_ID = "__reset_timeout";
     public static final String METRICS_COMPONENT_ID_PREFIX = "__metrics_";
     public static final String METRICS_STREAM_ID = "__metrics";
     public static final String METRICS_TICK_STREAM_ID = "__metrics_tick";

@@ -12,6 +12,7 @@
 
 package org.apache.storm.daemon;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.storm.Constants;
@@ -36,6 +37,7 @@ public class Acker implements IBolt {
     public static final String ACKER_FAIL_TIMEOUT_STREAM_ID = "__ack_fail_timeout";
     public static final String ACKER_RESET_TIMEOUT_STREAM_ID = "__ack_reset_timeout";
     public static final String ACKER_SPOUT_SYNC_PENDING_STREAM_ID = "__ack_spout_sync_pending";
+    public static final String ACKER_BATCH_RESET_TIMEOUT_STREAM_ID = "__ack_batch_reset_timeout";
     public static final int TIMEOUT_BUCKET_NUM = 2;
     private static final Logger LOG = LoggerFactory.getLogger(Acker.class);
     private static final long serialVersionUID = 4430906880683183091L;
@@ -64,7 +66,19 @@ public class Acker implements IBolt {
             spoutPending.removeAll(pending.keySet());
             collector.emitDirect(input.getSourceTask(), ACKER_SPOUT_SYNC_PENDING_STREAM_ID, new Values(spoutPending));
             return;
-        } 
+        }
+        if (ACKER_BATCH_RESET_TIMEOUT_STREAM_ID.equals(streamId)) {
+            List<Object> anchors = (List<Object>) input.getValue(0);
+            for (int i = 0; i < anchors.size(); i++) {
+                Object id = anchors.get(i);
+                AckObject curr = pending.get(id);
+                //Reinsert curr to reset the timeout
+                if (curr != null) {
+                    pending.put(id, curr);
+                }
+            }
+            return;
+        }
 
         Object id = input.getValue(0);
         AckObject curr = pending.get(id);

@@ -14,13 +14,16 @@ package org.apache.storm.executor.bolt;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.BooleanSupplier;
 import org.apache.storm.Config;
 import org.apache.storm.Constants;
 import org.apache.storm.ICredentialsListener;
+import org.apache.storm.daemon.Acker;
 import org.apache.storm.daemon.StormCommon;
 import org.apache.storm.daemon.Task;
 import org.apache.storm.daemon.metrics.BuiltinBoltMetrics;
@@ -29,6 +32,7 @@ import org.apache.storm.daemon.metrics.BuiltinMetricsUtil;
 import org.apache.storm.daemon.worker.WorkerState;
 import org.apache.storm.executor.Executor;
 import org.apache.storm.generated.NodeInfo;
+import org.apache.storm.grouping.LoadAwareCustomStreamGrouping;
 import org.apache.storm.hooks.info.BoltExecuteInfo;
 import org.apache.storm.messaging.IConnection;
 import org.apache.storm.metric.api.IMetricsRegistrant;
@@ -43,7 +47,9 @@ import org.apache.storm.task.IBolt;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.tuple.AddressedTuple;
+import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.TupleImpl;
+import org.apache.storm.tuple.Values;
 import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.JCQueue;
 import org.apache.storm.utils.JCQueue.ExitCondition;
@@ -66,6 +72,7 @@ public class BoltExecutor extends Executor {
     private final BoltExecutorStats stats;
     private final BuiltinMetrics builtInMetrics;
     private BoltOutputCollectorImpl outputCollector;
+    private LoadAwareCustomStreamGrouping ackerResetGrouping;
 
     public BoltExecutor(WorkerState workerData, List<Long> executorId, Map<String, String> credentials) {
         super(workerData, executorId, credentials, ClientStatsUtil.BOLT);
@@ -147,6 +154,11 @@ public class BoltExecutor extends Executor {
         LOG.info("Prepared bolt {}:{}", componentId, taskIds);
         setupTicks(false);
         setupMetrics();
+        if (workerData.isAutoTimeoutResetEnabled() && Constants.SYSTEM_COMPONENT_ID.equals(componentId)) {
+            ackerResetGrouping = streamToComponentToGrouper
+                .get(Acker.ACKER_RESET_TIMEOUT_STREAM_ID)
+                .get(Acker.ACKER_COMPONENT_ID);
+        }
     }
 
     @Override
@@ -196,6 +208,9 @@ public class BoltExecutor extends Executor {
                 for (AddressedTuple t = pendingEmits.peek(); t != null; t = pendingEmits.peek()) {
                     if (executorTransfer.tryTransfer(t, null)) {
                         pendingEmits.poll();
+                        if (workerData.isAutoTimeoutResetEnabled() && !Utils.isSystemId(t.tuple.getSourceStreamId())) {
+                            t.tuple.getMessageId().getAnchors().forEach(pendingEmitsAnchorIds::remove);
+                        }
                     } else { // to avoid reordering of emits, stop at first failure
                         return false;
                     }
@@ -211,6 +226,8 @@ public class BoltExecutor extends Executor {
         String streamId = tuple.getSourceStreamId();
         if (Constants.SYSTEM_FLUSH_STREAM_ID.equals(streamId)) {
             outputCollector.flush();
+        } else if (Constants.SYSTEM_RESET_TIMEOUT_STREAM_ID.equals(streamId)) {
+            sendAutoResetToAckers(taskId, tuple);
         } else if (Constants.METRICS_TICK_STREAM_ID.equals(streamId)) {
             metricsTick(idToTask.get(taskId - idToTaskBase), tuple);
         } else if (Constants.CREDENTIALS_CHANGED_STREAM_ID.equals(streamId)) {
@@ -245,5 +262,23 @@ public class BoltExecutor extends Executor {
                 stats.boltExecuteTuple(tuple.getSourceComponent(), tuple.getSourceStreamId(), delta);
             }
         }
+    }
+    
+    private void sendAutoResetToAckers(int taskId, TupleImpl tuple) {
+        Task task = idToTask.get(taskId - idToTaskBase);
+        Set<Long> anchorIds = (Set<Long>) tuple.getValue(0);
+        Map<Integer, Set<Long>> ackerTaskToAnchorIds = new HashMap<>();
+        for (Long id : anchorIds) {
+            List<Integer> tasks = ackerResetGrouping.chooseTasks(taskId, new Values(id));
+            //There is always exactly one target acker task
+            ackerTaskToAnchorIds.computeIfAbsent(tasks.get(0), key -> new HashSet<>())
+                .add(id);
+        }
+        ackerTaskToAnchorIds.forEach((ackerTask, anchors) -> {
+            Tuple resetTuple = task.getTuple(Acker.ACKER_BATCH_RESET_TIMEOUT_STREAM_ID, new Values(new ArrayList<>(anchors)));
+            task.sendUnanchored(
+                task.getOutgoingTasks(ackerTask, resetTuple.getSourceStreamId(), resetTuple.getValues()),
+                resetTuple, executorTransfer, pendingEmits);
+        });
     }
 }

@@ -27,7 +27,7 @@ public class LocalExecutor {
     public static Executor mkExecutor(WorkerState workerState, List<Long> executorId, Map<String, String> initialCredentials)
         throws Exception {
         Executor executor = Executor.mkExecutor(workerState, executorId, initialCredentials);
-        executor.setLocalExecutorTransfer(new ExecutorTransfer(workerState, executor.getTopoConf()) {
+        executor.setLocalExecutorTransfer(new ExecutorTransfer(workerState, executor.getTopoConf(), executor.getPendingEmitsAnchorIds()) {
             @Override
             public boolean tryTransfer(AddressedTuple tuple, Queue<AddressedTuple> pendingEmits) {
                 if (null != trackId) {

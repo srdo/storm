@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -70,8 +71,12 @@ import org.apache.storm.topology.TopologyBuilder;
 import org.apache.storm.topology.base.BaseRichBolt;
 import org.apache.storm.topology.base.BaseRichSpout;
 import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.MessageId;
 import org.apache.storm.tuple.Tuple;
+import org.apache.storm.tuple.TupleImpl;
 import org.apache.storm.tuple.Values;
+import org.apache.storm.utils.ObjectReader;
+import org.apache.storm.utils.Time;
 import org.apache.storm.utils.Utils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -320,6 +325,123 @@ public class TopologyIntegrationTest {
             //The first tuple should be acked, and should not have failed
             assertThat(tracker.isFailed(1), is(false));
             assertAcked(tracker, 1);
+        }
+    }
+    
+    private static class SlowAckingBolt extends BaseRichBolt {
+
+        private Tuple firstTuple = null;
+        private OutputCollector collector;
+        private Map<String, Object> topoConf;
+
+        @Override
+        public void declareOutputFields(OutputFieldsDeclarer declarer) {
+        }
+
+        @Override
+        public void prepare(Map<String, Object> topoConf, TopologyContext context, OutputCollector collector) {
+            this.collector = collector;
+            this.topoConf = topoConf;
+        }
+
+        @Override
+        public void execute(Tuple input) {
+            if (firstTuple == null) {
+                firstTuple = input;
+                try {
+                    Time.sleepSecs(ObjectReader.getInt(topoConf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)) * 4);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                collector.ack(firstTuple);
+                collector.ack(input);
+            }
+        }
+    }
+    
+    @Test
+    public void testAutoResetTimeout() throws Exception {
+        //When auto reset timeout is enabled, tuples that are queued/processing in bolts should not time out
+        Config daemonConf = new Config();
+        daemonConf.put(Config.TOPOLOGY_ENABLE_MESSAGE_TIMEOUTS, true);
+        daemonConf.put(Config.TOPOLOGY_ENABLE_AUTO_TIMEOUT_RESET, true);
+        try (LocalCluster cluster = new LocalCluster.Builder()
+            .withSimulatedTime()
+            .withDaemonConf(daemonConf)
+            .build()) {
+            FeederSpout feeder = new FeederSpout(new Fields("field1"));
+            AckFailMapTracker tracker = new AckFailMapTracker();
+            feeder.setAckFailDelegate(tracker);
+            TopologyBuilder topologyBuilder = new TopologyBuilder();
+            topologyBuilder.setSpout("1", feeder);
+            topologyBuilder.setBolt("2", new SlowAckingBolt())
+                .globalGrouping("1");
+            StormTopology topology = topologyBuilder.createTopology();
+
+            Config topoConf = new Config();
+            topoConf.setMessageTimeoutSecs(10);
+            cluster.submitTopology("auto-reset-timeout-tester", topoConf, topology);
+
+            feeder.feed(new Values("a"), 1);
+            feeder.feed(new Values("b"), 2);
+            cluster.advanceClusterTime(30);
+            assertThat(tracker.isFailed(1), is(false));
+            assertThat(tracker.isAcked(1), is(false));
+            cluster.advanceClusterTime(20);
+            assertAcked(tracker, 1, 2);
+        }
+    }
+    
+    private static class MessageLossMockBolt extends BaseRichBolt {
+
+        private OutputCollector collector;
+
+        @Override
+        public void declareOutputFields(OutputFieldsDeclarer declarer) {
+        }
+
+        @Override
+        public void prepare(Map<String, Object> topoConf, TopologyContext context, OutputCollector collector) {
+            this.collector = collector;
+        }
+
+        @Override
+        public void execute(Tuple input) {
+            //Pretend that we emitted a new edge that was lost
+            long edgeId = MessageId.generateId(ThreadLocalRandom.current());
+            ((TupleImpl) input).updateAckVal(edgeId);
+            collector.ack(input);
+        }
+    }
+    
+    @Test
+    public void testAutoResetTimeoutMessageLoss() throws Exception {
+        //Even if auto timeout reset is enabled, tuples that are not queued/processing in bolts
+        //(e.g. due to message loss) should time out normally
+        Config daemonConf = new Config();
+        daemonConf.put(Config.TOPOLOGY_ENABLE_MESSAGE_TIMEOUTS, true);
+        daemonConf.put(Config.TOPOLOGY_ENABLE_AUTO_TIMEOUT_RESET, true);
+        try (LocalCluster cluster = new LocalCluster.Builder()
+            .withSimulatedTime()
+            .withDaemonConf(daemonConf)
+            .build()) {
+            FeederSpout feeder = new FeederSpout(new Fields("field1"));
+            AckFailMapTracker tracker = new AckFailMapTracker();
+            feeder.setAckFailDelegate(tracker);
+            TopologyBuilder topologyBuilder = new TopologyBuilder();
+            topologyBuilder.setSpout("1", feeder);
+            topologyBuilder.setBolt("2", new MessageLossMockBolt())
+                .globalGrouping("1");
+            StormTopology topology = topologyBuilder.createTopology();
+
+            Config topoConf = new Config();
+            topoConf.setMessageTimeoutSecs(10);
+            cluster.submitTopology("auto-reset-timeout-message-loss-tester", topoConf, topology);
+
+            feeder.feed(new Values("a"), 1);
+            cluster.advanceClusterTime(30);
+            assertFailed(tracker, 1);
         }
     }
 

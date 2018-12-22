@@ -14,6 +14,7 @@ package org.apache.storm.executor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import org.apache.storm.Constants;
 import org.apache.storm.daemon.Shutdownable;
 import org.apache.storm.daemon.Task;
@@ -84,6 +85,16 @@ public class ExecutorShutdown implements Shutdownable, IRunningExecutor {
     @Override
     public boolean publishFlushTuple() {
         return executor.publishFlushTuple();
+    }
+
+    @Override
+    public Set<Long> getPendingEmitsAnchorIds() {
+        return executor.getPendingEmitsAnchorIds().elementSet();
+    }
+    
+    @Override
+    public void publishResetTimeoutTuples(Set<Long> anchorIds) {
+        executor.publishResetTimeoutTuples(anchorIds);
     }
 
     @Override

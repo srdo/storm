@@ -62,6 +62,7 @@ import org.apache.storm.policy.IWaitStrategy;
 import org.apache.storm.security.auth.IAutoCredentials;
 import org.apache.storm.serialization.ITupleSerializer;
 import org.apache.storm.serialization.KryoTupleSerializer;
+import org.apache.storm.shade.com.google.common.collect.ConcurrentHashMultiset;
 import org.apache.storm.shade.com.google.common.collect.ImmutableMap;
 import org.apache.storm.shade.com.google.common.collect.Sets;
 import org.apache.storm.task.WorkerTopologyContext;
@@ -135,6 +136,7 @@ public class WorkerState {
     final StormTimer flushTupleTimer = mkHaltingTimer("flush-tuple-timer");
     final StormTimer userTimer = mkHaltingTimer("user-timer");
     final StormTimer backPressureCheckTimer = mkHaltingTimer("backpressure-check-timer");
+    final StormTimer resetTupleTimeoutTimer = mkHaltingTimer("reset-tuple-timeout-timer");
     private final WorkerTransfer workerTransfer;
     private final BackPressureTracker bpTracker;
     private final List<IWorkerHook> deserializedWorkerHooks;
@@ -143,12 +145,15 @@ public class WorkerState {
     private final AtomicLong nextLoadUpdate = new AtomicLong(0);
     private final boolean trySerializeLocal;
     private final Collection<IAutoCredentials> autoCredentials;
+    private final ConcurrentHashMultiset<Long> activeInboundAnchorIds;
+    private final boolean autoTimeoutResetEnabled;
 
     public WorkerState(Map<String, Object> conf, IContext mqContext, String topologyId, String assignmentId,
                        int supervisorPort, int port, String workerId, Map<String, Object> topologyConf, IStateStorage stateStorage,
                        IStormClusterState stormClusterState, Collection<IAutoCredentials> autoCredentials) throws IOException,
         InvalidTopologyException {
         this.autoCredentials = autoCredentials;
+        this.activeInboundAnchorIds = ConcurrentHashMultiset.create();
         this.conf = conf;
         this.localExecutors = new HashSet<>(readWorkerExecutors(stormClusterState, topologyId, assignmentId, port));
         this.mqContext = (null != mqContext) ? mqContext : TransportFactory.makeContext(topologyConf);
@@ -209,6 +214,8 @@ public class WorkerState {
         this.workerTransfer = new WorkerTransfer(this, topologyConf, maxTaskId);
         this.bpTracker = new BackPressureTracker(workerId, taskToExecutorQueue);
         this.deserializedWorkerHooks = deserializeWorkerHooks();
+        this.autoTimeoutResetEnabled = StormCommon.hasAckers(conf) 
+            && ObjectReader.getBoolean(conf.get(Config.TOPOLOGY_ENABLE_AUTO_TIMEOUT_RESET), false);
     }
 
     private static double getQueueLoad(JCQueue q) {
@@ -346,6 +353,10 @@ public class WorkerState {
         return userTimer;
     }
 
+    public ConcurrentHashMultiset<Long> getActiveInboundAnchorIds() {
+        return activeInboundAnchorIds;
+    }
+    
     public void refreshConnections() {
         try {
             refreshConnections(() -> refreshConnectionsTimer.schedule(0, this::refreshConnections));
@@ -503,8 +514,8 @@ public class WorkerState {
     }
 
     /* Not a Blocking call. If cannot emit, will add 'tuple' to pendingEmits and return 'false'. 'pendingEmits' can be null */
-    public boolean tryTransferRemote(AddressedTuple tuple, Queue<AddressedTuple> pendingEmits, ITupleSerializer serializer) {
-        return workerTransfer.tryTransferRemote(tuple, pendingEmits, serializer);
+    public boolean tryTransferRemote(AddressedTuple tuple, Queue<AddressedTuple> pendingEmits, ConcurrentHashMultiset<Long> pendingEmitsAnchorIds, ITupleSerializer serializer) {
+        return workerTransfer.tryTransferRemote(tuple, pendingEmits, serializer, pendingEmitsAnchorIds);
     }
 
     public void flushRemotes() throws InterruptedException {
@@ -523,7 +534,11 @@ public class WorkerState {
         for (int i = 0; i < tupleBatch.size(); i++) {
             AddressedTuple tuple = tupleBatch.get(i);
             JCQueue queue = taskToExecutorQueue.get(tuple.dest);
-
+            boolean shouldAutoResetTimeout = isAutoTimeoutResetEnabled() && !Utils.isSystemId(tuple.tuple.getSourceStreamId());
+            if (shouldAutoResetTimeout) {
+                tuple.tuple.getMessageId().getAnchors().forEach(activeInboundAnchorIds::add);
+            }
+            
             // 1- try adding to main queue if its overflow is not empty
             if (queue.isEmptyOverflow()) {
                 if (queue.tryPublish(tuple)) {
@@ -547,6 +562,9 @@ public class WorkerState {
                 }
             }
             if (!queue.tryPublishToOverflow(tuple)) {
+                if (shouldAutoResetTimeout) {
+                    tuple.tuple.getMessageId().getAnchors().forEach(activeInboundAnchorIds::remove);
+                }
                 dropMessage(tuple, queue);
             }
         }
@@ -669,7 +687,7 @@ public class WorkerState {
             int port = this.getPort();
             receiveQueueMap.put(executor, new JCQueue("receive-queue" + executor.toString(),
                                                       recvQueueSize, overflowLimit, recvBatchSize, backPressureWaitStrategy,
-                                                      this.getTopologyId(), Constants.SYSTEM_COMPONENT_ID, -1, this.getPort()));
+                                                      this.getTopologyId(), Constants.SYSTEM_COMPONENT_ID, (int)Constants.SYSTEM_TASK_ID, this.getPort()));
 
         }
         return receiveQueueMap;
@@ -729,6 +747,13 @@ public class WorkerState {
     public boolean hasRemoteOutboundTasks() {
         Set<Integer> remoteTasks = Sets.difference(new HashSet<>(outboundTasks), new HashSet<>(localTaskIds));
         return !remoteTasks.isEmpty();
+    }
+    
+    /**
+     * @return true if automatic timeout resetting is enabled for the topology.
+     */
+    public boolean isAutoTimeoutResetEnabled() {
+        return autoTimeoutResetEnabled;
     }
 
     /**

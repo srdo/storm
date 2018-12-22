@@ -27,6 +27,7 @@ import org.apache.storm.Constants;
 import org.apache.storm.messaging.TaskMessage;
 import org.apache.storm.policy.IWaitStrategy;
 import org.apache.storm.serialization.ITupleSerializer;
+import org.apache.storm.shade.com.google.common.collect.ConcurrentHashMultiset;
 import org.apache.storm.tuple.AddressedTuple;
 import org.apache.storm.utils.JCQueue;
 import org.apache.storm.utils.ObjectReader;
@@ -66,7 +67,7 @@ class WorkerTransfer implements JCQueue.Consumer {
         }
 
         this.transferQueue = new JCQueue("worker-transfer-queue", xferQueueSz, 0, xferBatchSz, backPressureWaitStrategy,
-                                         workerState.getTopologyId(), Constants.SYSTEM_COMPONENT_ID, -1, workerState.getPort());
+                                         workerState.getTopologyId(), Constants.SYSTEM_COMPONENT_ID, (int)Constants.SYSTEM_TASK_ID, workerState.getPort());
     }
 
     public JCQueue getTransferQueue() {
@@ -105,9 +106,14 @@ class WorkerTransfer implements JCQueue.Consumer {
     }
 
     /* Not a Blocking call. If cannot emit, will add 'tuple' to 'pendingEmits' and return 'false'. 'pendingEmits' can be null */
-    public boolean tryTransferRemote(AddressedTuple addressedTuple, Queue<AddressedTuple> pendingEmits, ITupleSerializer serializer) {
+    public boolean tryTransferRemote(AddressedTuple addressedTuple, Queue<AddressedTuple> pendingEmits, ITupleSerializer serializer,
+        ConcurrentHashMultiset<Long> pendingEmitsAnchorIds) {
+        boolean shouldAutoResetTimeout = workerState.isAutoTimeoutResetEnabled() && !Utils.isSystemId(addressedTuple.tuple.getSourceStreamId());
         if (pendingEmits != null && !pendingEmits.isEmpty()) {
             pendingEmits.add(addressedTuple);
+            if (shouldAutoResetTimeout) {
+                addressedTuple.tuple.getMessageId().getAnchors().forEach(pendingEmitsAnchorIds::add);
+            }
             return false;
         }
 
@@ -120,6 +126,9 @@ class WorkerTransfer implements JCQueue.Consumer {
             LOG.debug("Noticed Back Pressure in remote task {}", addressedTuple.dest);
         }
         if (pendingEmits != null) {
+            if (shouldAutoResetTimeout) {
+                addressedTuple.tuple.getMessageId().getAnchors().forEach(pendingEmitsAnchorIds::add);
+            }
             pendingEmits.add(addressedTuple);
         }
         return false;
