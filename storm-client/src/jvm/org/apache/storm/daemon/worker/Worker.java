@@ -276,6 +276,7 @@ public class Worker implements Shutdownable, DaemonCommon {
                                                          workerState::refreshStormActive);
 
         setupFlushTupleTimer(topologyConf, newExecutors);
+        setupResetTimeoutTimer(newExecutors);
         setupBackPressureCheckTimer(topologyConf);
 
         LOG.info("Worker has topology config {}", ConfigUtils.maskPasswords(topologyConf));
@@ -305,6 +306,13 @@ public class Worker implements Shutdownable, DaemonCommon {
                                                         }
         );
         LOG.info("Flush tuple will be generated every {} millis", flushIntervalMillis);
+    }
+    
+    private void setupResetTimeoutTimer(final List<IRunningExecutor> executors) {
+        if (!executors.isEmpty()) {
+            final IRunningExecutor executor = executors.get(0);
+            workerState.resetTupleTimeoutTimer.scheduleRecurringWithJitter(1, 1, 1, executor::publishResetTimeoutTuples);
+        }
     }
 
     private void setupBackPressureCheckTimer(final Map<String, Object> topologyConf) {
@@ -475,6 +483,7 @@ public class Worker implements Shutdownable, DaemonCommon {
             workerState.resetLogLevelsTimer.close();
             workerState.flushTupleTimer.close();
             workerState.backPressureCheckTimer.close();
+            workerState.resetTupleTimeoutTimer.close();
             
             // this is fine because the only time this is shared is when it's a local context,
             // in which case it's a noop
@@ -508,6 +517,7 @@ public class Worker implements Shutdownable, DaemonCommon {
                && workerState.refreshActiveTimer.isTimerWaiting()
                && workerState.executorHeartbeatTimer.isTimerWaiting()
                && workerState.userTimer.isTimerWaiting()
-               && workerState.flushTupleTimer.isTimerWaiting();
+               && workerState.flushTupleTimer.isTimerWaiting()
+               && workerState.resetTupleTimeoutTimer.isTimerWaiting();
     }
 }

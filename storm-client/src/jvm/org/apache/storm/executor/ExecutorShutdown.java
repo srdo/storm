@@ -87,6 +87,11 @@ public class ExecutorShutdown implements Shutdownable, IRunningExecutor {
     }
 
     @Override
+    public void publishResetTimeoutTuples() {
+        executor.publishResetTimeoutTuples();
+    }
+
+    @Override
     public void shutdown() {
         try {
             LOG.info("Shutting down executor " + executor.getComponentId() + ":" + executor.getExecutorId());

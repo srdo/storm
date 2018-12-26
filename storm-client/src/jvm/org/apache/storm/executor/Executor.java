@@ -18,11 +18,13 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -387,6 +389,11 @@ public abstract class Executor implements Callable, JCQueue.Consumer {
             LOG.debug("RecvQ is currently full, will retry publishing Flush Tuple later to : {}", getComponentId());
             return false;
         }
+    }
+    
+    public void publishResetTimeoutTuples() {
+        Set<Long> activeAnchorIds = new HashSet<>(workerData.getActiveAnchorIds().elementSet());
+        Task task = idToTask.get(idToTaskBase);
     }
 
     /**

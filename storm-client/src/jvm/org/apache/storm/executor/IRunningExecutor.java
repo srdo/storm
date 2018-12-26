@@ -31,4 +31,6 @@ public interface IRunningExecutor {
     JCQueue getReceiveQueue();
 
     boolean publishFlushTuple();
+    
+    void publishResetTimeoutTuples();
 }

@@ -136,6 +136,7 @@ public class WorkerState {
     final StormTimer flushTupleTimer = mkHaltingTimer("flush-tuple-timer");
     final StormTimer userTimer = mkHaltingTimer("user-timer");
     final StormTimer backPressureCheckTimer = mkHaltingTimer("backpressure-check-timer");
+    final StormTimer resetTupleTimeoutTimer = mkHaltingTimer("reset-tuple-timeout-timer");
     private final WorkerTransfer workerTransfer;
     private final BackPressureTracker bpTracker;
     private final List<IWorkerHook> deserializedWorkerHooks;
