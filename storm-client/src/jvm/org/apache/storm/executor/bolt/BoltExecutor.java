@@ -16,11 +16,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.BooleanSupplier;
 import org.apache.storm.Config;
 import org.apache.storm.Constants;
 import org.apache.storm.ICredentialsListener;
+import org.apache.storm.daemon.Acker;
 import org.apache.storm.daemon.StormCommon;
 import org.apache.storm.daemon.Task;
 import org.apache.storm.daemon.metrics.BuiltinBoltMetrics;
@@ -44,6 +46,7 @@ import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.tuple.AddressedTuple;
 import org.apache.storm.tuple.TupleImpl;
+import org.apache.storm.tuple.Values;
 import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.JCQueue;
 import org.apache.storm.utils.JCQueue.ExitCondition;
@@ -194,9 +197,9 @@ public class BoltExecutor extends Executor {
             // returns true if pendingEmits is empty
             private boolean tryFlushPendingEmits() {
                 for (AddressedTuple t = pendingEmits.peek(); t != null; t = pendingEmits.peek()) {
-                    t.tuple.getMessageId().getAnchors().forEach(workerData.getActiveAnchorIds()::remove);
                     if (executorTransfer.tryTransfer(t, null)) {
                         pendingEmits.poll();
+                        t.tuple.getMessageId().getAnchors().forEach(pendingEmitsAnchorIds::remove);
                     } else { // to avoid reordering of emits, stop at first failure
                         return false;
                     }
@@ -212,6 +215,10 @@ public class BoltExecutor extends Executor {
         String streamId = tuple.getSourceStreamId();
         if (Constants.SYSTEM_FLUSH_STREAM_ID.equals(streamId)) {
             outputCollector.flush();
+        } else if (Constants.SYSTEM_RESET_TIMEOUT_STREAM_ID.equals(streamId)) {
+            Task task = idToTask.get(taskId - idToTaskBase);
+            Set<Long> anchorIds = (Set<Long>)tuple.getValue(0);
+            anchorIds.forEach(anchor -> task.sendUnanchored(Acker.ACKER_RESET_TIMEOUT_STREAM_ID, new Values(anchor), executorTransfer, pendingEmits));
         } else if (Constants.METRICS_TICK_STREAM_ID.equals(streamId)) {
             metricsTick(idToTask.get(taskId - idToTaskBase), tuple);
         } else if (Constants.CREDENTIALS_CHANGED_STREAM_ID.equals(streamId)) {

@@ -145,14 +145,14 @@ public class WorkerState {
     private final AtomicLong nextLoadUpdate = new AtomicLong(0);
     private final boolean trySerializeLocal;
     private final Collection<IAutoCredentials> autoCredentials;
-    private final ConcurrentHashMultiset<Long> activeAnchorIds;
+    private final ConcurrentHashMultiset<Long> activeInboundAnchorIds;
 
     public WorkerState(Map<String, Object> conf, IContext mqContext, String topologyId, String assignmentId,
                        int supervisorPort, int port, String workerId, Map<String, Object> topologyConf, IStateStorage stateStorage,
                        IStormClusterState stormClusterState, Collection<IAutoCredentials> autoCredentials) throws IOException,
         InvalidTopologyException {
         this.autoCredentials = autoCredentials;
-        this.activeAnchorIds = ConcurrentHashMultiset.create();
+        this.activeInboundAnchorIds = ConcurrentHashMultiset.create();
         this.conf = conf;
         this.localExecutors = new HashSet<>(readWorkerExecutors(stormClusterState, topologyId, assignmentId, port));
         this.mqContext = (null != mqContext) ? mqContext : TransportFactory.makeContext(topologyConf);
@@ -350,8 +350,8 @@ public class WorkerState {
         return userTimer;
     }
 
-    public ConcurrentHashMultiset<Long> getActiveAnchorIds() {
-        return activeAnchorIds;
+    public ConcurrentHashMultiset<Long> getActiveInboundAnchorIds() {
+        return activeInboundAnchorIds;
     }
     
     public void refreshConnections() {
@@ -511,8 +511,8 @@ public class WorkerState {
     }
 
     /* Not a Blocking call. If cannot emit, will add 'tuple' to pendingEmits and return 'false'. 'pendingEmits' can be null */
-    public boolean tryTransferRemote(AddressedTuple tuple, Queue<AddressedTuple> pendingEmits, ITupleSerializer serializer) {
-        return workerTransfer.tryTransferRemote(tuple, pendingEmits, serializer, activeAnchorIds);
+    public boolean tryTransferRemote(AddressedTuple tuple, Queue<AddressedTuple> pendingEmits, ConcurrentHashMultiset<Long> pendingEmitsAnchorIds, ITupleSerializer serializer) {
+        return workerTransfer.tryTransferRemote(tuple, pendingEmits, serializer, pendingEmitsAnchorIds);
     }
 
     public void flushRemotes() throws InterruptedException {
@@ -533,7 +533,7 @@ public class WorkerState {
             JCQueue queue = taskToExecutorQueue.get(tuple.dest);
             boolean isOnSystemStream = Utils.isSystemId(tuple.tuple.getSourceStreamId());
             if (!isOnSystemStream) {
-                tuple.tuple.getMessageId().getAnchors().forEach(activeAnchorIds::add);
+                tuple.tuple.getMessageId().getAnchors().forEach(activeInboundAnchorIds::add);
             }
             
             // 1- try adding to main queue if its overflow is not empty
@@ -560,7 +560,7 @@ public class WorkerState {
             }
             if (!queue.tryPublishToOverflow(tuple)) {
                 if (!isOnSystemStream) {
-                    tuple.tuple.getMessageId().getAnchors().forEach(activeAnchorIds::remove);
+                    tuple.tuple.getMessageId().getAnchors().forEach(activeInboundAnchorIds::remove);
                 }
                 dropMessage(tuple, queue);
             }
@@ -684,7 +684,7 @@ public class WorkerState {
             int port = this.getPort();
             receiveQueueMap.put(executor, new JCQueue("receive-queue" + executor.toString(),
                                                       recvQueueSize, overflowLimit, recvBatchSize, backPressureWaitStrategy,
-                                                      this.getTopologyId(), Constants.SYSTEM_COMPONENT_ID, -1, this.getPort()));
+                                                      this.getTopologyId(), Constants.SYSTEM_COMPONENT_ID, (int)Constants.SYSTEM_TASK_ID, this.getPort()));
 
         }
         return receiveQueueMap;

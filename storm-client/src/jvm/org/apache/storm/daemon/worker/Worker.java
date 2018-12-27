@@ -19,8 +19,10 @@ import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -309,10 +311,17 @@ public class Worker implements Shutdownable, DaemonCommon {
     }
     
     private void setupResetTimeoutTimer(final List<IRunningExecutor> executors) {
-        if (!executors.isEmpty()) {
-            final IRunningExecutor executor = executors.get(0);
-            workerState.resetTupleTimeoutTimer.scheduleRecurringWithJitter(1, 1, 1, executor::publishResetTimeoutTuples);
-        }
+        final IRunningExecutor systemExecutor = executors.stream()
+            .filter(executor -> executor.getExecutorId().get(0) == Constants.SYSTEM_TASK_ID)
+            .findAny().orElseThrow(() -> new RuntimeException("Missing executor for the System task"));
+        
+        workerState.resetTupleTimeoutTimer.scheduleRecurringWithJitter(1, 1, 1, () -> {
+            Set<Long> activeAnchorIds = new HashSet<>(workerState.getActiveInboundAnchorIds().elementSet());
+            for (IRunningExecutor exec : executors) {
+                activeAnchorIds.addAll(exec.getPendingEmitsAnchorIds());
+            }
+            systemExecutor.publishResetTimeoutTuples(activeAnchorIds);
+        });
     }
 
     private void setupBackPressureCheckTimer(final Map<String, Object> topologyConf) {

@@ -13,6 +13,7 @@
 package org.apache.storm.executor;
 
 import java.util.List;
+import java.util.Set;
 import org.apache.storm.generated.Credentials;
 import org.apache.storm.generated.ExecutorStats;
 import org.apache.storm.grouping.LoadMapping;
@@ -32,5 +33,7 @@ public interface IRunningExecutor {
 
     boolean publishFlushTuple();
     
-    void publishResetTimeoutTuples();
+    Set<Long> getPendingEmitsAnchorIds();
+    
+    void publishResetTimeoutTuples(Set<Long> anchorIds);
 }

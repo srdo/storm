@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 import org.apache.storm.Config;
 import org.apache.storm.daemon.worker.WorkerState;
 import org.apache.storm.serialization.KryoTupleSerializer;
+import org.apache.storm.shade.com.google.common.collect.ConcurrentHashMultiset;
 import org.apache.storm.tuple.AddressedTuple;
 import org.apache.storm.utils.JCQueue;
 import org.apache.storm.utils.ObjectReader;
@@ -33,16 +34,18 @@ public class ExecutorTransfer {
     private final WorkerState workerData;
     private final KryoTupleSerializer serializer;
     private final boolean isDebug;
+    private final ConcurrentHashMultiset<Long> pendingEmitsAnchorIds;
     private int indexingBase = 0;
     private ArrayList<JCQueue> localReceiveQueues; // [taskId-indexingBase] => queue : List of all recvQs local to this worker
     private AtomicReferenceArray<JCQueue> queuesToFlush;
         // [taskId-indexingBase] => queue, some entries can be null. : outbound Qs for this executor instance
 
 
-    public ExecutorTransfer(WorkerState workerData, Map<String, Object> topoConf) {
+    public ExecutorTransfer(WorkerState workerData, Map<String, Object> topoConf, ConcurrentHashMultiset<Long> pendingEmitsAnchorIds) {
         this.workerData = workerData;
         this.serializer = new KryoTupleSerializer(topoConf, workerData.getWorkerTopologyContext());
         this.isDebug = ObjectReader.getBoolean(topoConf.get(Config.TOPOLOGY_DEBUG), false);
+        this.pendingEmitsAnchorIds = pendingEmitsAnchorIds;
     }
 
     // to be called after all Executor objects in the worker are created and before this object is used
@@ -63,7 +66,7 @@ public class ExecutorTransfer {
         if (localQueue != null) {
             return tryTransferLocal(addressedTuple, localQueue, pendingEmits);
         }
-        return workerData.tryTransferRemote(addressedTuple, pendingEmits, serializer);
+        return workerData.tryTransferRemote(addressedTuple, pendingEmits, pendingEmitsAnchorIds, serializer);
     }
 
 
@@ -98,26 +101,26 @@ public class ExecutorTransfer {
     public boolean tryTransferLocal(AddressedTuple tuple, JCQueue localQueue, Queue<AddressedTuple> pendingEmits) {
         workerData.checkSerialize(serializer, tuple);
         boolean isOnSystemStream = Utils.isSystemId(tuple.tuple.getSourceStreamId());
-        if (!isOnSystemStream) {
-            tuple.tuple.getMessageId().getAnchors().forEach(workerData.getActiveAnchorIds()::add);
-        }
         if (pendingEmits != null) {
             if (pendingEmits.isEmpty() && localQueue.tryPublish(tuple)) {
                 queuesToFlush.set(tuple.dest - indexingBase, localQueue);
+                if (!isOnSystemStream) {
+                    tuple.tuple.getMessageId().getAnchors().forEach(workerData.getActiveInboundAnchorIds()::add);
+                }
                 return true;
             } else {
+                if (!isOnSystemStream) {
+                    tuple.tuple.getMessageId().getAnchors().forEach(pendingEmitsAnchorIds::add);
+                }
                 pendingEmits.add(tuple);
                 return false;
             }
         } else {
-            if (localQueue.tryPublish(tuple)) {
-                return true;
-            } else {
-                if (!isOnSystemStream) {
-                    tuple.tuple.getMessageId().getAnchors().forEach(workerData.getActiveAnchorIds()::remove);
-                }
-                return false;
+            boolean publishedLocally = localQueue.tryPublish(tuple);
+            if (publishedLocally && !isOnSystemStream) {
+                tuple.tuple.getMessageId().getAnchors().forEach(workerData.getActiveInboundAnchorIds()::add);
             }
+            return publishedLocally;
         }
     }
 

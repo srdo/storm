@@ -47,7 +47,7 @@ public class BoltOutputCollectorImpl implements IOutputCollector {
     private final ExecutorTransfer xsfer;
     private final boolean isDebug;
     private final boolean ackingEnabled;
-    private final ConcurrentHashMultiset<Long> activeAnchorIds;
+    private final ConcurrentHashMultiset<Long> activeInboundAnchorIds;
 
     public BoltOutputCollectorImpl(BoltExecutor executor, Task taskData, Random random,
                                    boolean isEventLoggers, boolean ackingEnabled, boolean isDebug) {
@@ -59,7 +59,7 @@ public class BoltOutputCollectorImpl implements IOutputCollector {
         this.ackingEnabled = ackingEnabled;
         this.isDebug = isDebug;
         this.xsfer = executor.getExecutorTransfer();
-        this.activeAnchorIds = executor.getWorkerData().getActiveAnchorIds();
+        this.activeInboundAnchorIds = executor.getWorkerData().getActiveInboundAnchorIds();
     }
 
     public List<Integer> emit(String streamId, Collection<Tuple> anchors, List<Object> tuple) {
@@ -130,7 +130,7 @@ public class BoltOutputCollectorImpl implements IOutputCollector {
             task.sendUnanchored(Acker.ACKER_ACK_STREAM_ID,
                                 new Values(entry.getKey(), Utils.bitXor(entry.getValue(), ackValue)),
                                 executor.getExecutorTransfer(), executor.getPendingEmits());
-            activeAnchorIds.remove(entry.getKey());
+            activeInboundAnchorIds.remove(entry.getKey());
         }
         long delta = tupleTimeDelta((TupleImpl) input);
         if (isDebug) {
@@ -156,7 +156,7 @@ public class BoltOutputCollectorImpl implements IOutputCollector {
         for (Long root : roots) {
             task.sendUnanchored(Acker.ACKER_FAIL_STREAM_ID,
                                 new Values(root), executor.getExecutorTransfer(), executor.getPendingEmits());
-            activeAnchorIds.remove(root);
+            activeInboundAnchorIds.remove(root);
         }
         long delta = tupleTimeDelta((TupleImpl) input);
         if (isDebug) {

@@ -255,9 +255,9 @@ public class SpoutExecutor extends Executor {
             // returns true if pendingEmits is empty
             private boolean tryFlushPendingEmits() {
                 for (AddressedTuple t = pendingEmits.peek(); t != null; t = pendingEmits.peek()) {
-                    t.tuple.getMessageId().getAnchors().forEach(workerData.getActiveAnchorIds()::remove);
                     if (executorTransfer.tryTransfer(t, null)) {
                         pendingEmits.poll();
+                        t.tuple.getMessageId().getAnchors().forEach(pendingEmitsAnchorIds::remove);
                     } else { // to avoid reordering of emits, stop at first failure
                         return false;
                     }
