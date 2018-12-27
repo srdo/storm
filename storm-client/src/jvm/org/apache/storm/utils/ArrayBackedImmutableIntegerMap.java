@@ -19,8 +19,6 @@ package org.apache.storm.utils;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import org.apache.storm.utils.ArrayBackedImmutableIntegerMap.Entry;
 
 public class ArrayBackedImmutableIntegerMap<T> implements Iterable<Entry<T>> {
