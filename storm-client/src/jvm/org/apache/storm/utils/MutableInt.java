@@ -35,4 +35,8 @@ public class MutableInt {
         val += amt;
         return val;
     }
+    
+    public long decrement() {
+        return --val;
+    }
 }

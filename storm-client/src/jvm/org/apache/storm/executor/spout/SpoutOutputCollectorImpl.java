@@ -13,11 +13,9 @@
 package org.apache.storm.executor.spout;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import org.apache.storm.daemon.Acker;
 import org.apache.storm.daemon.Task;
 import org.apache.storm.executor.TupleInfo;
@@ -29,6 +27,7 @@ import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.TupleImpl;
 import org.apache.storm.tuple.Values;
 import org.apache.storm.utils.ArrayBackedImmutableIntegerMap;
+import org.apache.storm.utils.MutableInt;
 import org.apache.storm.utils.MutableLong;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
@@ -47,8 +46,8 @@ public class SpoutOutputCollectorImpl implements ISpoutOutputCollector {
     private final Random random;
     private final Boolean isEventLoggers;
     private final Boolean isDebug;
-    private final Map<Long, TupleInfo> pending;
-    private final ArrayBackedImmutableIntegerMap<Set<Long>> ackerTaskToTupleRootId;
+    private final MutableInt pendingCount;
+    private final ArrayBackedImmutableIntegerMap<Map<Long, TupleInfo>> ackerTaskToRootIdToTupleInfo;
     private final long spoutExecutorThdId;
     private final TupleInfo globalTupleInfo = new TupleInfo();
         // thread safety: assumes Collector.emit*() calls are externally synchronized (if needed).
@@ -56,8 +55,8 @@ public class SpoutOutputCollectorImpl implements ISpoutOutputCollector {
     @SuppressWarnings("unused")
     public SpoutOutputCollectorImpl(ISpout spout, SpoutExecutor executor, Task taskData,
                                     MutableLong emittedCount, boolean hasAckers, Random random,
-                                    Boolean isEventLoggers, Boolean isDebug, Map<Long, TupleInfo> pending,
-                                    ArrayBackedImmutableIntegerMap<Set<Long>> ackerTaskToTupleRootId) {
+                                    Boolean isEventLoggers, Boolean isDebug, MutableInt pendingCount,
+                                    ArrayBackedImmutableIntegerMap<Map<Long, TupleInfo>> ackerTaskToRootIdToTupleInfo) {
         this.executor = executor;
         this.taskData = taskData;
         this.taskId = taskData.getTaskId();
@@ -66,8 +65,8 @@ public class SpoutOutputCollectorImpl implements ISpoutOutputCollector {
         this.random = random;
         this.isEventLoggers = isEventLoggers;
         this.isDebug = isDebug;
-        this.pending = pending;
-        this.ackerTaskToTupleRootId = ackerTaskToTupleRootId;
+        this.pendingCount = pendingCount;
+        this.ackerTaskToRootIdToTupleInfo = ackerTaskToRootIdToTupleInfo;
         this.spoutExecutorThdId = executor.getThreadId();
     }
 
@@ -104,7 +103,7 @@ public class SpoutOutputCollectorImpl implements ISpoutOutputCollector {
 
     @Override
     public long getPendingCount() {
-        return pending.size();
+        return pendingCount.get();
     }
 
     @Override
@@ -163,13 +162,13 @@ public class SpoutOutputCollectorImpl implements ISpoutOutputCollector {
                 info.setTimestamp(System.currentTimeMillis());
             }
 
-            pending.put(rootId, info);
             List<Object> ackInitValues = new Values(rootId, Utils.bitXorVals(ackSeq), this.taskId);
             Tuple ackInitTuple = taskData.getTuple(Acker.ACKER_INIT_STREAM_ID, ackInitValues);
             List<Integer> ackerTaskIds = taskData.getOutgoingTasks(Acker.ACKER_INIT_STREAM_ID, ackInitValues);
             taskData.sendUnanchored(ackerTaskIds, ackInitTuple, executor.getExecutorTransfer(), executor.getPendingEmits());
             //Ack init stream uses field grouping, so exactly one acker task will be sent the init
-            ackerTaskToTupleRootId.get(ackerTaskIds.get(0)).add(rootId);
+            ackerTaskToRootIdToTupleInfo.get(ackerTaskIds.get(0)).put(rootId, info);
+            pendingCount.increment();
         } else if (messageId != null) {
             // Reusing TupleInfo object as we directly call executor.ackSpoutMsg() & are not sending msgs. perf critical
             if (isDebug) {
