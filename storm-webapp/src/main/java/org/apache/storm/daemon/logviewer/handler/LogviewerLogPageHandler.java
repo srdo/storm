@@ -42,11 +42,13 @@ import j2html.tags.DomContent;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -447,7 +449,8 @@ public class LogviewerLogPageHandler {
 
     private String pageFile(String path, boolean isZipFile, long fileLength, Integer start, Integer readLength)
         throws IOException, InvalidRequestException {
-        try (InputStream input = isZipFile ? new GZIPInputStream(new FileInputStream(path)) : new FileInputStream(path);
+        Path filePath = Paths.get(path);
+        try (InputStream input = isZipFile ? new GZIPInputStream(Files.newInputStream(filePath)) : Files.newInputStream(filePath);
              ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             if (start >= fileLength) {
                 throw new InvalidRequestException("Cannot start past the end of the file");

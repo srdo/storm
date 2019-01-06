@@ -14,7 +14,7 @@ package org.apache.storm.maven.plugin.versioninfo;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
@@ -244,20 +244,12 @@ public class VersionInfoMojo extends AbstractMojo {
         return branch.trim();
     }
 
-    private byte[] readFile(File file) throws IOException {
-        RandomAccessFile raf = new RandomAccessFile(file, "r");
-        byte[] buffer = new byte[(int) raf.length()];
-        raf.readFully(buffer);
-        raf.close();
-        return buffer;
-    }
-
     private byte[] computeMD5(List<File> files) throws IOException,
         NoSuchAlgorithmException {
         MessageDigest md5 = MessageDigest.getInstance("MD5");
         for (File file : files) {
             getLog().debug("Computing MD5 for: " + file);
-            md5.update(readFile(file));
+            md5.update(Files.readAllBytes(file.toPath()));
         }
         return md5.digest();
     }

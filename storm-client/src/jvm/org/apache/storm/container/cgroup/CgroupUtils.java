@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -92,8 +93,8 @@ public class CgroupUtils {
             LOG.error("{} does not exist", filePath);
             return;
         }
-        try (FileWriter writer = new FileWriter(file, true);
-             BufferedWriter bw = new BufferedWriter(writer)) {
+        try (BufferedWriter bw = java.nio.file.Files.newBufferedWriter(file.toPath(), Charset.defaultCharset(),
+            StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.APPEND)) {
             for (String string : linesToWrite) {
                 bw.write(string);
                 bw.newLine();

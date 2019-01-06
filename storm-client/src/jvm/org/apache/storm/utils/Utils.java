@@ -22,9 +22,7 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -40,7 +38,9 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -82,7 +82,6 @@ import org.apache.storm.generated.StormTopology;
 import org.apache.storm.generated.TopologyInfo;
 import org.apache.storm.generated.TopologySummary;
 import org.apache.storm.security.auth.ReqContext;
-import org.apache.storm.serialization.GzipThriftSerializationDelegate;
 import org.apache.storm.serialization.SerializationDelegate;
 import org.apache.storm.shade.com.google.common.annotations.VisibleForTesting;
 import org.apache.storm.shade.com.google.common.collect.Lists;
@@ -211,7 +210,7 @@ public class Utils {
         if (resources.isEmpty()) {
             File configFile = new File(configFilePath);
             if (configFile.exists()) {
-                return new FileInputStream(configFile);
+                return Files.newInputStream(configFile.toPath());
             }
         } else if (resources.size() > 1) {
             throw new IOException(
@@ -709,7 +708,7 @@ public class Utils {
     }
 
     public static boolean checkFileExists(String path) {
-        return Files.exists(new File(path).toPath());
+        return Files.exists(Paths.get(path));
     }
 
     /**
@@ -1345,7 +1344,7 @@ public class Utils {
     }
 
     public static Object readYamlFile(String yamlFile) {
-        try (FileReader reader = new FileReader(yamlFile)) {
+        try (BufferedReader reader = Files.newBufferedReader(Paths.get(yamlFile), Charset.defaultCharset())) {
             return new Yaml(new SafeConstructor()).load(reader);
         } catch (Exception ex) {
             LOG.error("Failed to read yaml file.", ex);
@@ -1584,7 +1583,7 @@ public class Utils {
     private static Map<String, Object> readConfIgnoreNotFound(Yaml yaml, File f) throws IOException {
         Map<String, Object> ret = null;
         if (f.exists()) {
-            try (FileReader fr = new FileReader(f)) {
+            try (BufferedReader fr = Files.newBufferedReader(f.toPath(), Charset.defaultCharset())) {
                 ret = (Map<String, Object>) yaml.load(fr);
             }
         }

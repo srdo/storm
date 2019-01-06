@@ -19,13 +19,11 @@
 package org.apache.storm.pmml;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.commons.compress.utils.IOUtils;
 import org.apache.storm.Config;
 import org.apache.storm.StormSubmitter;
 import org.apache.storm.generated.StormTopology;
@@ -41,6 +39,7 @@ import org.apache.storm.tuple.Tuple;
 import org.apache.storm.utils.Utils;
 
 import com.google.common.collect.Lists;
+import java.nio.file.Files;
 
 /**
  * Topology that loads a PMML Model and raw input data from a CSV file. The {@link RawInputFromCSVSpout}
@@ -131,8 +130,7 @@ public class JpmmlRunnerTestTopology {
 
     private File loadExample(File file, String example) {
         try (InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(example)) {
-            file = File.createTempFile("pmml-example", ".tmp");
-            IOUtils.copy(stream, new FileOutputStream(file));
+            Files.copy(stream, Files.createTempFile("pmml-example", ".tmp"));
         } catch (IOException e) {
             throw new RuntimeException("Error loading example " + example, e);
         }

@@ -27,6 +27,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
@@ -116,7 +117,7 @@ public class LocalizedResource extends LocallyCachedBlob {
     static long localVersionOfBlob(Path versionFile) {
         long currentVersion = -1;
         if (Files.exists(versionFile) && !(Files.isDirectory(versionFile))) {
-            try (BufferedReader br = new BufferedReader(new FileReader(versionFile.toFile()))) {
+            try (BufferedReader br = Files.newBufferedReader(versionFile, Charset.defaultCharset())) {
                 String line = br.readLine();
                 currentVersion = Long.parseLong(line);
             } catch (IOException e) {
@@ -280,9 +281,8 @@ public class LocalizedResource extends LocallyCachedBlob {
         String key = getKey();
         LOG.info("Blob: {} updated to version {} from version {}", key, version, getLocalVersion());
         Path localVersionFile = versionFilePath;
-        // The false parameter ensures overwriting the version file, not appending
         try (PrintWriter writer = new PrintWriter(
-            new BufferedWriter(new FileWriter(localVersionFile.toFile(), false)))) {
+            Files.newBufferedWriter(localVersionFile, Charset.defaultCharset()))) {
             writer.println(version);
         }
         setBlobPermissions(conf, user, localVersionFile);
@@ -368,7 +368,7 @@ public class LocalizedResource extends LocallyCachedBlob {
                         LOG.error("{} does not match the version file so fix the version file", current);
                         //The versions are different so roll back to whatever current is
                         try (PrintWriter restoreWriter = new PrintWriter(
-                            new BufferedWriter(new FileWriter(versionFilePath.toFile(), false)))) {
+                            Files.newBufferedWriter(versionFilePath, Charset.defaultCharset()))) {
                             restoreWriter.println(foundVersion);
                         }
                         version = foundVersion;

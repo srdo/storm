@@ -12,22 +12,23 @@
 
 package org.apache.storm.utils;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 
 
 public class BufferFileInputStream {
     byte[] buffer;
-    FileInputStream stream;
+    InputStream stream;
 
-    public BufferFileInputStream(String file, int bufferSize) throws FileNotFoundException {
-        stream = new FileInputStream(file);
+    public BufferFileInputStream(String file, int bufferSize) throws IOException {
+        stream = Files.newInputStream(Paths.get(file));
         buffer = new byte[bufferSize];
     }
 
-    public BufferFileInputStream(String file) throws FileNotFoundException {
+    public BufferFileInputStream(String file) throws IOException {
         this(file, 15 * 1024);
     }
 

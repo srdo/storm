@@ -18,11 +18,12 @@
 
 package org.apache.storm.utils;
 
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -138,7 +139,7 @@ public final class VersionInfo {
             if (Files.isDirectory(p)) {
                 Path child = p.resolve(propFileName);
                 if (Files.exists(child) && !Files.isDirectory(child)) {
-                    try (FileReader reader = new FileReader(child.toFile())) {
+                    try (BufferedReader reader = Files.newBufferedReader(child, Charset.defaultCharset())) {
                         Properties info = new Properties();
                         info.load(reader);
                         ret = new VersionInfoImpl(info);

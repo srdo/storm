@@ -14,8 +14,10 @@ package org.apache.storm.security.auth;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
@@ -42,7 +44,7 @@ public class AutoSSL implements IAutoCredentials {
     // Adds the serialized and base64 file to the credentials map as a string with the filename as
     // the key.
     public static void serializeSSLFile(String readFile, Map<String, String> credentials) {
-        try (FileInputStream in = new FileInputStream(readFile)) {
+        try (InputStream in = Files.newInputStream(Paths.get(readFile))) {
             LOG.debug("serializing ssl file: {}", readFile);
             ByteArrayOutputStream result = new ByteArrayOutputStream();
             byte[] buffer = new byte[4096];
@@ -74,7 +76,7 @@ public class AutoSSL implements IAutoCredentials {
             if (resultStr != null) {
                 byte[] decodedData = DatatypeConverter.parseBase64Binary(resultStr);
                 File f = new File(directory, credsKey);
-                try (FileOutputStream fout = new FileOutputStream(f)) {
+                try (OutputStream fout = Files.newOutputStream(f.toPath())) {
                     fout.write(decodedData);
                 }
             }

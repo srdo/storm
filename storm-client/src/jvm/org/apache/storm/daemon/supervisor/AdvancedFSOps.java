@@ -25,6 +25,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
+import java.nio.charset.Charset;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -248,7 +249,7 @@ public class AdvancedFSOps implements IAdvancedFSOps {
      * @throws IOException on any error
      */
     public Writer getWriter(File file) throws IOException {
-        return new FileWriter(file);
+        return java.nio.file.Files.newBufferedWriter(file.toPath(), Charset.defaultCharset());
     }
 
     /**
@@ -260,7 +261,7 @@ public class AdvancedFSOps implements IAdvancedFSOps {
      * @throws IOException on any error
      */
     public OutputStream getOutputStream(File file) throws IOException {
-        return new FileOutputStream(file);
+        return java.nio.file.Files.newOutputStream(file.toPath());
     }
 
     /**

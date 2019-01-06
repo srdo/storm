@@ -15,9 +15,11 @@ package org.apache.storm.starter;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -132,7 +134,7 @@ public class BlobStoreAPIWordCountTopology {
         // Do not use canonical file name here as we are using
         // symbolic links to read file data and performing atomic move
         // while updating files
-        BufferedReader br = new BufferedReader(new FileReader(file));
+        BufferedReader br = Files.newBufferedReader(file.toPath(), Charset.defaultCharset());
         while ((line = br.readLine()) != null) {
             fileContent.append(line);
             fileContent.append(System.lineSeparator());
@@ -159,14 +161,13 @@ public class BlobStoreAPIWordCountTopology {
 
     // Writing random words to be blacklisted
     public static void writeToFile(File file, Set<String> content) throws IOException {
-        FileWriter fw = new FileWriter(file, false);
-        BufferedWriter bw = new BufferedWriter(fw);
-        Iterator<String> iter = content.iterator();
-        while (iter.hasNext()) {
-            bw.write(iter.next());
-            bw.write(System.lineSeparator());
+        try (Writer writer = Files.newBufferedWriter(file.toPath(), Charset.defaultCharset())) {
+            Iterator<String> iter = content.iterator();
+            while (iter.hasNext()) {
+                writer.write(iter.next());
+                writer.write(System.lineSeparator());
+            }
         }
-        bw.close();
     }
 
     public static void main(String[] args) {

@@ -13,9 +13,9 @@
 package org.apache.storm.localizer;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.nio.file.DirectoryStream;
@@ -193,7 +193,7 @@ public class LocallyCachedTopologyBlob extends LocallyCachedBlob {
                     Path targetFile = dest.resolve(shortenedName);
                     LOG.debug("EXTRACTING {} SHORTENED to {} into {}", name, shortenedName, targetFile);
                     fsOps.forceMkdir(targetFile.getParent());
-                    try (FileOutputStream out = new FileOutputStream(targetFile.toFile());
+                    try (OutputStream out = Files.newOutputStream(targetFile);
                          InputStream in = jarFile.getInputStream(entry)) {
                         IOUtils.copy(in, out);
                     }

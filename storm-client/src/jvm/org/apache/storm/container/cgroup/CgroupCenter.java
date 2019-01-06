@@ -14,8 +14,10 @@ package org.apache.storm.container.cgroup;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -48,8 +50,7 @@ public class CgroupCenter implements CgroupOperation {
     @Override
     public List<Hierarchy> getHierarchies() {
         Map<String, Hierarchy> hierarchies = new HashMap<String, Hierarchy>();
-        try (FileReader reader = new FileReader(CgroupUtils.MOUNT_STATUS_FILE);
-             BufferedReader br = new BufferedReader(reader)) {
+        try (BufferedReader br = Files.newBufferedReader(Paths.get(CgroupUtils.MOUNT_STATUS_FILE), Charset.defaultCharset())) {
             String str = null;
             while ((str = br.readLine()) != null) {
                 String[] strSplit = str.split(" ");
@@ -73,8 +74,7 @@ public class CgroupCenter implements CgroupOperation {
     @Override
     public Set<SubSystem> getSubSystems() {
         Set<SubSystem> subSystems = new HashSet<SubSystem>();
-        try (FileReader reader = new FileReader(CgroupUtils.CGROUP_STATUS_FILE);
-             BufferedReader br = new BufferedReader(reader)) {
+        try (BufferedReader br = Files.newBufferedReader(Paths.get(CgroupUtils.CGROUP_STATUS_FILE), Charset.defaultCharset())) {
             String str = null;
             while ((str = br.readLine()) != null) {
                 String[] split = str.split("\t");

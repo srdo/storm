@@ -17,8 +17,9 @@
 package org.apache.storm.utils;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -99,8 +100,8 @@ public class TopologySpoutLag {
                 file.deleteOnExit();
                 Properties properties = new Properties();
                 properties.putAll(extraProperties);
-                try(FileOutputStream fos = new FileOutputStream(file)) {
-                    properties.store(fos, "Kafka consumer extra properties");
+                try(OutputStream os = Files.newOutputStream(file.toPath())) {
+                    properties.store(os, "Kafka consumer extra properties");
                 }
             } catch (IOException ex) {
                 // ignore

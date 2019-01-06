@@ -13,12 +13,11 @@
 package org.apache.storm.blobstore;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.StandardCopyOption;
 import java.util.regex.Matcher;
 import org.apache.storm.generated.SettableBlobMeta;
@@ -82,11 +81,11 @@ public class LocalFsBlobStoreFile extends BlobStoreFile {
     }
 
     @Override
-    public InputStream getInputStream() throws IOException {
+    public InputStream getInputStream() throws NoSuchFileException, IOException {
         if (isTmp()) {
             throw new IllegalStateException("Cannot read from a temporary part file.");
         }
-        return new FileInputStream(_path);
+        return Files.newInputStream(_path.toPath());
     }
 
     @Override
@@ -105,7 +104,7 @@ public class LocalFsBlobStoreFile extends BlobStoreFile {
         if (!success) {
             throw new IOException(_path + " already exists");
         }
-        return new FileOutputStream(_path);
+        return Files.newOutputStream(_path.toPath());
     }
 
     @Override

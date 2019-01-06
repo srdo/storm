@@ -14,11 +14,12 @@ package org.apache.storm.command;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -93,7 +94,7 @@ public class Blobstore {
         final String file = (String) cl.get("f");
 
         if (StringUtils.isNotEmpty(file)) {
-            try (BufferedOutputStream f = new BufferedOutputStream(new FileOutputStream(file))) {
+            try (BufferedOutputStream f = new BufferedOutputStream(Files.newOutputStream(Paths.get(file)))) {
                 BlobStoreSupport.readBlob(key, f);
             }
         } else {
@@ -121,7 +122,7 @@ public class Blobstore {
         LOG.info("Creating {} with ACL {}", key, generateAccessControlsInfo(acl));
 
         if (StringUtils.isNotEmpty(file)) {
-            try (BufferedInputStream f = new BufferedInputStream(new FileInputStream(file))) {
+            try (BufferedInputStream f = new BufferedInputStream(Files.newInputStream(Paths.get(file)))) {
                 BlobStoreSupport.createBlobFromStream(key, f, meta);
             }
         } else {
@@ -140,7 +141,7 @@ public class Blobstore {
         final String file = (String) cl.get("f");
 
         if (StringUtils.isNotEmpty(file)) {
-            try (BufferedInputStream f = new BufferedInputStream(new FileInputStream(file))) {
+            try (BufferedInputStream f = new BufferedInputStream(Files.newInputStream(Paths.get(file)))) {
                 BlobStoreSupport.updateBlobFromStream(key, f);
             }
         } else {

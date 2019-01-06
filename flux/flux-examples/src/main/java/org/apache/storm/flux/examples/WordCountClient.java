@@ -19,6 +19,9 @@
 package org.apache.storm.flux.examples;
 
 import java.io.FileInputStream;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
@@ -43,14 +46,16 @@ public class WordCountClient {
 
     /**
      * Entry point for WordCountClient.
-     * @param args command line arguments
+     * @param args command line argumentsstor
      * @throws Exception if an unexpected error occurs
      */
     public static void main(String[] args) throws Exception {
         Configuration config = HBaseConfiguration.create();
         if (args.length == 1) {
             Properties props = new Properties();
-            props.load(new FileInputStream(args[0]));
+            try (InputStream is = Files.newInputStream(Paths.get(args[0]))) {
+                props.load(is);
+            }
             System.out.println("HBase configuration:");
             for (Object key : props.keySet()) {
                 System.out.println(key + "=" + props.get(key));

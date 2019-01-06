@@ -29,6 +29,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.SeekableByteChannel;
+import java.nio.charset.Charset;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -291,7 +295,7 @@ public class ServerUtils {
     public static String writeScript(String dir, List<String> command,
                                      Map<String, String> environment) throws IOException {
         String path = scriptFilePath(dir);
-        try (BufferedWriter out = new BufferedWriter(new FileWriter(path))) {
+        try (BufferedWriter out = Files.newBufferedWriter(Paths.get(path), Charset.defaultCharset())) {
             out.write("#!/bin/bash");
             out.newLine();
             if (environment != null) {
@@ -461,9 +465,9 @@ public class ServerUtils {
         try {
             if (gzipped) {
                 inputStream = new BufferedInputStream(new GZIPInputStream(
-                    new FileInputStream(inFile)));
+                    Files.newInputStream(inFile.toPath())));
             } else {
-                inputStream = new BufferedInputStream(new FileInputStream(inFile));
+                inputStream = new BufferedInputStream(Files.newInputStream(inFile.toPath()));
             }
             try (TarArchiveInputStream tis = new TarArchiveInputStream(inputStream)) {
                 for (TarArchiveEntry entry = tis.getNextTarEntry(); entry != null; ) {
@@ -506,7 +510,7 @@ public class ServerUtils {
         } else if (entry.isFile()) {
             LOG.trace("Extracting file {}", target);
             ensureDirectory(target.getParentFile());
-            try (BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(target))) {
+            try (BufferedOutputStream outputStream = new BufferedOutputStream(Files.newOutputStream(target.toPath()))) {
                 IOUtils.copy(tis, outputStream);
             }
         } else {
@@ -605,7 +609,7 @@ public class ServerUtils {
 
                 try (InputStream in = zipFile.getInputStream(entry)) {
                     ensureDirectory(file.getParentFile());
-                    try (OutputStream out = new FileOutputStream(file)) {
+                    try (OutputStream out = Files.newOutputStream(file.toPath())) {
                         IOUtils.copy(in, out);
                     }
                 }
@@ -636,19 +640,22 @@ public class ServerUtils {
      * @throws IOException
      */
     public static long zipFileSize(File myFile) throws IOException {
-        try (RandomAccessFile raf = new RandomAccessFile(myFile, "r")) {
-            raf.seek(raf.length() - 4);
-            long b4 = raf.read();
-            long b3 = raf.read();
-            long b2 = raf.read();
-            long b1 = raf.read();
+        try (SeekableByteChannel ch = FileChannel.open(myFile.toPath())) {
+            ch.position(ch.size() - 4);
+            ByteBuffer buf = ByteBuffer.allocate(4);
+            ch.read(buf);
+            buf.flip();
+            long b4 = buf.get();
+            long b3 = buf.get();
+            long b2 = buf.get();
+            long b1 = buf.get();
             return (b1 << 24) | (b2 << 16) + (b3 << 8) + b4;
         }
     }
 
     private static boolean downloadResourcesAsSupervisorAttempt(ClientBlobStore cb, String key, String localFile) {
         boolean isSuccess = false;
-        try (FileOutputStream out = new FileOutputStream(localFile);
+        try (OutputStream out = Files.newOutputStream(Paths.get(localFile));
              InputStreamWithMeta in = cb.getBlob(key);) {
             long fileSize = in.getFileLength();
 

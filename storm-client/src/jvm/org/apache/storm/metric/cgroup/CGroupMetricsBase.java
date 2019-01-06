@@ -16,6 +16,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.util.Map;
 import org.apache.storm.Config;
 import org.apache.storm.container.cgroup.CgroupCenter;
@@ -71,7 +73,7 @@ public abstract class CGroupMetricsBase<T> implements IMetric {
             return;
         }
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(cgroupFile))) {
+        try (BufferedReader reader = Files.newBufferedReader(cgroupFile.toPath(), Charset.defaultCharset())) {
             //There can be more then one line if cgroups are mounted in more then one place, but we assume the first is good enough
             String line = reader.readLine();
             //hierarchy-ID:controller-list:cgroup-path

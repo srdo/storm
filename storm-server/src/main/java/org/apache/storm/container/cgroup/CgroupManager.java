@@ -15,8 +15,10 @@ package org.apache.storm.container.cgroup;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -59,7 +61,7 @@ public class CgroupManager implements ResourceIsolationInterface {
         long memFree = 0;
         long buffers = 0;
         long cached = 0;
-        try (BufferedReader in = new BufferedReader(new FileReader("/proc/meminfo"))) {
+        try (BufferedReader in = Files.newBufferedReader(Paths.get("/proc/meminfo"), Charset.defaultCharset())) {
             String line = null;
             while ((line = in.readLine()) != null) {
                 Matcher match = MEMINFO_PATTERN.matcher(line);

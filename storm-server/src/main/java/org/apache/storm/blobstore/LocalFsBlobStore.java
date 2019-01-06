@@ -253,7 +253,7 @@ public class LocalFsBlobStore extends BlobStore {
             LocalFsBlobStoreFile pf = fbs.read(META_PREFIX + key);
             try {
                 in = pf.getInputStream();
-            } catch (FileNotFoundException fnf) {
+            } catch (NoSuchFileException e) {
                 throw new WrappedKeyNotFoundException(key);
             }
             ByteArrayOutputStream out = new ByteArrayOutputStream();
