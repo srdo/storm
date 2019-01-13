@@ -257,9 +257,6 @@ public class SpoutExecutor extends Executor {
                 for (AddressedTuple t = pendingEmits.peek(); t != null; t = pendingEmits.peek()) {
                     if (executorTransfer.tryTransfer(t, null)) {
                         pendingEmits.poll();
-                        if (workerData.isAutoTimeoutResetEnabled() && !Utils.isSystemId(t.tuple.getSourceStreamId())) {
-                            t.tuple.getMessageId().getAnchors().forEach(pendingEmitsAnchorIds::remove);
-                        }
                     } else { // to avoid reordering of emits, stop at first failure
                         return false;
                     }
@@ -417,6 +414,11 @@ public class SpoutExecutor extends Executor {
 
     public long getThreadId() {
         return threadId;
+    }
+    
+    @Override
+    public Set<Long> getQueuedAnchorsSnapshot() {
+        return Collections.emptySet();
     }
     
 }

@@ -88,8 +88,8 @@ public class ExecutorShutdown implements Shutdownable, IRunningExecutor {
     }
 
     @Override
-    public Set<Long> getPendingEmitsAnchorIds() {
-        return executor.getPendingEmitsAnchorIds().elementSet();
+    public Set<Long> getQueuedAnchorsSnapshot() {
+        return executor.getQueuedAnchorsSnapshot();
     }
     
     @Override

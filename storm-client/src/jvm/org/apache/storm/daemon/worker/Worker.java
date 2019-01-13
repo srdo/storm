@@ -59,6 +59,7 @@ import org.apache.storm.shade.org.apache.commons.io.FileUtils;
 import org.apache.storm.shade.org.apache.commons.lang.ObjectUtils;
 import org.apache.storm.shade.uk.org.lidalia.sysoutslf4j.context.SysOutOverSLF4J;
 import org.apache.storm.stats.ClientStatsUtil;
+import org.apache.storm.tuple.AddressedTuple;
 import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.LocalState;
 import org.apache.storm.utils.MutableLong;
@@ -334,9 +335,9 @@ public class Worker implements Shutdownable, DaemonCommon {
         MutableLong lastResetAndWarnRotationMs = new MutableLong(Time.currentTimeMillis());
 
         workerState.resetTupleTimeoutTimer.scheduleRecurring(resetIntervalSecs, resetIntervalSecs, () -> {
-            Set<Long> activeAnchorIds = new HashSet<>(workerState.getActiveInboundAnchorIds().elementSet());
+            Set<Long> activeAnchorIds = new HashSet<>();
             for (IRunningExecutor exec : executors) {
-                activeAnchorIds.addAll(exec.getPendingEmitsAnchorIds());
+                activeAnchorIds.addAll(exec.getQueuedAnchorsSnapshot());
             }
 
             if (Time.currentTimeMillis() - lastResetAndWarnRotationMs.get() > intervalSpentResettingBeforeWarningMs) {

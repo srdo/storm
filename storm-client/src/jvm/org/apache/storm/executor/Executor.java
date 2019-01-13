@@ -18,7 +18,6 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -58,7 +57,6 @@ import org.apache.storm.grouping.LoadMapping;
 import org.apache.storm.metric.api.IMetric;
 import org.apache.storm.metric.api.IMetricsConsumer;
 import org.apache.storm.shade.com.google.common.annotations.VisibleForTesting;
-import org.apache.storm.shade.com.google.common.collect.ConcurrentHashMultiset;
 import org.apache.storm.shade.com.google.common.collect.Lists;
 import org.apache.storm.shade.org.jctools.queues.MpscChunkedArrayQueue;
 import org.apache.storm.shade.org.json.simple.JSONValue;
@@ -112,7 +110,6 @@ public abstract class Executor implements Callable, JCQueue.Consumer {
     protected final boolean ackingEnabled;
     protected final ErrorReportingMetrics errorReportingMetrics;
     protected final MpscChunkedArrayQueue<AddressedTuple> pendingEmits = new MpscChunkedArrayQueue<>(1024, (int)Math.pow(2, 30));
-    protected final ConcurrentHashMultiset<Long> pendingEmitsAnchorIds = ConcurrentHashMultiset.create();
     private final AddressedTuple flushTuple;
     protected ExecutorTransfer executorTransfer;
     protected ArrayList<Task> idToTask;
@@ -134,8 +131,8 @@ public abstract class Executor implements Callable, JCQueue.Consumer {
         this.sharedExecutorData = new HashMap();
         this.stormActive = workerData.getIsTopologyActive();
         this.stormComponentDebug = workerData.getStormComponentToDebug();
-
-        this.executorTransfer = new ExecutorTransfer(workerData, topoConf, pendingEmitsAnchorIds);
+        
+        this.executorTransfer = new ExecutorTransfer(workerData, topoConf);
 
         this.suicideFn = workerData.getSuicideCallback();
         try {
@@ -245,9 +242,7 @@ public abstract class Executor implements Callable, JCQueue.Consumer {
         return pendingEmits;
     }
 
-    public ConcurrentHashMultiset<Long> getPendingEmitsAnchorIds() {
-        return pendingEmitsAnchorIds;
-    }
+    public abstract Set<Long> getQueuedAnchorsSnapshot();    
 
     /**
      * separated from mkExecutor in order to replace executor transfer in executor data for testing.
@@ -463,6 +458,7 @@ public abstract class Executor implements Callable, JCQueue.Consumer {
         keysToRemove.remove(Config.TOPOLOGY_STATE_PROVIDER);
         keysToRemove.remove(Config.TOPOLOGY_STATE_PROVIDER_CONFIG);
         keysToRemove.remove(Config.TOPOLOGY_BOLTS_LATE_TUPLE_STREAM);
+        keysToRemove.remove(Config.TOPOLOGY_ENABLE_AUTO_TIMEOUT_RESET_IN_EXECUTE);
 
         Map<String, Object> componentConf;
         String specJsonConf = topologyContext.getComponentCommon(componentId).get_json_conf();
@@ -472,7 +468,7 @@ public abstract class Executor implements Callable, JCQueue.Consumer {
             } catch (ParseException e) {
                 throw new RuntimeException(e);
             }
-            for (Object p : keysToRemove) {
+            for (String p : keysToRemove) {
                 componentConf.remove(p);
             }
         } else {

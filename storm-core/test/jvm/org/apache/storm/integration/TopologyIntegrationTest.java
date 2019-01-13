@@ -315,7 +315,7 @@ public class TopologyIntegrationTest {
             cluster.advanceClusterTime(9);
             feeder.feed(new Values("d"), 4);
             assertAcked(tracker, 4);
-            cluster.advanceClusterTime(2);
+            cluster.advanceClusterTime(5);
             //The time is now twice the message timeout, the second tuple should expire since it was not acked
             //Waiting for this also ensures that the first tuple gets failed if reset-timeout doesn't work
             assertFailed(tracker, 2);
@@ -361,8 +361,42 @@ public class TopologyIntegrationTest {
     }
     
     @Test
-    public void testAutoResetTimeout() throws Exception {
+    public void testAutoResetTimeoutWithExecuteResetEnabled() throws Exception {
         //When auto reset timeout is enabled, tuples that are queued/processing in bolts should not time out
+        Config daemonConf = new Config();
+        daemonConf.put(Config.TOPOLOGY_ENABLE_MESSAGE_TIMEOUTS, true);
+        daemonConf.put(Config.TOPOLOGY_ENABLE_AUTO_TIMEOUT_RESET, true);
+        try (LocalCluster cluster = new LocalCluster.Builder()
+            .withSimulatedTime()
+            .withDaemonConf(daemonConf)
+            .build()) {
+            FeederSpout feeder = new FeederSpout(new Fields("field1"));
+            AckFailMapTracker tracker = new AckFailMapTracker();
+            feeder.setAckFailDelegate(tracker);
+            TopologyBuilder topologyBuilder = new TopologyBuilder();
+            topologyBuilder.setSpout("1", feeder);
+            topologyBuilder.setBolt("2", new SlowAckingBolt())
+                .globalGrouping("1")
+                .addConfiguration(Config.TOPOLOGY_ENABLE_AUTO_TIMEOUT_RESET_IN_EXECUTE, true);
+            StormTopology topology = topologyBuilder.createTopology();
+
+            Config topoConf = new Config();
+            topoConf.setMessageTimeoutSecs(10);
+            cluster.submitTopology("auto-reset-timeout-tester-with-execute-reset", topoConf, topology);
+
+            feeder.feed(new Values("a"), 1);
+            feeder.feed(new Values("b"), 2);
+            cluster.advanceClusterTime(30);
+            assertThat(tracker.isFailed(1), is(false));
+            assertThat(tracker.isAcked(1), is(false));
+            cluster.advanceClusterTime(20);
+            assertAcked(tracker, 1, 2);
+        }
+    }
+    
+    @Test
+    public void testAutoResetTimeoutWithExecuteResetDisabled() throws Exception {
+        //When auto reset timeout is enabled, tuples that are queued should not time out, but tuples currently being executed may.
         Config daemonConf = new Config();
         daemonConf.put(Config.TOPOLOGY_ENABLE_MESSAGE_TIMEOUTS, true);
         daemonConf.put(Config.TOPOLOGY_ENABLE_AUTO_TIMEOUT_RESET, true);
@@ -386,10 +420,10 @@ public class TopologyIntegrationTest {
             feeder.feed(new Values("a"), 1);
             feeder.feed(new Values("b"), 2);
             cluster.advanceClusterTime(30);
-            assertThat(tracker.isFailed(1), is(false));
-            assertThat(tracker.isAcked(1), is(false));
+            assertFailed(tracker, 1);
+            assertThat(tracker.isFailed(2), is(false));
             cluster.advanceClusterTime(20);
-            assertAcked(tracker, 1, 2);
+            assertAcked(tracker, 2);
         }
     }
     

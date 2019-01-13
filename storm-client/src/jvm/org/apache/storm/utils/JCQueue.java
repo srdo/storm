@@ -21,6 +21,7 @@ package org.apache.storm.utils;
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -254,6 +255,13 @@ public class JCQueue implements IStatefulObject, Closeable {
     public boolean tryFlush() {
         Inserter inserter = getInserter();
         return inserter.tryFlush();
+    }
+    
+    public List<Object> unorderedSnapshot() {
+        List<Object> elements = new ArrayList<>();
+        elements.addAll(recvQueue.unorderedSnapshot());
+        elements.addAll(overflowQ.unorderedSnapshot());
+        return elements;
     }
 
     @Override

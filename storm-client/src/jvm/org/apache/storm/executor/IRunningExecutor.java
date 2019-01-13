@@ -17,6 +17,7 @@ import java.util.Set;
 import org.apache.storm.generated.Credentials;
 import org.apache.storm.generated.ExecutorStats;
 import org.apache.storm.grouping.LoadMapping;
+import org.apache.storm.tuple.AddressedTuple;
 import org.apache.storm.utils.JCQueue;
 
 public interface IRunningExecutor {
@@ -33,7 +34,7 @@ public interface IRunningExecutor {
 
     boolean publishFlushTuple();
     
-    Set<Long> getPendingEmitsAnchorIds();
+    Set<Long> getQueuedAnchorsSnapshot();
     
     void publishResetTimeoutTuples(Set<Long> anchorIds);
 }

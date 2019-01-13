@@ -248,6 +248,7 @@ storm.group.mapping.service.cache.duration.secs: 120
 ### topology.* configs are for specific executing storms
 topology.enable.message.timeouts: true
 topology.enable.auto.timeout.reset: false
+topology.enable.auto.timeout.reset.in.execute: false
 topology.debug: false
 topology.workers: 1
 topology.acker.executors: null

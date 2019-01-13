@@ -65,6 +65,8 @@ import org.apache.storm.serialization.KryoTupleSerializer;
 import org.apache.storm.shade.com.google.common.collect.ConcurrentHashMultiset;
 import org.apache.storm.shade.com.google.common.collect.ImmutableMap;
 import org.apache.storm.shade.com.google.common.collect.Sets;
+import org.apache.storm.shade.org.jctools.queues.MessagePassingQueue;
+import org.apache.storm.shade.org.jctools.queues.MpscUnboundedArrayQueue;
 import org.apache.storm.task.WorkerTopologyContext;
 import org.apache.storm.tuple.AddressedTuple;
 import org.apache.storm.tuple.Fields;
@@ -145,7 +147,6 @@ public class WorkerState {
     private final AtomicLong nextLoadUpdate = new AtomicLong(0);
     private final boolean trySerializeLocal;
     private final Collection<IAutoCredentials> autoCredentials;
-    private final ConcurrentHashMultiset<Long> activeInboundAnchorIds;
     private final boolean autoTimeoutResetEnabled;
 
     public WorkerState(Map<String, Object> conf, IContext mqContext, String topologyId, String assignmentId,
@@ -153,7 +154,6 @@ public class WorkerState {
                        IStormClusterState stormClusterState, Collection<IAutoCredentials> autoCredentials) throws IOException,
         InvalidTopologyException {
         this.autoCredentials = autoCredentials;
-        this.activeInboundAnchorIds = ConcurrentHashMultiset.create();
         this.conf = conf;
         this.localExecutors = new HashSet<>(readWorkerExecutors(stormClusterState, topologyId, assignmentId, port));
         this.mqContext = (null != mqContext) ? mqContext : TransportFactory.makeContext(topologyConf);
@@ -352,10 +352,6 @@ public class WorkerState {
     public StormTimer getUserTimer() {
         return userTimer;
     }
-
-    public ConcurrentHashMultiset<Long> getActiveInboundAnchorIds() {
-        return activeInboundAnchorIds;
-    }
     
     public void refreshConnections() {
         try {
@@ -513,9 +509,12 @@ public class WorkerState {
         );
     }
 
-    /* Not a Blocking call. If cannot emit, will add 'tuple' to pendingEmits and return 'false'. 'pendingEmits' can be null */
-    public boolean tryTransferRemote(AddressedTuple tuple, Queue<AddressedTuple> pendingEmits, ConcurrentHashMultiset<Long> pendingEmitsAnchorIds, ITupleSerializer serializer) {
-        return workerTransfer.tryTransferRemote(tuple, pendingEmits, serializer, pendingEmitsAnchorIds);
+    /**
+     * Not a Blocking call. If cannot emit, will add 'tuple' to pendingEmits and return 'false'.
+     * 'pendingEmits' can be null
+     */
+    public boolean tryTransferRemote(AddressedTuple tuple, Queue<AddressedTuple> pendingEmits, ITupleSerializer serializer) {
+        return workerTransfer.tryTransferRemote(tuple, pendingEmits, serializer);
     }
 
     public void flushRemotes() throws InterruptedException {
@@ -534,10 +533,6 @@ public class WorkerState {
         for (int i = 0; i < tupleBatch.size(); i++) {
             AddressedTuple tuple = tupleBatch.get(i);
             JCQueue queue = taskToExecutorQueue.get(tuple.dest);
-            boolean shouldAutoResetTimeout = isAutoTimeoutResetEnabled() && !Utils.isSystemId(tuple.tuple.getSourceStreamId());
-            if (shouldAutoResetTimeout) {
-                tuple.tuple.getMessageId().getAnchors().forEach(activeInboundAnchorIds::add);
-            }
             
             // 1- try adding to main queue if its overflow is not empty
             if (queue.isEmptyOverflow()) {
@@ -562,9 +557,6 @@ public class WorkerState {
                 }
             }
             if (!queue.tryPublishToOverflow(tuple)) {
-                if (shouldAutoResetTimeout) {
-                    tuple.tuple.getMessageId().getAnchors().forEach(activeInboundAnchorIds::remove);
-                }
                 dropMessage(tuple, queue);
             }
         }

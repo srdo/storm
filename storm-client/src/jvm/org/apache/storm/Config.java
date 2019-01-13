@@ -166,6 +166,11 @@ public class Config extends HashMap<String, Object> {
     @isBoolean
     public static final String TOPOLOGY_ENABLE_AUTO_TIMEOUT_RESET = "topology.enable.auto.timeout.reset";
     /**
+     * True if Storm should automatically reset message timeouts for tuples that are blah.
+     */
+    @isBoolean
+    public static final String TOPOLOGY_ENABLE_AUTO_TIMEOUT_RESET_IN_EXECUTE = "topology.enable.auto.timeout.reset.in.execute";
+    /**
      * When set to true, Storm will log every message that's emitted.
      */
     @isBoolean

@@ -47,10 +47,11 @@ public class BoltOutputCollectorImpl implements IOutputCollector {
     private final ExecutorTransfer xsfer;
     private final boolean isDebug;
     private final boolean ackingEnabled;
-    private final ConcurrentHashMultiset<Long> activeInboundAnchorIds;
+    private final ActiveAnchorIdTracker activeAnchorIdTracker;
 
     public BoltOutputCollectorImpl(BoltExecutor executor, Task taskData, Random random,
-                                   boolean isEventLoggers, boolean ackingEnabled, boolean isDebug) {
+                                   boolean isEventLoggers, boolean ackingEnabled, boolean isDebug,
+                                   ActiveAnchorIdTracker activeAnchorIdTracker) {
         this.executor = executor;
         this.task = taskData;
         this.taskId = taskData.getTaskId();
@@ -59,7 +60,7 @@ public class BoltOutputCollectorImpl implements IOutputCollector {
         this.ackingEnabled = ackingEnabled;
         this.isDebug = isDebug;
         this.xsfer = executor.getExecutorTransfer();
-        this.activeInboundAnchorIds = executor.getWorkerData().getActiveInboundAnchorIds();
+        this.activeAnchorIdTracker = activeAnchorIdTracker;
     }
 
     public List<Integer> emit(String streamId, Collection<Tuple> anchors, List<Object> tuple) {
@@ -125,14 +126,12 @@ public class BoltOutputCollectorImpl implements IOutputCollector {
             return;
         }
         long ackValue = ((TupleImpl) input).getAckVal();
+        activeAnchorIdTracker.complete(input);
         Map<Long, Long> anchorsToIds = input.getMessageId().getAnchorsToIds();
         for (Map.Entry<Long, Long> entry : anchorsToIds.entrySet()) {
             task.sendUnanchored(Acker.ACKER_ACK_STREAM_ID,
                                 new Values(entry.getKey(), Utils.bitXor(entry.getValue(), ackValue)),
                                 executor.getExecutorTransfer(), executor.getPendingEmits());
-            if (executor.getWorkerData().isAutoTimeoutResetEnabled() && !Utils.isSystemId(input.getSourceStreamId())) {
-                activeInboundAnchorIds.remove(entry.getKey());
-            }
         }
         long delta = tupleTimeDelta((TupleImpl) input);
         if (isDebug) {
@@ -155,12 +154,10 @@ public class BoltOutputCollectorImpl implements IOutputCollector {
             return;
         }
         Set<Long> roots = input.getMessageId().getAnchors();
+        activeAnchorIdTracker.complete(input);
         for (Long root : roots) {
             task.sendUnanchored(Acker.ACKER_FAIL_STREAM_ID,
-                                new Values(root), executor.getExecutorTransfer(), executor.getPendingEmits());
-            if (executor.getWorkerData().isAutoTimeoutResetEnabled() && !Utils.isSystemId(input.getSourceStreamId())) {
-                activeInboundAnchorIds.remove(root);
-            }
+                new Values(root), executor.getExecutorTransfer(), executor.getPendingEmits());
         }
         long delta = tupleTimeDelta((TupleImpl) input);
         if (isDebug) {

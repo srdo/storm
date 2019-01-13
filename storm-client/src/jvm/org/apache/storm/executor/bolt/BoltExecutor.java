@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.BooleanSupplier;
+import java.util.stream.Collectors;
 import org.apache.storm.Config;
 import org.apache.storm.Constants;
 import org.apache.storm.ICredentialsListener;
@@ -40,6 +41,7 @@ import org.apache.storm.policy.IWaitStrategy;
 import org.apache.storm.policy.IWaitStrategy.WAIT_SITUATION;
 import org.apache.storm.policy.WaitStrategyPark;
 import org.apache.storm.security.auth.IAutoCredentials;
+import org.apache.storm.shade.com.google.common.collect.ConcurrentHashMultiset;
 import org.apache.storm.shade.com.google.common.collect.ImmutableMap;
 import org.apache.storm.stats.BoltExecutorStats;
 import org.apache.storm.stats.ClientStatsUtil;
@@ -71,6 +73,7 @@ public class BoltExecutor extends Executor {
     private final IWaitStrategy backPressureWaitStrategy;  // employed when outbound path is congested
     private final BoltExecutorStats stats;
     private final BuiltinMetrics builtInMetrics;
+    private final ActiveAnchorIdTracker activeAnchorIdTracker;
     private BoltOutputCollectorImpl outputCollector;
     private LoadAwareCustomStreamGrouping ackerResetGrouping;
 
@@ -89,6 +92,9 @@ public class BoltExecutor extends Executor {
         this.stats = new BoltExecutorStats(ConfigUtils.samplingRate(this.getTopoConf()),
                                            ObjectReader.getInt(this.getTopoConf().get(Config.NUM_STAT_BUCKETS)));
         this.builtInMetrics = new BuiltinBoltMetrics(stats);
+        boolean enableAutoTimeoutResetInExecute = ObjectReader.getBoolean(
+            topoConf.get(Config.TOPOLOGY_ENABLE_AUTO_TIMEOUT_RESET_IN_EXECUTE), false) && workerData.isAutoTimeoutResetEnabled();
+        this.activeAnchorIdTracker = new ActiveAnchorIdTracker(enableAutoTimeoutResetInExecute);
     }
 
     private static IWaitStrategy makeSystemBoltWaitStrategy() {
@@ -147,7 +153,8 @@ public class BoltExecutor extends Executor {
                 BuiltinMetricsUtil.registerQueueMetrics(map, topoConf, userContext);
             }
 
-            this.outputCollector = new BoltOutputCollectorImpl(this, taskData, rand, hasEventLoggers, ackingEnabled, isDebug);
+            this.outputCollector = new BoltOutputCollectorImpl(this, taskData, rand,
+                hasEventLoggers, ackingEnabled, isDebug, activeAnchorIdTracker);
             boltObject.prepare(topoConf, userContext, new OutputCollector(outputCollector));
         }
         openOrPrepareWasCalled.set(true);
@@ -208,9 +215,6 @@ public class BoltExecutor extends Executor {
                 for (AddressedTuple t = pendingEmits.peek(); t != null; t = pendingEmits.peek()) {
                     if (executorTransfer.tryTransfer(t, null)) {
                         pendingEmits.poll();
-                        if (workerData.isAutoTimeoutResetEnabled() && !Utils.isSystemId(t.tuple.getSourceStreamId())) {
-                            t.tuple.getMessageId().getAnchors().forEach(pendingEmitsAnchorIds::remove);
-                        }
                     } else { // to avoid reordering of emits, stop at first failure
                         return false;
                     }
@@ -246,6 +250,7 @@ public class BoltExecutor extends Executor {
             if (isExecuteSampler) {
                 tuple.setExecuteSampleStartTime(now);
             }
+            activeAnchorIdTracker.track(tuple);
             boltObject.execute(tuple);
 
             Long ms = tuple.getExecuteSampleStartTime();
@@ -280,5 +285,20 @@ public class BoltExecutor extends Executor {
                 task.getOutgoingTasks(ackerTask, resetTuple.getSourceStreamId(), resetTuple.getValues()),
                 resetTuple, executorTransfer, pendingEmits);
         });
+    }
+    
+    @Override
+    public Set<Long> getQueuedAnchorsSnapshot() {
+        List<AddressedTuple> tuples = getReceiveQueue().unorderedSnapshot().stream()
+            .filter(element -> element instanceof AddressedTuple)
+            .map(element -> (AddressedTuple)element)
+            .collect(Collectors.toList());
+        tuples.addAll(pendingEmits.unorderedSnapshot());
+        Set<Long> anchors = tuples.stream()
+            .filter(tuple -> !Utils.isSystemId(tuple.tuple.getSourceStreamId()))
+            .flatMap(tuple -> tuple.tuple.getMessageId().getAnchors().stream())
+            .collect(Collectors.toSet());
+        anchors.addAll(activeAnchorIdTracker.getActiveAnchors());
+        return anchors;
     }
 }

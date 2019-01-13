@@ -105,15 +105,13 @@ class WorkerTransfer implements JCQueue.Consumer {
         drainer.clear();
     }
 
-    /* Not a Blocking call. If cannot emit, will add 'tuple' to 'pendingEmits' and return 'false'. 'pendingEmits' can be null */
-    public boolean tryTransferRemote(AddressedTuple addressedTuple, Queue<AddressedTuple> pendingEmits, ITupleSerializer serializer,
-        ConcurrentHashMultiset<Long> pendingEmitsAnchorIds) {
-        boolean shouldAutoResetTimeout = workerState.isAutoTimeoutResetEnabled() && !Utils.isSystemId(addressedTuple.tuple.getSourceStreamId());
+    /**
+     * Not a Blocking call. If cannot emit, will add 'tuple' to 'pendingEmits' and return 'false'.
+     * 'pendingEmits' can be null
+     */
+    public boolean tryTransferRemote(AddressedTuple addressedTuple, Queue<AddressedTuple> pendingEmits, ITupleSerializer serializer) {
         if (pendingEmits != null && !pendingEmits.isEmpty()) {
             pendingEmits.add(addressedTuple);
-            if (shouldAutoResetTimeout) {
-                addressedTuple.tuple.getMessageId().getAnchors().forEach(pendingEmitsAnchorIds::add);
-            }
             return false;
         }
 
@@ -126,9 +124,6 @@ class WorkerTransfer implements JCQueue.Consumer {
             LOG.debug("Noticed Back Pressure in remote task {}", addressedTuple.dest);
         }
         if (pendingEmits != null) {
-            if (shouldAutoResetTimeout) {
-                addressedTuple.tuple.getMessageId().getAnchors().forEach(pendingEmitsAnchorIds::add);
-            }
             pendingEmits.add(addressedTuple);
         }
         return false;
