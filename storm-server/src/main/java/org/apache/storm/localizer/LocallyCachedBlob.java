@@ -245,17 +245,20 @@ public abstract class LocallyCachedBlob {
      * Inform all of the callbacks that a change is going to happen and then wait for
      * them to all get back that it is OK to make that change.
      */
-    public synchronized void informAllOfChangeAndWaitForConsensus() {
-        CountDownLatch cdl = new CountDownLatch(references.size());
-        doneUpdating = new CompletableFuture<>();
-        for (Map.Entry<PortAndAssignment, BlobChangingCallback> entry : references.entrySet()) {
-            GoodToGo gtg = new GoodToGo(cdl, doneUpdating);
-            try {
-                PortAndAssignment pna = entry.getKey();
-                BlobChangingCallback cb = entry.getValue();
-                cb.blobChanging(pna.getAssignment(), pna.getPort(), this, gtg);
-            } finally {
-                gtg.countDownIfLatchWasNotGotten();
+    public void informAllOfChangeAndWaitForConsensus() {
+        CountDownLatch cdl;
+        synchronized (this) {
+            cdl = new CountDownLatch(references.size());
+            doneUpdating = new CompletableFuture<>();
+            for (Map.Entry<PortAndAssignment, BlobChangingCallback> entry : references.entrySet()) {
+                GoodToGo gtg = new GoodToGo(cdl, doneUpdating);
+                try {
+                    PortAndAssignment pna = entry.getKey();
+                    BlobChangingCallback cb = entry.getValue();
+                    cb.blobChanging(pna.getAssignment(), pna.getPort(), this, gtg);
+                } finally {
+                    gtg.countDownIfLatchWasNotGotten();
+                }
             }
         }
         try {
@@ -269,7 +272,7 @@ public abstract class LocallyCachedBlob {
     /**
      * Inform all of the callbacks that the change to the blob is complete.
      */
-    public synchronized void informAllChangeComplete() {
+    public void informAllChangeComplete() {
         doneUpdating.complete(null);
     }
 
