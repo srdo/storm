@@ -411,14 +411,15 @@ public class LogviewerLogSearchHandler {
     @VisibleForTesting
     List<File> logsForPort(String user, File portDir) {
         try {
-            List<File> workerLogs = directoryCleaner.getFilesForDir(portDir).stream()
-                    .filter(file -> WORKER_LOG_FILENAME_PATTERN.asPredicate().test(file.getName()))
-                    .collect(toList());
+            List<File> workerLogs = directoryCleaner.getFilesForDir(portDir.toPath()).stream()
+                .map(path -> path.toFile())
+                .filter(file -> WORKER_LOG_FILENAME_PATTERN.asPredicate().test(file.getName()))
+                .collect(toList());
 
             return workerLogs.stream()
-                    .filter(log -> resourceAuthorizer.isUserAllowedToAccessFile(user, WorkerLogs.getTopologyPortWorkerLog(log)))
-                    .sorted((f1, f2) -> (int) (f2.lastModified() - f1.lastModified()))
-                    .collect(toList());
+                .filter(log -> resourceAuthorizer.isUserAllowedToAccessFile(user, WorkerLogs.getTopologyPortWorkerLog(log.toPath())))
+                .sorted((f1, f2) -> (int) (f2.lastModified() - f1.lastModified()))
+                .collect(toList());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -459,7 +460,7 @@ public class LogviewerLogSearchHandler {
                 matchInLog = new HashMap<>();
             }
 
-            String fileName = WorkerLogs.getTopologyPortWorkerLog(firstLog);
+            String fileName = WorkerLogs.getTopologyPortWorkerLog(firstLog.toPath());
 
             //This section simply put the formatted log filename and corresponding port in the matching.
             final List<Map<String, Object>> newMatches = new ArrayList<>(matches);

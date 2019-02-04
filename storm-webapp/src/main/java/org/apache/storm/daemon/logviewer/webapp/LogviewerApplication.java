@@ -21,6 +21,7 @@ package org.apache.storm.daemon.logviewer.webapp;
 import static org.apache.storm.DaemonConfig.LOGVIEWER_APPENDER_NAME;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -59,7 +60,7 @@ public class LogviewerApplication extends Application {
         String daemonLogRoot = logRootDir(ObjectReader.getString(stormConf.get(LOGVIEWER_APPENDER_NAME)));
 
         ResourceAuthorizer resourceAuthorizer = new ResourceAuthorizer(stormConf);
-        WorkerLogs workerLogs = new WorkerLogs(stormConf, new File(logRoot), metricsRegistry);
+        WorkerLogs workerLogs = new WorkerLogs(stormConf, Paths.get(logRoot), metricsRegistry);
 
         LogviewerLogPageHandler logviewer = new LogviewerLogPageHandler(logRoot, daemonLogRoot, workerLogs, resourceAuthorizer,
             metricsRegistry);
