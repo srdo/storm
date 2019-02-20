@@ -26,9 +26,8 @@ import java.util.Map;
 import java.util.Set;
 import javax.security.auth.Subject;
 import javax.xml.bind.DatatypeConverter;
-
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.math3.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
@@ -97,7 +96,7 @@ public abstract class AbstractHadoopAutoCreds implements IAutoCredentials, Crede
     private void addCredentialToSubject(Subject subject, Map<String, String> credentials) {
         try {
             for (Pair<String, Credentials> cred : getCredentials(credentials)) {
-                subject.getPrivateCredentials().add(cred.getSecond());
+                subject.getPrivateCredentials().add(cred.getRight());
                 LOG.info("Credentials added to the subject.");
             }
         } catch (Exception e) {

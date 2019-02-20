@@ -64,19 +64,12 @@ limitations under the License.
             </exclusions>
         </dependency>
         <dependency>
-            <artifactId>hadoop-hdfs</artifactId>
             <groupId>org.apache.hadoop</groupId>
-            <version>${hdfs.version}</version>
+            <artifactId>hadoop-client-api</artifactId>
         </dependency>
         <dependency>
-            <artifactId>hadoop-client</artifactId>
             <groupId>org.apache.hadoop</groupId>
-            <version>${hadoop.version}</version>
-        </dependency>
-        <dependency>
-            <artifactId>hadoop-common</artifactId>
-            <groupId>org.apache.hadoop</groupId>
-            <version>${hadoop.version}</version>
+            <artifactId>hadoop-client-runtime</artifactId>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>

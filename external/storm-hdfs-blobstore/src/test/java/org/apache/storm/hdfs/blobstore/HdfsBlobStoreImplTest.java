@@ -25,7 +25,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.storm.blobstore.BlobStoreFile;
 import org.apache.storm.generated.SettableBlobMeta;
 import org.apache.storm.hdfs.testing.MiniDFSClusterRule;
-import org.junit.ClassRule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,10 +39,12 @@ import java.util.Map;
 
 import static org.junit.Assert.*;
 
+import org.junit.Rule;
+
 public class HdfsBlobStoreImplTest {
 
-    @ClassRule
-    public static final MiniDFSClusterRule DFS_CLUSTER_RULE = new MiniDFSClusterRule();
+    @Rule
+    public final MiniDFSClusterRule DFS_CLUSTER_RULE = new MiniDFSClusterRule();
 
     private static final Logger LOG = LoggerFactory.getLogger(HdfsBlobStoreImplTest.class);
 
@@ -75,7 +76,6 @@ public class HdfsBlobStoreImplTest {
         }
     }
 
-    // Be careful about adding additional tests as the dfscluster will be shared
     @Test
     public void testMultiple() throws Exception {
         String testString = "testingblob";

@@ -1,3 +1,4 @@
+
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -25,9 +26,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import javax.xml.bind.DatatypeConverter;
-
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.math3.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hadoop.security.Credentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,34 +36,34 @@ import org.slf4j.LoggerFactory;
  * Utility class for getting credential for Hadoop.
  */
 final class HadoopCredentialUtil {
+
     private static final Logger LOG = LoggerFactory.getLogger(HadoopCredentialUtil.class);
 
     private HadoopCredentialUtil() {
     }
 
     static Set<Pair<String, Credentials>> getCredential(CredentialKeyProvider provider,
-            Map<String, String> credentials,
-            Collection<String> configKeys) {
+        Map<String, String> credentials, Collection<String> configKeys) {
         Set<Pair<String, Credentials>> res = new HashSet<>();
         if (!configKeys.isEmpty()) {
             for (String configKey : configKeys) {
                 Credentials cred = doGetCredentials(provider, credentials, configKey);
                 if (cred != null) {
-                    res.add(new Pair(configKey, cred));
+                    res.add(Pair.of(configKey, cred));
                 }
             }
         } else {
             Credentials cred = doGetCredentials(provider, credentials, StringUtils.EMPTY);
             if (cred != null) {
-                res.add(new Pair(StringUtils.EMPTY, cred));
+                res.add(Pair.of(StringUtils.EMPTY, cred));
             }
         }
         return res;
     }
 
     private static Credentials doGetCredentials(CredentialKeyProvider provider,
-            Map<String, String> credentials,
-            String configKey) {
+        Map<String, String> credentials,
+        String configKey) {
         Credentials credential = null;
         String credentialKey = provider.getCredentialKey(configKey);
         if (credentials != null && credentials.containsKey(credentialKey)) {

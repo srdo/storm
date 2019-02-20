@@ -15,27 +15,24 @@ package org.apache.storm.hive.bolt.mapper;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
-import org.apache.hive.hcatalog.streaming.HiveEndPoint;
-import org.apache.hive.hcatalog.streaming.RecordWriter;
-import org.apache.hive.hcatalog.streaming.StreamingException;
-import org.apache.hive.hcatalog.streaming.TransactionBatch;
+import org.apache.hive.streaming.HiveStreamingConnection;
+import org.apache.hive.streaming.RecordWriter;
+import org.apache.hive.streaming.StreamingException;
 import org.apache.storm.trident.tuple.TridentTuple;
 import org.apache.storm.tuple.Tuple;
 
 /**
- * Maps a <code>org.apache.storm.tuple.Tupe</code> object
+ * Maps a <code>org.apache.storm.tuple.Tuple</code> object
  * to a row in an Hive table.
  */
 public interface HiveMapper extends Serializable {
 
     /**
-     * Given a endPoint, returns a RecordWriter with columnNames.
+     * Create the RecordWriter to use for writing.
      */
+    RecordWriter createRecordWriter();
 
-    RecordWriter createRecordWriter(HiveEndPoint endPoint)
-        throws StreamingException, IOException, ClassNotFoundException;
-
-    void write(TransactionBatch txnBatch, Tuple tuple)
+    void write(HiveStreamingConnection connection, Tuple tuple)
         throws StreamingException, IOException, InterruptedException;
 
     /**
@@ -44,7 +41,7 @@ public interface HiveMapper extends Serializable {
     List<String> mapPartitions(Tuple tuple);
 
     /**
-     * Given a TridetnTuple, return a hive partition values list.
+     * Given a TridentTuple, return a hive partition values list.
      */
     List<String> mapPartitions(TridentTuple tuple);
 

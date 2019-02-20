@@ -25,9 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.xml.bind.DatatypeConverter;
-
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.math3.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.Credentials;

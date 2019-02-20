@@ -22,7 +22,6 @@ import static org.apache.storm.hive.security.HiveSecurityUtil.HIVE_CREDENTIALS;
 import static org.apache.storm.hive.security.HiveSecurityUtil.HIVE_CREDENTIALS_CONFIG_KEYS;
 
 import java.util.Map;
-
 import org.apache.storm.common.AbstractHadoopAutoCreds;
 
 /**

@@ -19,10 +19,13 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.metastore.conf.MetastoreConf;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hive.hcatalog.streaming.ConnectionError;
-import org.apache.hive.hcatalog.streaming.HiveEndPoint;
+import org.apache.hive.streaming.HiveStreamingConnection;
+import org.apache.hive.streaming.StreamingConnection;
+import org.apache.hive.streaming.StreamingException;
 import org.apache.storm.hive.security.AutoHive;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,25 +33,34 @@ import org.slf4j.LoggerFactory;
 public class HiveUtils {
     private static final Logger LOG = LoggerFactory.getLogger(HiveUtils.class);
 
-    public static HiveEndPoint makeEndPoint(List<String> partitionVals, HiveOptions options) throws ConnectionError {
-        if (partitionVals == null) {
-            return new HiveEndPoint(options.getMetaStoreURI(), options.getDatabaseName(), options.getTableName(), null);
-        }
-        return new HiveEndPoint(options.getMetaStoreURI(), options.getDatabaseName(), options.getTableName(), partitionVals);
+    public static StreamingConnection makeConnection(PartitionValues partitionVals, HiveOptions options) throws StreamingException {
+        HiveConf conf = new HiveConf(HiveUtils.class);
+        conf.set(MetastoreConf.ConfVars.THRIFT_URIS.getHiveName(), options.getMetaStoreURI());
+        conf.setBoolean(MetastoreConf.ConfVars.USE_THRIFT_SASL.getHiveName(), options.getTokenAuthEnabled());
+        return HiveStreamingConnection.newBuilder()
+            .withHiveConf(conf)
+            .withDatabase(options.getDatabaseName())
+            .withTable(options.getTableName())
+            .withStaticPartitionValues(partitionVals.getPartitionValues())
+            .withTransactionBatchSize(options.getTxnsPerBatch())
+            .withRecordWriter(options.getMapper().createRecordWriter())
+            .connect();
     }
 
-    public static HiveWriter makeHiveWriter(HiveEndPoint endPoint, ExecutorService callTimeoutPool, UserGroupInformation ugi,
-                                            HiveOptions options, boolean tokenAuthEnabled)
+    public static HiveWriter makeHiveWriter(PartitionValues partitionVals, ExecutorService callTimeoutPool, HiveOptions options)
         throws HiveWriter.ConnectFailure, InterruptedException {
-        return new HiveWriter(endPoint, options.getTxnsPerBatch(), options.getAutoCreatePartitions(),
-                              options.getCallTimeOut(), callTimeoutPool, options.getMapper(), ugi, tokenAuthEnabled);
+        return new HiveWriter(partitionVals, options, callTimeoutPool);
     }
 
-    public static synchronized UserGroupInformation authenticate(boolean isTokenAuthEnabled, String keytab, String principal) throws
+    /**
+     * Logs the user in to UserGroupInformation.
+     */
+    public static synchronized void authenticate(boolean isTokenAuthEnabled, String keytab, String principal) throws
         AuthenticationFailed {
 
         if (isTokenAuthEnabled) {
-            return getCurrentUser(principal);
+            //Storm-autocreds is set up, user is already logged in.
+            return;
         }
 
         boolean kerberosEnabled = false;
@@ -77,33 +89,22 @@ public class HiveUtils {
 
             try {
                 UserGroupInformation.loginUserFromKeytab(principal, keytab);
-                return UserGroupInformation.getLoginUser();
             } catch (IOException e) {
                 throw new AuthenticationFailed("Login failed for principal " + principal, e);
             }
         }
 
-        return null;
-
     }
 
-    public static void logAllHiveEndPoints(Map<HiveEndPoint, HiveWriter> allWriters) {
-        for (Map.Entry<HiveEndPoint, HiveWriter> entry : allWriters.entrySet()) {
-            LOG.info("cached writers {} ", entry.getValue());
+    public static void logAllHiveEndPoints(Map<PartitionValues, HiveWriter> allWriters) {
+        for (HiveWriter writer : allWriters.values()) {
+            LOG.info("cached writers {} ", writer);
         }
     }
 
     public static boolean isTokenAuthEnabled(Map<String, Object> conf) {
         return conf.get(TOPOLOGY_AUTO_CREDENTIALS) != null
                 && (((List) conf.get(TOPOLOGY_AUTO_CREDENTIALS)).contains(AutoHive.class.getName()));
-    }
-
-    private static UserGroupInformation getCurrentUser(String principal) throws AuthenticationFailed {
-        try {
-            return UserGroupInformation.getCurrentUser();
-        } catch (IOException e) {
-            throw new AuthenticationFailed("Login failed for principal " + principal, e);
-        }
     }
 
     public static class AuthenticationFailed extends Exception {

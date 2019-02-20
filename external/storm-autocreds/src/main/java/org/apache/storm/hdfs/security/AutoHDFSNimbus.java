@@ -31,8 +31,7 @@ import java.security.PrivilegedAction;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.commons.math3.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.security.Credentials;
@@ -40,7 +39,6 @@ import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
-import org.apache.storm.Config;
 import org.apache.storm.common.AbstractHadoopNimbusPluginAutoCreds;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -150,8 +148,8 @@ public class AutoHDFSNimbus extends AbstractHadoopNimbusPluginAutoCreds {
         List<String> confKeys = getConfigKeys(topologyConf);
         for (Pair<String, Credentials> cred : getCredentials(credentials, confKeys)) {
             try {
-                Configuration configuration = getHadoopConfiguration(topologyConf, cred.getFirst());
-                Collection<Token<? extends TokenIdentifier>> tokens = cred.getSecond().getAllTokens();
+                Configuration configuration = getHadoopConfiguration(topologyConf, cred.getLeft());
+                Collection<Token<? extends TokenIdentifier>> tokens = cred.getRight().getAllTokens();
 
                 if (tokens != null && !tokens.isEmpty()) {
                     for (Token<? extends TokenIdentifier> token : tokens) {

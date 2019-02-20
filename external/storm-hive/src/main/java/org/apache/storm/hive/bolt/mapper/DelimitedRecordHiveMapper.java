@@ -16,13 +16,11 @@ import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import org.apache.hive.hcatalog.streaming.DelimitedInputWriter;
-import org.apache.hive.hcatalog.streaming.HiveEndPoint;
-import org.apache.hive.hcatalog.streaming.RecordWriter;
-import org.apache.hive.hcatalog.streaming.StreamingException;
-import org.apache.hive.hcatalog.streaming.TransactionBatch;
+import org.apache.hive.streaming.HiveStreamingConnection;
+import org.apache.hive.streaming.RecordWriter;
+import org.apache.hive.streaming.StreamingException;
+import org.apache.hive.streaming.StrictDelimitedInputWriter;
 import org.apache.storm.trident.tuple.TridentTuple;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
@@ -31,12 +29,11 @@ import org.slf4j.LoggerFactory;
 
 public class DelimitedRecordHiveMapper implements HiveMapper {
     private static final Logger LOG = LoggerFactory.getLogger(DelimitedRecordHiveMapper.class);
-    private static final String DEFAULT_FIELD_DELIMITER = ",";
+    private static final char DEFAULT_FIELD_DELIMITER = ',';
     private Fields columnFields;
     private Fields partitionFields;
-    private String[] columnNames;
     private String timeFormat;
-    private String fieldDelimiter = DEFAULT_FIELD_DELIMITER;
+    private char fieldDelimiter = DEFAULT_FIELD_DELIMITER;
     private SimpleDateFormat parseDate;
 
     public DelimitedRecordHiveMapper() {
@@ -44,9 +41,6 @@ public class DelimitedRecordHiveMapper implements HiveMapper {
 
     public DelimitedRecordHiveMapper withColumnFields(Fields columnFields) {
         this.columnFields = columnFields;
-        List<String> tempColumnNamesList = this.columnFields.toList();
-        columnNames = new String[tempColumnNamesList.size()];
-        tempColumnNamesList.toArray(columnNames);
         return this;
     }
 
@@ -55,7 +49,7 @@ public class DelimitedRecordHiveMapper implements HiveMapper {
         return this;
     }
 
-    public DelimitedRecordHiveMapper withFieldDelimiter(String delimiter) {
+    public DelimitedRecordHiveMapper withFieldDelimiter(char delimiter) {
         this.fieldDelimiter = delimiter;
         return this;
     }
@@ -67,20 +61,21 @@ public class DelimitedRecordHiveMapper implements HiveMapper {
     }
 
     @Override
-    public RecordWriter createRecordWriter(HiveEndPoint endPoint)
-        throws StreamingException, IOException, ClassNotFoundException {
-        return new DelimitedInputWriter(columnNames, fieldDelimiter, endPoint);
+    public RecordWriter createRecordWriter() {
+        return StrictDelimitedInputWriter.newBuilder()
+            .withFieldDelimiter(fieldDelimiter)
+            .build();
     }
 
     @Override
-    public void write(TransactionBatch txnBatch, Tuple tuple)
+    public void write(HiveStreamingConnection connection, Tuple tuple)
         throws StreamingException, IOException, InterruptedException {
-        txnBatch.write(mapRecord(tuple));
+        connection.write(mapRecord(tuple));
     }
 
     @Override
     public List<String> mapPartitions(Tuple tuple) {
-        List<String> partitionList = new ArrayList<String>();
+        List<String> partitionList = new ArrayList<>();
         if (this.partitionFields != null) {
             for (String field : this.partitionFields) {
                 partitionList.add(tuple.getStringByField(field));
@@ -94,7 +89,7 @@ public class DelimitedRecordHiveMapper implements HiveMapper {
 
     @Override
     public List<String> mapPartitions(TridentTuple tuple) {
-        List<String> partitionList = new ArrayList<String>();
+        List<String> partitionList = new ArrayList<>();
         if (this.partitionFields != null) {
             for (String field : this.partitionFields) {
                 partitionList.add(tuple.getStringByField(field));
@@ -135,7 +130,7 @@ public class DelimitedRecordHiveMapper implements HiveMapper {
     }
 
     @VisibleForTesting
-    public String getFieldDelimiter() {
+    public char getFieldDelimiter() {
         return fieldDelimiter;
     }
 }

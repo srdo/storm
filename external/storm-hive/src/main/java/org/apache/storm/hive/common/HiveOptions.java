@@ -31,11 +31,11 @@ public class HiveOptions implements Serializable {
     protected Integer batchSize = 15000;
     protected Integer idleTimeout = 60000;
     protected Integer callTimeout = 0;
-    protected Integer heartBeatInterval = 60;
     protected Boolean autoCreatePartitions = true;
     protected String kerberosPrincipal;
     protected String kerberosKeytab;
     protected Integer tickTupleInterval = DEFAULT_TICK_TUPLE_INTERVAL_SECS;
+    protected boolean tokenAuthEnabled;
 
     public HiveOptions(String metaStoreUri, String databaseName, String tableName, HiveMapper mapper) {
         this.metaStoreURI = metaStoreUri;
@@ -74,11 +74,6 @@ public class HiveOptions implements Serializable {
         return this;
     }
 
-    public HiveOptions withHeartBeatInterval(Integer heartBeatInterval) {
-        this.heartBeatInterval = heartBeatInterval;
-        return this;
-    }
-
     public HiveOptions withAutoCreatePartitions(Boolean autoCreatePartitions) {
         this.autoCreatePartitions = autoCreatePartitions;
         return this;
@@ -91,6 +86,11 @@ public class HiveOptions implements Serializable {
 
     public HiveOptions withKerberosPrincipal(String kerberosPrincipal) {
         this.kerberosPrincipal = kerberosPrincipal;
+        return this;
+    }
+    
+    public HiveOptions withTokenAuthEnabled(boolean enabled) {
+        this.tokenAuthEnabled = enabled;
         return this;
     }
 
@@ -119,10 +119,6 @@ public class HiveOptions implements Serializable {
         return callTimeout;
     }
 
-    public Integer getHeartBeatInterval() {
-        return heartBeatInterval;
-    }
-
     public Integer getMaxOpenConnections() {
         return maxOpenConnections;
     }
@@ -141,6 +137,10 @@ public class HiveOptions implements Serializable {
 
     public String getKerberosPrincipal() {
         return kerberosPrincipal;
+    }
+    
+    public boolean getTokenAuthEnabled() {
+        return tokenAuthEnabled;
     }
 
     public String getKerberosKeytab() {

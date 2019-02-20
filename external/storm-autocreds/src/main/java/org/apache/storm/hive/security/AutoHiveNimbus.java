@@ -31,8 +31,7 @@ import java.io.ObjectOutputStream;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.commons.math3.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.mapreduce.security.token.delegation.DelegationTokenIdentifier;
@@ -199,11 +198,11 @@ public class AutoHiveNimbus extends AbstractHadoopNimbusPluginAutoCreds {
         List<String> configKeys = getConfigKeys(topologyConf);
         for (Pair<String, Credentials> cred : getCredentials(credentials, configKeys)) {
             try {
-                Configuration configuration = getHadoopConfiguration(topologyConf, cred.getFirst());
+                Configuration configuration = getHadoopConfiguration(topologyConf, cred.getLeft());
                 String hiveMetaStoreUri = getMetaStoreUri(configuration);
                 String hiveMetaStorePrincipal = getMetaStorePrincipal(configuration);
 
-                Collection<Token<? extends TokenIdentifier>> tokens = cred.getSecond().getAllTokens();
+                Collection<Token<? extends TokenIdentifier>> tokens = cred.getRight().getAllTokens();
                 login(configuration);
 
                 if (tokens != null && !tokens.isEmpty()) {

@@ -12,36 +12,34 @@
 
 package org.apache.storm.hive.common;
 
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import junit.framework.Assert;
-import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.metastore.txn.TxnDbUtil;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hive.hcatalog.streaming.HiveEndPoint;
-import org.apache.hive.hcatalog.streaming.RecordWriter;
-import org.apache.hive.hcatalog.streaming.SerializationError;
-import org.apache.hive.hcatalog.streaming.StreamingConnection;
-import org.apache.hive.hcatalog.streaming.StreamingException;
-import org.apache.hive.hcatalog.streaming.TransactionBatch;
+import org.apache.hive.streaming.StreamingConnection;
 import org.apache.storm.Config;
-import org.apache.storm.hive.bolt.HiveSetupUtil;
 import org.apache.storm.hive.bolt.mapper.DelimitedRecordHiveMapper;
 import org.apache.storm.hive.bolt.mapper.HiveMapper;
+import org.apache.storm.hive.common.HiveWriter.SerializationFailure;
 import org.apache.storm.task.GeneralTopologyContext;
 import org.apache.storm.topology.TopologyBuilder;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.TupleImpl;
 import org.apache.storm.tuple.Values;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
 public class TestHiveWriter {
     public static final String PART1_NAME = "city";
@@ -49,86 +47,88 @@ public class TestHiveWriter {
     public static final String[] partNames = { PART1_NAME, PART2_NAME };
     final static String dbName = "testdb";
     final static String tblName = "test_table2";
-    final String[] partitionVals = { "sunnyvale", "ca" };
+    final PartitionValues partitionVals = new PartitionValues(Arrays.asList(new String[] { "sunnyvale", "ca" }));
     final String[] colNames = { "id", "msg" };
-    private final int port;
-    private final String metaStoreURI;
-    private final HiveConf conf;
-    @Rule
-    public TemporaryFolder dbFolder = new TemporaryFolder();
+    private final String metaStoreURI = null;
     int timeout = 10000; // msec
     UserGroupInformation ugi = null;
     private ExecutorService callTimeoutPool;
+    private DelimitedRecordHiveMapper mapper;
+    private HiveOptions options;
 
-    public TestHiveWriter() throws Exception {
-        port = 9083;
-        metaStoreURI = null;
+    @BeforeEach
+    public void setUp() throws Exception {
         int callTimeoutPoolSize = 1;
         callTimeoutPool = Executors.newFixedThreadPool(callTimeoutPoolSize,
                                                        new ThreadFactoryBuilder().setNameFormat("hiveWriterTest").build());
-
-        // 1) Start metastore
-        conf = HiveSetupUtil.getHiveConf();
-        TxnDbUtil.setConfValues(conf);
-        if (metaStoreURI != null) {
-            conf.setVar(HiveConf.ConfVars.METASTOREURIS, metaStoreURI);
-        }
+        mapper = new DelimitedRecordHiveMapper()
+            .withColumnFields(new Fields(colNames))
+            .withPartitionFields(new Fields(partNames));
+        options = new HiveOptions(metaStoreURI, dbName, tblName, mapper)
+            .withTxnsPerBatch(10);
+    }
+    
+    @AfterEach
+    public void tearDown() {
+        callTimeoutPool.shutdownNow();
     }
 
     @Test
     public void testInstantiate() throws Exception {
-        DelimitedRecordHiveMapper mapper = new MockedDelemiteredRecordHiveMapper()
-            .withColumnFields(new Fields(colNames))
-            .withPartitionFields(new Fields(partNames));
-        HiveEndPoint endPoint = new HiveEndPoint(metaStoreURI, dbName, tblName, Arrays.asList(partitionVals));
-        TestingHiveWriter writer = new TestingHiveWriter(endPoint, 10, true, timeout
-            , callTimeoutPool, mapper, ugi, false);
+        HiveWriter writer = new HiveWriter(partitionVals, options, callTimeoutPool, (ignored, ignored2) -> mock(StreamingConnection.class));
         writer.close();
     }
 
     @Test
     public void testWriteBasic() throws Exception {
-        DelimitedRecordHiveMapper mapper = new MockedDelemiteredRecordHiveMapper()
-            .withColumnFields(new Fields(colNames))
-            .withPartitionFields(new Fields(partNames));
-        HiveEndPoint endPoint = new HiveEndPoint(metaStoreURI, dbName, tblName, Arrays.asList(partitionVals));
-        TestingHiveWriter writer = new TestingHiveWriter(endPoint, 10, true, timeout
-            , callTimeoutPool, mapper, ugi, false);
-        writeTuples(writer, mapper, 3);
-        writer.flush(false);
-        writer.close();
-        Mockito.verify(writer.getMockedTxBatch(), Mockito.times(3)).write(Mockito.any(byte[].class));
+        StreamingConnection connectionMock = mock(StreamingConnection.class);
+        try (HiveWriter writer = new HiveWriter(partitionVals, options, callTimeoutPool, (ignored, ignored2) -> connectionMock)) {
+            writeTuples(writer, mapper, 3);
+            writer.flush(false);
+        }
+        InOrder inOrder = inOrder(connectionMock);
+        inOrder.verify(connectionMock, times(1)).beginTransaction();
+        inOrder.verify(connectionMock, times(3)).write(any(byte[].class));
+        inOrder.verify(connectionMock).commitTransaction();
     }
 
     @Test
     public void testWriteMultiFlush() throws Exception {
-        DelimitedRecordHiveMapper mapper = new MockedDelemiteredRecordHiveMapper()
-            .withColumnFields(new Fields(colNames))
-            .withPartitionFields(new Fields(partNames));
+        StreamingConnection connectionMock = mock(StreamingConnection.class);
+        try (HiveWriter writer = new HiveWriter(partitionVals, options, callTimeoutPool, (ignored, ignored2) -> connectionMock)) {
+            Tuple tuple = generateTestTuple("1", "abc");
+            writer.write(mapper.mapRecord(tuple));
+            tuple = generateTestTuple("2", "def");
+            writer.write(mapper.mapRecord(tuple));
+            assertEquals(2, writer.getTotalRecords());
+            InOrder inOrder = inOrder(connectionMock);
+            inOrder.verify(connectionMock).beginTransaction();
+            inOrder.verify(connectionMock, times(2)).write(any(byte[].class));
+            writer.flush(true);
+            assertEquals(0, writer.getTotalRecords());
+            inOrder = inOrder(connectionMock);
+            inOrder.verify(connectionMock).commitTransaction();
+            inOrder.verify(connectionMock).beginTransaction();
+            clearInvocations(connectionMock);
 
-        HiveEndPoint endPoint = new HiveEndPoint(metaStoreURI, dbName, tblName, Arrays.asList(partitionVals));
-        TestingHiveWriter writer = new TestingHiveWriter(endPoint, 10, true, timeout
-            , callTimeoutPool, mapper, ugi, false);
-        Tuple tuple = generateTestTuple("1", "abc");
-        writer.write(mapper.mapRecord(tuple));
-        tuple = generateTestTuple("2", "def");
-        writer.write(mapper.mapRecord(tuple));
-        Assert.assertEquals(writer.getTotalRecords(), 2);
-        Mockito.verify(writer.getMockedTxBatch(), Mockito.times(2)).write(Mockito.any(byte[].class));
-        Mockito.verify(writer.getMockedTxBatch(), Mockito.never()).commit();
-        writer.flush(true);
-        Assert.assertEquals(writer.getTotalRecords(), 0);
-        Mockito.verify(writer.getMockedTxBatch(), Mockito.atLeastOnce()).commit();
+            tuple = generateTestTuple("3", "ghi");
+            writer.write(mapper.mapRecord(tuple));
+            writer.flush(true);
+            inOrder = inOrder(connectionMock);
+            inOrder.verify(connectionMock).write(any(byte[].class));
+            inOrder.verify(connectionMock).commitTransaction();
+            inOrder.verify(connectionMock).beginTransaction();
+            clearInvocations(connectionMock);
 
-        tuple = generateTestTuple("3", "ghi");
-        writer.write(mapper.mapRecord(tuple));
-        writer.flush(true);
-
-        tuple = generateTestTuple("4", "klm");
-        writer.write(mapper.mapRecord(tuple));
-        writer.flush(true);
-        writer.close();
-        Mockito.verify(writer.getMockedTxBatch(), Mockito.times(4)).write(Mockito.any(byte[].class));
+            tuple = generateTestTuple("4", "klm");
+            writer.write(mapper.mapRecord(tuple));
+            writer.flush(true);
+            writer.close();
+            inOrder = inOrder(connectionMock);
+            inOrder.verify(connectionMock).write(any(byte[].class));
+            inOrder.verify(connectionMock).commitTransaction();
+            inOrder.verify(connectionMock).beginTransaction();
+        }
     }
 
     private Tuple generateTestTuple(Object id, Object msg) {
@@ -144,63 +144,12 @@ public class TestHiveWriter {
     }
 
     private void writeTuples(HiveWriter writer, HiveMapper mapper, int count)
-        throws HiveWriter.WriteFailure, InterruptedException, SerializationError {
+        throws HiveWriter.WriteFailure, InterruptedException, SerializationFailure {
         Integer id = 100;
         String msg = "test-123";
         for (int i = 1; i <= count; i++) {
             Tuple tuple = generateTestTuple(id, msg);
             writer.write(mapper.mapRecord(tuple));
-        }
-    }
-
-    private static class TestingHiveWriter extends HiveWriter {
-
-        private StreamingConnection mockedStreamingConn;
-        private TransactionBatch mockedTxBatch;
-
-        public TestingHiveWriter(HiveEndPoint endPoint, int txnsPerBatch, boolean autoCreatePartitions, long callTimeout,
-                                 ExecutorService callTimeoutPool, HiveMapper mapper, UserGroupInformation ugi,
-                                 boolean tokenAuthEnabled) throws InterruptedException, ConnectFailure {
-            super(endPoint, txnsPerBatch, autoCreatePartitions, callTimeout, callTimeoutPool, mapper, ugi, tokenAuthEnabled);
-        }
-
-        @Override
-        synchronized StreamingConnection newConnection(UserGroupInformation ugi, boolean tokenAuthEnabled) throws InterruptedException,
-            ConnectFailure {
-            if (mockedStreamingConn == null) {
-                mockedStreamingConn = Mockito.mock(StreamingConnection.class);
-                mockedTxBatch = Mockito.mock(TransactionBatch.class);
-
-                try {
-                    Mockito.when(mockedStreamingConn.fetchTransactionBatch(Mockito.anyInt(), Mockito.any(RecordWriter.class)))
-                           .thenReturn(mockedTxBatch);
-                } catch (StreamingException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-
-            return mockedStreamingConn;
-        }
-
-        public TransactionBatch getMockedTxBatch() {
-            return mockedTxBatch;
-        }
-    }
-
-    private static class MockedDelemiteredRecordHiveMapper extends DelimitedRecordHiveMapper {
-        private final RecordWriter mockedRecordWriter;
-
-        public MockedDelemiteredRecordHiveMapper() {
-            this.mockedRecordWriter = Mockito.mock(RecordWriter.class);
-        }
-
-        @Override
-        public RecordWriter createRecordWriter(HiveEndPoint endPoint) throws StreamingException, IOException, ClassNotFoundException {
-            return mockedRecordWriter;
-        }
-
-        public RecordWriter getMockedRecordWriter() {
-            return mockedRecordWriter;
         }
     }
 
