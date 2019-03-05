@@ -20,7 +20,7 @@ env:
   - MODULES=External
   - MODULES=Integration-Test
 
-dist: trusty
+dist: xenial
 sudo: required
 
 language: java
