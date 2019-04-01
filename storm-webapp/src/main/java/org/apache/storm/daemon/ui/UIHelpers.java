@@ -1441,7 +1441,7 @@ public class UIHelpers {
      */
     private static Map<String, Object> getTopologySpoutAggStatsMap(ComponentAggregateStats componentAggregateStats,
                                                                    String spoutId) {
-        Map<String, Object> result = new HashMap();
+        Map<String, Object> result = new HashMap<>();
         CommonAggregateStats commonStats = componentAggregateStats.get_common_stats();
         result.putAll(getCommonAggStatsMap(commonStats));
         result.put("spoutId", spoutId);
@@ -1513,7 +1513,7 @@ public class UIHelpers {
      * @return unpackTopologyInfo
      */
     private static Map<String,Object> unpackTopologyInfo(TopologyPageInfo topologyPageInfo, String window, Map<String,Object> config) {
-        Map<String, Object> result = new HashMap();
+        Map<String, Object> result = new HashMap<>();
         result.put("id", topologyPageInfo.get_id());
         result.put("encodedId", Utils.urlEncodeUtf8(topologyPageInfo.get_id()));
         result.put("owner", topologyPageInfo.get_owner());
@@ -1554,7 +1554,7 @@ public class UIHelpers {
         result.put("workers", workerSummaries);
 
         Map<String, ComponentAggregateStats> spouts = topologyPageInfo.get_id_to_spout_agg_stats();
-        List<Map> spoutStats = new ArrayList();
+        List<Map> spoutStats = new ArrayList<>();
 
         for (Map.Entry<String, ComponentAggregateStats> spoutEntry : spouts.entrySet()) {
             spoutStats.add(getTopologySpoutAggStatsMap(spoutEntry.getValue(), spoutEntry.getKey()));
@@ -1562,7 +1562,7 @@ public class UIHelpers {
         result.put("spouts", spoutStats);
 
         Map<String, ComponentAggregateStats> bolts = topologyPageInfo.get_id_to_bolt_agg_stats();
-        List<Map> boltStats = new ArrayList();
+        List<Map> boltStats = new ArrayList<>();
 
         for (Map.Entry<String, ComponentAggregateStats> boltEntry : bolts.entrySet()) {
             boltStats.add(getTopologyBoltAggStatsMap(boltEntry.getValue(), boltEntry.getKey()));
@@ -2048,11 +2048,11 @@ public class UIHelpers {
     }
 
     /**
-     * getTopolgoyLogConfig.
+     * getTopologyLogConfig.
      * @param logConfig logConfig
      * @return getTopolgoyLogConfig
      */
-    public static Map<String, Object> getTopolgoyLogConfig(LogConfig logConfig) {
+    public static Map<String, Object> getTopologyLogConfig(LogConfig logConfig) {
         Map<String, Object> result = new HashMap();
         if (logConfig.is_set_named_logger_level()) {
             for (Map.Entry<String, LogLevel> entry : logConfig.get_named_logger_level().entrySet()) {
@@ -2349,7 +2349,7 @@ public class UIHelpers {
             logConfig.put_to_named_logger_level(loggerNMame, logLevel);
             client.setLogConfig(id, logConfig);
         }
-        return UIHelpers.getTopolgoyLogConfig(client.getLogConfig(id));
+        return UIHelpers.getTopologyLogConfig(client.getLogConfig(id));
     }
 
     /**

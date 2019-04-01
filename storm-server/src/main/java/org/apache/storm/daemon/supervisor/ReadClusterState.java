@@ -34,7 +34,7 @@ import org.apache.storm.generated.NodeInfo;
 import org.apache.storm.generated.ProfileRequest;
 import org.apache.storm.generated.WorkerResources;
 import org.apache.storm.localizer.AsyncLocalizer;
-import org.apache.storm.metricstore.MetricStoreConfig;
+import org.apache.storm.metricstore.MetricProcessorConfig;
 import org.apache.storm.metricstore.WorkerMetricsProcessor;
 import org.apache.storm.scheduler.ISupervisor;
 import org.apache.storm.utils.LocalState;
@@ -90,7 +90,7 @@ public class ReadClusterState implements Runnable, AutoCloseable {
 
         this.metricsProcessor = null;
         try {
-            this.metricsProcessor = MetricStoreConfig.configureMetricProcessor(superConf);
+            this.metricsProcessor = MetricProcessorConfig.configureMetricProcessor(superConf);
         } catch (Exception e) {
             // the metrics processor is not critical to the operation of the cluster, allow Supervisor to come up
             LOG.error("Failed to initialize metric processor", e);

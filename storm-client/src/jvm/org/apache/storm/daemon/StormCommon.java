@@ -380,7 +380,7 @@ public class StormCommon {
                 Integer maxRetainMetricTuples = ObjectReader.getInt(info.get(
                     TOPOLOGY_METRICS_CONSUMER_MAX_RETAIN_METRIC_TUPLES), 100);
                 Integer phintNum = ObjectReader.getInt(info.get(TOPOLOGY_METRICS_CONSUMER_PARALLELISM_HINT), 1);
-                Map<String, Object> metricsConsumerConf = new HashMap<String, Object>();
+                Map<String, Object> metricsConsumerConf = new HashMap<>();
                 metricsConsumerConf.put(Config.TOPOLOGY_TASKS, phintNum);
                 List<String> whitelist = (List<String>) info.get(
                     TOPOLOGY_METRICS_CONSUMER_WHITELIST);
@@ -397,7 +397,7 @@ public class StormCommon {
                 Bolt metricsConsumerBolt = Thrift.prepareSerializedBoltDetails(inputs,
                                                                                boltInstance, null, phintNum, metricsConsumerConf);
 
-                String id = className;
+                String id;
                 if (classOccurrencesMap.containsKey(className)) {
                     // e.g. [\"a\", \"b\", \"a\"]) => [\"a\", \"b\", \"a#2\"]"
                     int occurrenceNum = classOccurrencesMap.get(className);

@@ -46,9 +46,15 @@ import org.apache.storm.generated.ExecutorStats;
 import org.apache.storm.generated.LSWorkerHeartbeat;
 import org.apache.storm.generated.LogConfig;
 import org.apache.storm.generated.SupervisorWorkerHeartbeat;
+import org.apache.storm.generated.WorkerMetricList;
+import org.apache.storm.generated.WorkerMetricPoint;
+import org.apache.storm.generated.WorkerMetrics;
 import org.apache.storm.messaging.IConnection;
 import org.apache.storm.messaging.IContext;
 import org.apache.storm.metrics2.StormMetricRegistry;
+import org.apache.storm.metricstore.MetricException;
+import org.apache.storm.metricstore.MetricProcessorConfig;
+import org.apache.storm.metricstore.WorkerMetricsProcessor;
 import org.apache.storm.security.auth.ClientAuthUtils;
 import org.apache.storm.security.auth.IAutoCredentials;
 import org.apache.storm.shade.com.google.common.base.Preconditions;
@@ -193,10 +199,6 @@ public class Worker implements Shutdownable, DaemonCommon {
                 }
             });
 
-        workerState.executorHeartbeatTimer
-            .scheduleRecurring(0, (Integer) conf.get(Config.EXECUTOR_METRICS_FREQUENCY_SECS),
-                               Worker.this::doExecutorHeartbeats);
-
         workerState.registerCallbacks();
 
         workerState.refreshConnections(null);
@@ -224,11 +226,15 @@ public class Worker implements Shutdownable, DaemonCommon {
             }
         }
 
-        List<IRunningExecutor> newExecutors = new ArrayList<IRunningExecutor>();
+        List<IRunningExecutor> newExecutors = new ArrayList<>();
         for (Executor executor : execs) {
             newExecutors.add(executor.execute());
         }
         executorsAtom.set(newExecutors);
+
+        workerState.executorHeartbeatTimer
+            .scheduleRecurring(0, (Integer) conf.get(Config.EXECUTOR_METRICS_FREQUENCY_SECS),
+                               Worker.this::doExecutorHeartbeats);
 
         // This thread will send out messages destined for remote tasks (on other workers)
         // If there are no remote outbound tasks, don't start the thread.
@@ -346,22 +352,22 @@ public class Worker implements Shutdownable, DaemonCommon {
     }
 
     public void doExecutorHeartbeats() {
-        Map<List<Integer>, ExecutorStats> stats;
         List<IRunningExecutor> executors = this.executorsAtom.get();
-        if (null == executors) {
-            stats = ClientStatsUtil.mkEmptyExecutorZkHbs(workerState.localExecutors);
-        } else {
-            stats = ClientStatsUtil.convertExecutorZkHbs(executors.stream().collect(Collectors
-                                                                                  .toMap(IRunningExecutor::getExecutorId,
-                                                                                         IRunningExecutor::renderStats)));
+        List<WorkerMetricList> metricLists = executors.stream()
+            .flatMap(executor -> executor.renderStats2().stream())
+            .collect(Collectors.toList());
+        //TODO: Fix metric list
+        WorkerMetricList list = new WorkerMetricList();
+        for (WorkerMetricList otherList : metricLists) {
+            for (WorkerMetricPoint p : otherList.get_metrics()) {
+                list.add_to_metrics(p);
         }
-        Map<String, Object> zkHB = ClientStatsUtil.mkZkWorkerHb(workerState.topologyId, stats, workerState.uptime.upTime());
+        }
         try {
-            workerState.stormClusterState
-                .workerHeartbeat(workerState.topologyId, workerState.assignmentId, (long) workerState.port,
-                                 ClientStatsUtil.thriftifyZkWorkerHb(zkHB));
-        } catch (Exception ex) {
-            LOG.error("Worker failed to write heartbeats to ZK or Pacemaker...will retry", ex);
+            WorkerMetrics metrics = new WorkerMetrics(workerState.topologyId, workerState.port, Utils.hostname(), list);
+            workerMetricsProcessor.processWorkerMetrics(conf, metrics);
+        } catch (Exception e) {
+            LOG.error("Worker failed to send metrics to Nimbus, will retry", e);
         }
     }
 

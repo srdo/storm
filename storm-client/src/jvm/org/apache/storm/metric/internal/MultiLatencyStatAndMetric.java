@@ -94,6 +94,16 @@ public class MultiLatencyStatAndMetric<T> implements IMetric {
         }
         return ret;
     }
+    
+    public Map<T, Map<String, Double>> getKeyToTimeToValue() {
+        Map<T, Map<String, Double>> ret = new HashMap<>();
+        for (Map.Entry<T, LatencyStatAndMetric> entry : _lat.entrySet()) {
+            T key = entry.getKey();
+            Map<String, Double> toFlip = entry.getValue().getTimeLatAvg();
+            ret.put(key, toFlip);
+        }
+        return ret;
+    }
 
     public void close() {
         for (LatencyStatAndMetric l : _lat.values()) {

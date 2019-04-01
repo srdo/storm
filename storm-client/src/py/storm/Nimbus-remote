@@ -90,7 +90,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  SupervisorAssignments getSupervisorAssignments(string node)')
     print('  void sendSupervisorWorkerHeartbeats(SupervisorWorkerHeartbeats heartbeats)')
     print('  void sendSupervisorWorkerHeartbeat(SupervisorWorkerHeartbeat heatbeat)')
-    print('  void processWorkerMetrics(WorkerMetrics metrics)')
+    print('  void processWorkerMetrics2(WorkerMetrics2 metrics)')
     print('  bool isRemoteBlobExists(string blobKey)')
     print('')
     sys.exit(0)
@@ -459,11 +459,11 @@ elif cmd == 'sendSupervisorWorkerHeartbeat':
         sys.exit(1)
     pp.pprint(client.sendSupervisorWorkerHeartbeat(eval(args[0]),))
 
-elif cmd == 'processWorkerMetrics':
+elif cmd == 'processWorkerMetrics2':
     if len(args) != 1:
-        print('processWorkerMetrics requires 1 args')
+        print('processWorkerMetrics2 requires 1 args')
         sys.exit(1)
-    pp.pprint(client.processWorkerMetrics(eval(args[0]),))
+    pp.pprint(client.processWorkerMetrics2(eval(args[0]),))
 
 elif cmd == 'isRemoteBlobExists':
     if len(args) != 1:

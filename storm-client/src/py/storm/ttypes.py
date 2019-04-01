@@ -9006,26 +9006,18 @@ class SupervisorAssignments(object):
         return not (self == other)
 
 
-class WorkerMetricPoint(object):
+class WorkerMetricPoint2(object):
     """
     Attributes:
      - metricName
-     - timestamp
      - metricValue
-     - componentId
-     - executorId
-     - streamId
 
     """
 
 
-    def __init__(self, metricName=None, timestamp=None, metricValue=None, componentId=None, executorId=None, streamId=None,):
+    def __init__(self, metricName=None, metricValue=None,):
         self.metricName = metricName
-        self.timestamp = timestamp
         self.metricValue = metricValue
-        self.componentId = componentId
-        self.executorId = executorId
-        self.streamId = streamId
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -9041,14 +9033,93 @@ class WorkerMetricPoint(object):
                     self.metricName = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
-            elif fid == 2:
-                if ftype == TType.I64:
-                    self.timestamp = iprot.readI64()
-                else:
-                    iprot.skip(ftype)
             elif fid == 3:
                 if ftype == TType.DOUBLE:
                     self.metricValue = iprot.readDouble()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('WorkerMetricPoint2')
+        if self.metricName is not None:
+            oprot.writeFieldBegin('metricName', TType.STRING, 1)
+            oprot.writeString(self.metricName.encode('utf-8') if sys.version_info[0] == 2 else self.metricName)
+            oprot.writeFieldEnd()
+        if self.metricValue is not None:
+            oprot.writeFieldBegin('metricValue', TType.DOUBLE, 3)
+            oprot.writeDouble(self.metricValue)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        if self.metricName is None:
+            raise TProtocolException(message='Required field metricName is unset!')
+        if self.metricValue is None:
+            raise TProtocolException(message='Required field metricValue is unset!')
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+
+
+class WorkerMetricList2(object):
+    """
+    Attributes:
+     - metrics
+     - timestamp
+     - componentId
+     - executorId
+     - streamId
+
+    """
+
+
+    def __init__(self, metrics=None, timestamp=None, componentId=None, executorId=None, streamId=None,):
+        self.metrics = metrics
+        self.timestamp = timestamp
+        self.componentId = componentId
+        self.executorId = executorId
+        self.streamId = streamId
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.LIST:
+                    self.metrics = []
+                    (_etype803, _size800) = iprot.readListBegin()
+                    for _i804 in range(_size800):
+                        _elem805 = WorkerMetricPoint2()
+                        _elem805.read(iprot)
+                        self.metrics.append(_elem805)
+                    iprot.readListEnd()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.I64:
+                    self.timestamp = iprot.readI64()
                 else:
                     iprot.skip(ftype)
             elif fid == 4:
@@ -9075,18 +9146,17 @@ class WorkerMetricPoint(object):
         if oprot._fast_encode is not None and self.thrift_spec is not None:
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
-        oprot.writeStructBegin('WorkerMetricPoint')
-        if self.metricName is not None:
-            oprot.writeFieldBegin('metricName', TType.STRING, 1)
-            oprot.writeString(self.metricName.encode('utf-8') if sys.version_info[0] == 2 else self.metricName)
+        oprot.writeStructBegin('WorkerMetricList2')
+        if self.metrics is not None:
+            oprot.writeFieldBegin('metrics', TType.LIST, 1)
+            oprot.writeListBegin(TType.STRUCT, len(self.metrics))
+            for iter806 in self.metrics:
+                iter806.write(oprot)
+            oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.timestamp is not None:
             oprot.writeFieldBegin('timestamp', TType.I64, 2)
             oprot.writeI64(self.timestamp)
-            oprot.writeFieldEnd()
-        if self.metricValue is not None:
-            oprot.writeFieldBegin('metricValue', TType.DOUBLE, 3)
-            oprot.writeDouble(self.metricValue)
             oprot.writeFieldEnd()
         if self.componentId is not None:
             oprot.writeFieldBegin('componentId', TType.STRING, 4)
@@ -9104,12 +9174,8 @@ class WorkerMetricPoint(object):
         oprot.writeStructEnd()
 
     def validate(self):
-        if self.metricName is None:
-            raise TProtocolException(message='Required field metricName is unset!')
         if self.timestamp is None:
             raise TProtocolException(message='Required field timestamp is unset!')
-        if self.metricValue is None:
-            raise TProtocolException(message='Required field metricValue is unset!')
         if self.componentId is None:
             raise TProtocolException(message='Required field componentId is unset!')
         if self.executorId is None:
@@ -9130,88 +9196,22 @@ class WorkerMetricPoint(object):
         return not (self == other)
 
 
-class WorkerMetricList(object):
-    """
-    Attributes:
-     - metrics
-
-    """
-
-
-    def __init__(self, metrics=None,):
-        self.metrics = metrics
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            if fid == 1:
-                if ftype == TType.LIST:
-                    self.metrics = []
-                    (_etype803, _size800) = iprot.readListBegin()
-                    for _i804 in range(_size800):
-                        _elem805 = WorkerMetricPoint()
-                        _elem805.read(iprot)
-                        self.metrics.append(_elem805)
-                    iprot.readListEnd()
-                else:
-                    iprot.skip(ftype)
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('WorkerMetricList')
-        if self.metrics is not None:
-            oprot.writeFieldBegin('metrics', TType.LIST, 1)
-            oprot.writeListBegin(TType.STRUCT, len(self.metrics))
-            for iter806 in self.metrics:
-                iter806.write(oprot)
-            oprot.writeListEnd()
-            oprot.writeFieldEnd()
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-
-
-class WorkerMetrics(object):
+class WorkerMetrics2(object):
     """
     Attributes:
      - topologyId
      - port
      - hostname
-     - metricList
+     - metricLists
 
     """
 
 
-    def __init__(self, topologyId=None, port=None, hostname=None, metricList=None,):
+    def __init__(self, topologyId=None, port=None, hostname=None, metricLists=None,):
         self.topologyId = topologyId
         self.port = port
         self.hostname = hostname
-        self.metricList = metricList
+        self.metricLists = metricLists
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -9238,9 +9238,14 @@ class WorkerMetrics(object):
                 else:
                     iprot.skip(ftype)
             elif fid == 4:
-                if ftype == TType.STRUCT:
-                    self.metricList = WorkerMetricList()
-                    self.metricList.read(iprot)
+                if ftype == TType.LIST:
+                    self.metricLists = []
+                    (_etype810, _size807) = iprot.readListBegin()
+                    for _i811 in range(_size807):
+                        _elem812 = WorkerMetricList2()
+                        _elem812.read(iprot)
+                        self.metricLists.append(_elem812)
+                    iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
             else:
@@ -9252,7 +9257,7 @@ class WorkerMetrics(object):
         if oprot._fast_encode is not None and self.thrift_spec is not None:
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
-        oprot.writeStructBegin('WorkerMetrics')
+        oprot.writeStructBegin('WorkerMetrics2')
         if self.topologyId is not None:
             oprot.writeFieldBegin('topologyId', TType.STRING, 1)
             oprot.writeString(self.topologyId.encode('utf-8') if sys.version_info[0] == 2 else self.topologyId)
@@ -9265,9 +9270,12 @@ class WorkerMetrics(object):
             oprot.writeFieldBegin('hostname', TType.STRING, 3)
             oprot.writeString(self.hostname.encode('utf-8') if sys.version_info[0] == 2 else self.hostname)
             oprot.writeFieldEnd()
-        if self.metricList is not None:
-            oprot.writeFieldBegin('metricList', TType.STRUCT, 4)
-            self.metricList.write(oprot)
+        if self.metricLists is not None:
+            oprot.writeFieldBegin('metricLists', TType.LIST, 4)
+            oprot.writeListBegin(TType.STRUCT, len(self.metricLists))
+            for iter813 in self.metricLists:
+                iter813.write(oprot)
+            oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -9279,8 +9287,8 @@ class WorkerMetrics(object):
             raise TProtocolException(message='Required field port is unset!')
         if self.hostname is None:
             raise TProtocolException(message='Required field hostname is unset!')
-        if self.metricList is None:
-            raise TProtocolException(message='Required field metricList is unset!')
+        if self.metricLists is None:
+            raise TProtocolException(message='Required field metricLists is unset!')
         return
 
     def __repr__(self):
@@ -9533,11 +9541,11 @@ class HBRecords(object):
             if fid == 1:
                 if ftype == TType.LIST:
                     self.pulses = []
-                    (_etype810, _size807) = iprot.readListBegin()
-                    for _i811 in range(_size807):
-                        _elem812 = HBPulse()
-                        _elem812.read(iprot)
-                        self.pulses.append(_elem812)
+                    (_etype817, _size814) = iprot.readListBegin()
+                    for _i818 in range(_size814):
+                        _elem819 = HBPulse()
+                        _elem819.read(iprot)
+                        self.pulses.append(_elem819)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -9554,8 +9562,8 @@ class HBRecords(object):
         if self.pulses is not None:
             oprot.writeFieldBegin('pulses', TType.LIST, 1)
             oprot.writeListBegin(TType.STRUCT, len(self.pulses))
-            for iter813 in self.pulses:
-                iter813.write(oprot)
+            for iter820 in self.pulses:
+                iter820.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -9599,10 +9607,10 @@ class HBNodes(object):
             if fid == 1:
                 if ftype == TType.LIST:
                     self.pulseIds = []
-                    (_etype817, _size814) = iprot.readListBegin()
-                    for _i818 in range(_size814):
-                        _elem819 = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
-                        self.pulseIds.append(_elem819)
+                    (_etype824, _size821) = iprot.readListBegin()
+                    for _i825 in range(_size821):
+                        _elem826 = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
+                        self.pulseIds.append(_elem826)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -9619,8 +9627,8 @@ class HBNodes(object):
         if self.pulseIds is not None:
             oprot.writeFieldBegin('pulseIds', TType.LIST, 1)
             oprot.writeListBegin(TType.STRING, len(self.pulseIds))
-            for iter820 in self.pulseIds:
-                oprot.writeString(iter820.encode('utf-8') if sys.version_info[0] == 2 else iter820)
+            for iter827 in self.pulseIds:
+                oprot.writeString(iter827.encode('utf-8') if sys.version_info[0] == 2 else iter827)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -12929,28 +12937,30 @@ SupervisorAssignments.thrift_spec = (
     (1, TType.MAP, 'storm_assignment', (TType.STRING, 'UTF8', TType.STRUCT, [Assignment, None], False), {
     }, ),  # 1
 )
-all_structs.append(WorkerMetricPoint)
-WorkerMetricPoint.thrift_spec = (
+all_structs.append(WorkerMetricPoint2)
+WorkerMetricPoint2.thrift_spec = (
     None,  # 0
     (1, TType.STRING, 'metricName', 'UTF8', None, ),  # 1
-    (2, TType.I64, 'timestamp', None, None, ),  # 2
+    None,  # 2
     (3, TType.DOUBLE, 'metricValue', None, None, ),  # 3
+)
+all_structs.append(WorkerMetricList2)
+WorkerMetricList2.thrift_spec = (
+    None,  # 0
+    (1, TType.LIST, 'metrics', (TType.STRUCT, [WorkerMetricPoint2, None], False), None, ),  # 1
+    (2, TType.I64, 'timestamp', None, None, ),  # 2
+    None,  # 3
     (4, TType.STRING, 'componentId', 'UTF8', None, ),  # 4
     (5, TType.STRING, 'executorId', 'UTF8', None, ),  # 5
     (6, TType.STRING, 'streamId', 'UTF8', None, ),  # 6
 )
-all_structs.append(WorkerMetricList)
-WorkerMetricList.thrift_spec = (
-    None,  # 0
-    (1, TType.LIST, 'metrics', (TType.STRUCT, [WorkerMetricPoint, None], False), None, ),  # 1
-)
-all_structs.append(WorkerMetrics)
-WorkerMetrics.thrift_spec = (
+all_structs.append(WorkerMetrics2)
+WorkerMetrics2.thrift_spec = (
     None,  # 0
     (1, TType.STRING, 'topologyId', 'UTF8', None, ),  # 1
     (2, TType.I32, 'port', None, None, ),  # 2
     (3, TType.STRING, 'hostname', 'UTF8', None, ),  # 3
-    (4, TType.STRUCT, 'metricList', [WorkerMetricList, None], None, ),  # 4
+    (4, TType.LIST, 'metricLists', (TType.STRUCT, [WorkerMetricList2, None], False), None, ),  # 4
 )
 all_structs.append(DRPCRequest)
 DRPCRequest.thrift_spec = (

@@ -36,23 +36,5 @@ public class MetricStoreConfig {
             throw new MetricException("Failed to create metric store", e);
         }
     }
-
-    /**
-     * Configures metric processor (running on supervisor) to use the class specified in the conf.
-     * @param conf  the supervisor config
-     * @return WorkerMetricsProcessor prepared processor
-     * @throws MetricException  on misconfiguration
-     */
-    public static WorkerMetricsProcessor configureMetricProcessor(Map conf) throws MetricException {
-
-        try {
-            String processorClass = (String) conf.get(DaemonConfig.STORM_METRIC_PROCESSOR_CLASS);
-            WorkerMetricsProcessor processor = (WorkerMetricsProcessor) (Class.forName(processorClass)).newInstance();
-            processor.prepare(conf);
-            return processor;
-        } catch (Exception e) {
-            throw new MetricException("Failed to create metric processor", e);
-        }
-    }
 }
 

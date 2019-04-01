@@ -13,8 +13,10 @@
 package org.apache.storm.stats;
 
 import com.codahale.metrics.Counter;
+import java.util.List;
 import java.util.Map;
 import org.apache.storm.generated.ExecutorStats;
+import org.apache.storm.generated.WorkerMetricList;
 import org.apache.storm.metric.internal.MultiCountStatAndMetric;
 import org.apache.storm.metric.internal.MultiLatencyStatAndMetric;
 
@@ -80,5 +82,7 @@ public abstract class CommonStats {
     }
 
     public abstract ExecutorStats renderStats();
+    
+    public abstract List<WorkerMetricList> renderStats2();
 
 }

@@ -162,7 +162,7 @@ public class Nimbus {
      */
     public void sendSupervisorWorkerHeartbeat(SupervisorWorkerHeartbeat heatbeat) throws AuthorizationException, NotAliveException, org.apache.storm.thrift.TException;
 
-    public void processWorkerMetrics(WorkerMetrics metrics) throws org.apache.storm.thrift.TException;
+    public void processWorkerMetrics2(WorkerMetrics2 metrics) throws org.apache.storm.thrift.TException;
 
     /**
      * Decide if the blob is removed from cluster.
@@ -271,7 +271,7 @@ public class Nimbus {
 
     public void sendSupervisorWorkerHeartbeat(SupervisorWorkerHeartbeat heatbeat, org.apache.storm.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.storm.thrift.TException;
 
-    public void processWorkerMetrics(WorkerMetrics metrics, org.apache.storm.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.storm.thrift.TException;
+    public void processWorkerMetrics2(WorkerMetrics2 metrics, org.apache.storm.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.storm.thrift.TException;
 
     public void isRemoteBlobExists(java.lang.String blobKey, org.apache.storm.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.storm.thrift.TException;
 
@@ -1583,23 +1583,23 @@ public class Nimbus {
       return;
     }
 
-    public void processWorkerMetrics(WorkerMetrics metrics) throws org.apache.storm.thrift.TException
+    public void processWorkerMetrics2(WorkerMetrics2 metrics) throws org.apache.storm.thrift.TException
     {
-      send_processWorkerMetrics(metrics);
-      recv_processWorkerMetrics();
+      send_processWorkerMetrics2(metrics);
+      recv_processWorkerMetrics2();
     }
 
-    public void send_processWorkerMetrics(WorkerMetrics metrics) throws org.apache.storm.thrift.TException
+    public void send_processWorkerMetrics2(WorkerMetrics2 metrics) throws org.apache.storm.thrift.TException
     {
-      processWorkerMetrics_args args = new processWorkerMetrics_args();
+      processWorkerMetrics2_args args = new processWorkerMetrics2_args();
       args.set_metrics(metrics);
-      sendBase("processWorkerMetrics", args);
+      sendBase("processWorkerMetrics2", args);
     }
 
-    public void recv_processWorkerMetrics() throws org.apache.storm.thrift.TException
+    public void recv_processWorkerMetrics2() throws org.apache.storm.thrift.TException
     {
-      processWorkerMetrics_result result = new processWorkerMetrics_result();
-      receiveBase(result, "processWorkerMetrics");
+      processWorkerMetrics2_result result = new processWorkerMetrics2_result();
+      receiveBase(result, "processWorkerMetrics2");
       return;
     }
 
@@ -3261,23 +3261,23 @@ public class Nimbus {
       }
     }
 
-    public void processWorkerMetrics(WorkerMetrics metrics, org.apache.storm.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.storm.thrift.TException {
+    public void processWorkerMetrics2(WorkerMetrics2 metrics, org.apache.storm.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.storm.thrift.TException {
       checkReady();
-      processWorkerMetrics_call method_call = new processWorkerMetrics_call(metrics, resultHandler, this, ___protocolFactory, ___transport);
+      processWorkerMetrics2_call method_call = new processWorkerMetrics2_call(metrics, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class processWorkerMetrics_call extends org.apache.storm.thrift.async.TAsyncMethodCall<Void> {
-      private WorkerMetrics metrics;
-      public processWorkerMetrics_call(WorkerMetrics metrics, org.apache.storm.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.storm.thrift.async.TAsyncClient client, org.apache.storm.thrift.protocol.TProtocolFactory protocolFactory, org.apache.storm.thrift.transport.TNonblockingTransport transport) throws org.apache.storm.thrift.TException {
+    public static class processWorkerMetrics2_call extends org.apache.storm.thrift.async.TAsyncMethodCall<Void> {
+      private WorkerMetrics2 metrics;
+      public processWorkerMetrics2_call(WorkerMetrics2 metrics, org.apache.storm.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.storm.thrift.async.TAsyncClient client, org.apache.storm.thrift.protocol.TProtocolFactory protocolFactory, org.apache.storm.thrift.transport.TNonblockingTransport transport) throws org.apache.storm.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.metrics = metrics;
       }
 
       public void write_args(org.apache.storm.thrift.protocol.TProtocol prot) throws org.apache.storm.thrift.TException {
-        prot.writeMessageBegin(new org.apache.storm.thrift.protocol.TMessage("processWorkerMetrics", org.apache.storm.thrift.protocol.TMessageType.CALL, 0));
-        processWorkerMetrics_args args = new processWorkerMetrics_args();
+        prot.writeMessageBegin(new org.apache.storm.thrift.protocol.TMessage("processWorkerMetrics2", org.apache.storm.thrift.protocol.TMessageType.CALL, 0));
+        processWorkerMetrics2_args args = new processWorkerMetrics2_args();
         args.set_metrics(metrics);
         args.write(prot);
         prot.writeMessageEnd();
@@ -3386,7 +3386,7 @@ public class Nimbus {
       processMap.put("getSupervisorAssignments", new getSupervisorAssignments());
       processMap.put("sendSupervisorWorkerHeartbeats", new sendSupervisorWorkerHeartbeats());
       processMap.put("sendSupervisorWorkerHeartbeat", new sendSupervisorWorkerHeartbeat());
-      processMap.put("processWorkerMetrics", new processWorkerMetrics());
+      processMap.put("processWorkerMetrics2", new processWorkerMetrics2());
       processMap.put("isRemoteBlobExists", new isRemoteBlobExists());
       return processMap;
     }
@@ -4824,13 +4824,13 @@ public class Nimbus {
       }
     }
 
-    public static class processWorkerMetrics<I extends Iface> extends org.apache.storm.thrift.ProcessFunction<I, processWorkerMetrics_args> {
-      public processWorkerMetrics() {
-        super("processWorkerMetrics");
+    public static class processWorkerMetrics2<I extends Iface> extends org.apache.storm.thrift.ProcessFunction<I, processWorkerMetrics2_args> {
+      public processWorkerMetrics2() {
+        super("processWorkerMetrics2");
       }
 
-      public processWorkerMetrics_args getEmptyArgsInstance() {
-        return new processWorkerMetrics_args();
+      public processWorkerMetrics2_args getEmptyArgsInstance() {
+        return new processWorkerMetrics2_args();
       }
 
       protected boolean isOneway() {
@@ -4842,9 +4842,9 @@ public class Nimbus {
         return false;
       }
 
-      public processWorkerMetrics_result getResult(I iface, processWorkerMetrics_args args) throws org.apache.storm.thrift.TException {
-        processWorkerMetrics_result result = new processWorkerMetrics_result();
-        iface.processWorkerMetrics(args.metrics);
+      public processWorkerMetrics2_result getResult(I iface, processWorkerMetrics2_args args) throws org.apache.storm.thrift.TException {
+        processWorkerMetrics2_result result = new processWorkerMetrics2_result();
+        iface.processWorkerMetrics2(args.metrics);
         return result;
       }
     }
@@ -4940,7 +4940,7 @@ public class Nimbus {
       processMap.put("getSupervisorAssignments", new getSupervisorAssignments());
       processMap.put("sendSupervisorWorkerHeartbeats", new sendSupervisorWorkerHeartbeats());
       processMap.put("sendSupervisorWorkerHeartbeat", new sendSupervisorWorkerHeartbeat());
-      processMap.put("processWorkerMetrics", new processWorkerMetrics());
+      processMap.put("processWorkerMetrics2", new processWorkerMetrics2());
       processMap.put("isRemoteBlobExists", new isRemoteBlobExists());
       return processMap;
     }
@@ -8147,20 +8147,20 @@ public class Nimbus {
       }
     }
 
-    public static class processWorkerMetrics<I extends AsyncIface> extends org.apache.storm.thrift.AsyncProcessFunction<I, processWorkerMetrics_args, Void> {
-      public processWorkerMetrics() {
-        super("processWorkerMetrics");
+    public static class processWorkerMetrics2<I extends AsyncIface> extends org.apache.storm.thrift.AsyncProcessFunction<I, processWorkerMetrics2_args, Void> {
+      public processWorkerMetrics2() {
+        super("processWorkerMetrics2");
       }
 
-      public processWorkerMetrics_args getEmptyArgsInstance() {
-        return new processWorkerMetrics_args();
+      public processWorkerMetrics2_args getEmptyArgsInstance() {
+        return new processWorkerMetrics2_args();
       }
 
       public org.apache.storm.thrift.async.AsyncMethodCallback<Void> getResultHandler(final org.apache.storm.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
         final org.apache.storm.thrift.AsyncProcessFunction fcall = this;
         return new org.apache.storm.thrift.async.AsyncMethodCallback<Void>() { 
           public void onComplete(Void o) {
-            processWorkerMetrics_result result = new processWorkerMetrics_result();
+            processWorkerMetrics2_result result = new processWorkerMetrics2_result();
             try {
               fcall.sendResponse(fb, result, org.apache.storm.thrift.protocol.TMessageType.REPLY,seqid);
             } catch (org.apache.storm.thrift.transport.TTransportException e) {
@@ -8174,7 +8174,7 @@ public class Nimbus {
           public void onError(java.lang.Exception e) {
             byte msgType = org.apache.storm.thrift.protocol.TMessageType.REPLY;
             org.apache.storm.thrift.TSerializable msg;
-            processWorkerMetrics_result result = new processWorkerMetrics_result();
+            processWorkerMetrics2_result result = new processWorkerMetrics2_result();
             if (e instanceof org.apache.storm.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
               fb.close();
@@ -8202,8 +8202,8 @@ public class Nimbus {
         return false;
       }
 
-      public void start(I iface, processWorkerMetrics_args args, org.apache.storm.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.storm.thrift.TException {
-        iface.processWorkerMetrics(args.metrics,resultHandler);
+      public void start(I iface, processWorkerMetrics2_args args, org.apache.storm.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.storm.thrift.TException {
+        iface.processWorkerMetrics2(args.metrics,resultHandler);
       }
     }
 
@@ -19626,14 +19626,14 @@ public class Nimbus {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.storm.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.storm.thrift.protocol.TList _list920 = iprot.readListBegin();
-                  struct.success = new java.util.ArrayList<ProfileRequest>(_list920.size);
-                  @org.apache.storm.thrift.annotation.Nullable ProfileRequest _elem921;
-                  for (int _i922 = 0; _i922 < _list920.size; ++_i922)
+                  org.apache.storm.thrift.protocol.TList _list928 = iprot.readListBegin();
+                  struct.success = new java.util.ArrayList<ProfileRequest>(_list928.size);
+                  @org.apache.storm.thrift.annotation.Nullable ProfileRequest _elem929;
+                  for (int _i930 = 0; _i930 < _list928.size; ++_i930)
                   {
-                    _elem921 = new ProfileRequest();
-                    _elem921.read(iprot);
-                    struct.success.add(_elem921);
+                    _elem929 = new ProfileRequest();
+                    _elem929.read(iprot);
+                    struct.success.add(_elem929);
                   }
                   iprot.readListEnd();
                 }
@@ -19659,9 +19659,9 @@ public class Nimbus {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.storm.thrift.protocol.TList(org.apache.storm.thrift.protocol.TType.STRUCT, struct.success.size()));
-            for (ProfileRequest _iter923 : struct.success)
+            for (ProfileRequest _iter931 : struct.success)
             {
-              _iter923.write(oprot);
+              _iter931.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -19692,9 +19692,9 @@ public class Nimbus {
         if (struct.is_set_success()) {
           {
             oprot.writeI32(struct.success.size());
-            for (ProfileRequest _iter924 : struct.success)
+            for (ProfileRequest _iter932 : struct.success)
             {
-              _iter924.write(oprot);
+              _iter932.write(oprot);
             }
           }
         }
@@ -19706,14 +19706,14 @@ public class Nimbus {
         java.util.BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
           {
-            org.apache.storm.thrift.protocol.TList _list925 = new org.apache.storm.thrift.protocol.TList(org.apache.storm.thrift.protocol.TType.STRUCT, iprot.readI32());
-            struct.success = new java.util.ArrayList<ProfileRequest>(_list925.size);
-            @org.apache.storm.thrift.annotation.Nullable ProfileRequest _elem926;
-            for (int _i927 = 0; _i927 < _list925.size; ++_i927)
+            org.apache.storm.thrift.protocol.TList _list933 = new org.apache.storm.thrift.protocol.TList(org.apache.storm.thrift.protocol.TType.STRUCT, iprot.readI32());
+            struct.success = new java.util.ArrayList<ProfileRequest>(_list933.size);
+            @org.apache.storm.thrift.annotation.Nullable ProfileRequest _elem934;
+            for (int _i935 = 0; _i935 < _list933.size; ++_i935)
             {
-              _elem926 = new ProfileRequest();
-              _elem926.read(iprot);
-              struct.success.add(_elem926);
+              _elem934 = new ProfileRequest();
+              _elem934.read(iprot);
+              struct.success.add(_elem934);
             }
           }
           struct.set_success_isSet(true);
@@ -49148,14 +49148,14 @@ public class Nimbus {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.storm.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.storm.thrift.protocol.TList _list928 = iprot.readListBegin();
-                  struct.success = new java.util.ArrayList<OwnerResourceSummary>(_list928.size);
-                  @org.apache.storm.thrift.annotation.Nullable OwnerResourceSummary _elem929;
-                  for (int _i930 = 0; _i930 < _list928.size; ++_i930)
+                  org.apache.storm.thrift.protocol.TList _list936 = iprot.readListBegin();
+                  struct.success = new java.util.ArrayList<OwnerResourceSummary>(_list936.size);
+                  @org.apache.storm.thrift.annotation.Nullable OwnerResourceSummary _elem937;
+                  for (int _i938 = 0; _i938 < _list936.size; ++_i938)
                   {
-                    _elem929 = new OwnerResourceSummary();
-                    _elem929.read(iprot);
-                    struct.success.add(_elem929);
+                    _elem937 = new OwnerResourceSummary();
+                    _elem937.read(iprot);
+                    struct.success.add(_elem937);
                   }
                   iprot.readListEnd();
                 }
@@ -49190,9 +49190,9 @@ public class Nimbus {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.storm.thrift.protocol.TList(org.apache.storm.thrift.protocol.TType.STRUCT, struct.success.size()));
-            for (OwnerResourceSummary _iter931 : struct.success)
+            for (OwnerResourceSummary _iter939 : struct.success)
             {
-              _iter931.write(oprot);
+              _iter939.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -49231,9 +49231,9 @@ public class Nimbus {
         if (struct.is_set_success()) {
           {
             oprot.writeI32(struct.success.size());
-            for (OwnerResourceSummary _iter932 : struct.success)
+            for (OwnerResourceSummary _iter940 : struct.success)
             {
-              _iter932.write(oprot);
+              _iter940.write(oprot);
             }
           }
         }
@@ -49248,14 +49248,14 @@ public class Nimbus {
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           {
-            org.apache.storm.thrift.protocol.TList _list933 = new org.apache.storm.thrift.protocol.TList(org.apache.storm.thrift.protocol.TType.STRUCT, iprot.readI32());
-            struct.success = new java.util.ArrayList<OwnerResourceSummary>(_list933.size);
-            @org.apache.storm.thrift.annotation.Nullable OwnerResourceSummary _elem934;
-            for (int _i935 = 0; _i935 < _list933.size; ++_i935)
+            org.apache.storm.thrift.protocol.TList _list941 = new org.apache.storm.thrift.protocol.TList(org.apache.storm.thrift.protocol.TType.STRUCT, iprot.readI32());
+            struct.success = new java.util.ArrayList<OwnerResourceSummary>(_list941.size);
+            @org.apache.storm.thrift.annotation.Nullable OwnerResourceSummary _elem942;
+            for (int _i943 = 0; _i943 < _list941.size; ++_i943)
             {
-              _elem934 = new OwnerResourceSummary();
-              _elem934.read(iprot);
-              struct.success.add(_elem934);
+              _elem942 = new OwnerResourceSummary();
+              _elem942.read(iprot);
+              struct.success.add(_elem942);
             }
           }
           struct.set_success_isSet(true);
@@ -51688,15 +51688,15 @@ public class Nimbus {
     }
   }
 
-  public static class processWorkerMetrics_args implements org.apache.storm.thrift.TBase<processWorkerMetrics_args, processWorkerMetrics_args._Fields>, java.io.Serializable, Cloneable, Comparable<processWorkerMetrics_args>   {
-    private static final org.apache.storm.thrift.protocol.TStruct STRUCT_DESC = new org.apache.storm.thrift.protocol.TStruct("processWorkerMetrics_args");
+  public static class processWorkerMetrics2_args implements org.apache.storm.thrift.TBase<processWorkerMetrics2_args, processWorkerMetrics2_args._Fields>, java.io.Serializable, Cloneable, Comparable<processWorkerMetrics2_args>   {
+    private static final org.apache.storm.thrift.protocol.TStruct STRUCT_DESC = new org.apache.storm.thrift.protocol.TStruct("processWorkerMetrics2_args");
 
     private static final org.apache.storm.thrift.protocol.TField METRICS_FIELD_DESC = new org.apache.storm.thrift.protocol.TField("metrics", org.apache.storm.thrift.protocol.TType.STRUCT, (short)1);
 
-    private static final org.apache.storm.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new processWorkerMetrics_argsStandardSchemeFactory();
-    private static final org.apache.storm.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new processWorkerMetrics_argsTupleSchemeFactory();
+    private static final org.apache.storm.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new processWorkerMetrics2_argsStandardSchemeFactory();
+    private static final org.apache.storm.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new processWorkerMetrics2_argsTupleSchemeFactory();
 
-    private @org.apache.storm.thrift.annotation.Nullable WorkerMetrics metrics; // required
+    private @org.apache.storm.thrift.annotation.Nullable WorkerMetrics2 metrics; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.storm.thrift.TFieldIdEnum {
@@ -51763,16 +51763,16 @@ public class Nimbus {
     static {
       java.util.Map<_Fields, org.apache.storm.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.storm.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.METRICS, new org.apache.storm.thrift.meta_data.FieldMetaData("metrics", org.apache.storm.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.storm.thrift.meta_data.StructMetaData(org.apache.storm.thrift.protocol.TType.STRUCT, WorkerMetrics.class)));
+          new org.apache.storm.thrift.meta_data.StructMetaData(org.apache.storm.thrift.protocol.TType.STRUCT, WorkerMetrics2.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-      org.apache.storm.thrift.meta_data.FieldMetaData.addStructMetaDataMap(processWorkerMetrics_args.class, metaDataMap);
+      org.apache.storm.thrift.meta_data.FieldMetaData.addStructMetaDataMap(processWorkerMetrics2_args.class, metaDataMap);
     }
 
-    public processWorkerMetrics_args() {
+    public processWorkerMetrics2_args() {
     }
 
-    public processWorkerMetrics_args(
-      WorkerMetrics metrics)
+    public processWorkerMetrics2_args(
+      WorkerMetrics2 metrics)
     {
       this();
       this.metrics = metrics;
@@ -51781,14 +51781,14 @@ public class Nimbus {
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public processWorkerMetrics_args(processWorkerMetrics_args other) {
+    public processWorkerMetrics2_args(processWorkerMetrics2_args other) {
       if (other.is_set_metrics()) {
-        this.metrics = new WorkerMetrics(other.metrics);
+        this.metrics = new WorkerMetrics2(other.metrics);
       }
     }
 
-    public processWorkerMetrics_args deepCopy() {
-      return new processWorkerMetrics_args(this);
+    public processWorkerMetrics2_args deepCopy() {
+      return new processWorkerMetrics2_args(this);
     }
 
     @Override
@@ -51797,11 +51797,11 @@ public class Nimbus {
     }
 
     @org.apache.storm.thrift.annotation.Nullable
-    public WorkerMetrics get_metrics() {
+    public WorkerMetrics2 get_metrics() {
       return this.metrics;
     }
 
-    public void set_metrics(@org.apache.storm.thrift.annotation.Nullable WorkerMetrics metrics) {
+    public void set_metrics(@org.apache.storm.thrift.annotation.Nullable WorkerMetrics2 metrics) {
       this.metrics = metrics;
     }
 
@@ -51826,7 +51826,7 @@ public class Nimbus {
         if (value == null) {
           unset_metrics();
         } else {
-          set_metrics((WorkerMetrics)value);
+          set_metrics((WorkerMetrics2)value);
         }
         break;
 
@@ -51860,12 +51860,12 @@ public class Nimbus {
     public boolean equals(java.lang.Object that) {
       if (that == null)
         return false;
-      if (that instanceof processWorkerMetrics_args)
-        return this.equals((processWorkerMetrics_args)that);
+      if (that instanceof processWorkerMetrics2_args)
+        return this.equals((processWorkerMetrics2_args)that);
       return false;
     }
 
-    public boolean equals(processWorkerMetrics_args that) {
+    public boolean equals(processWorkerMetrics2_args that) {
       if (that == null)
         return false;
       if (this == that)
@@ -51895,7 +51895,7 @@ public class Nimbus {
     }
 
     @Override
-    public int compareTo(processWorkerMetrics_args other) {
+    public int compareTo(processWorkerMetrics2_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
@@ -51930,7 +51930,7 @@ public class Nimbus {
 
     @Override
     public java.lang.String toString() {
-      java.lang.StringBuilder sb = new java.lang.StringBuilder("processWorkerMetrics_args(");
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("processWorkerMetrics2_args(");
       boolean first = true;
 
       sb.append("metrics:");
@@ -51968,15 +51968,15 @@ public class Nimbus {
       }
     }
 
-    private static class processWorkerMetrics_argsStandardSchemeFactory implements org.apache.storm.thrift.scheme.SchemeFactory {
-      public processWorkerMetrics_argsStandardScheme getScheme() {
-        return new processWorkerMetrics_argsStandardScheme();
+    private static class processWorkerMetrics2_argsStandardSchemeFactory implements org.apache.storm.thrift.scheme.SchemeFactory {
+      public processWorkerMetrics2_argsStandardScheme getScheme() {
+        return new processWorkerMetrics2_argsStandardScheme();
       }
     }
 
-    private static class processWorkerMetrics_argsStandardScheme extends org.apache.storm.thrift.scheme.StandardScheme<processWorkerMetrics_args> {
+    private static class processWorkerMetrics2_argsStandardScheme extends org.apache.storm.thrift.scheme.StandardScheme<processWorkerMetrics2_args> {
 
-      public void read(org.apache.storm.thrift.protocol.TProtocol iprot, processWorkerMetrics_args struct) throws org.apache.storm.thrift.TException {
+      public void read(org.apache.storm.thrift.protocol.TProtocol iprot, processWorkerMetrics2_args struct) throws org.apache.storm.thrift.TException {
         org.apache.storm.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -51988,7 +51988,7 @@ public class Nimbus {
           switch (schemeField.id) {
             case 1: // METRICS
               if (schemeField.type == org.apache.storm.thrift.protocol.TType.STRUCT) {
-                struct.metrics = new WorkerMetrics();
+                struct.metrics = new WorkerMetrics2();
                 struct.metrics.read(iprot);
                 struct.set_metrics_isSet(true);
               } else { 
@@ -52004,7 +52004,7 @@ public class Nimbus {
         struct.validate();
       }
 
-      public void write(org.apache.storm.thrift.protocol.TProtocol oprot, processWorkerMetrics_args struct) throws org.apache.storm.thrift.TException {
+      public void write(org.apache.storm.thrift.protocol.TProtocol oprot, processWorkerMetrics2_args struct) throws org.apache.storm.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -52019,16 +52019,16 @@ public class Nimbus {
 
     }
 
-    private static class processWorkerMetrics_argsTupleSchemeFactory implements org.apache.storm.thrift.scheme.SchemeFactory {
-      public processWorkerMetrics_argsTupleScheme getScheme() {
-        return new processWorkerMetrics_argsTupleScheme();
+    private static class processWorkerMetrics2_argsTupleSchemeFactory implements org.apache.storm.thrift.scheme.SchemeFactory {
+      public processWorkerMetrics2_argsTupleScheme getScheme() {
+        return new processWorkerMetrics2_argsTupleScheme();
       }
     }
 
-    private static class processWorkerMetrics_argsTupleScheme extends org.apache.storm.thrift.scheme.TupleScheme<processWorkerMetrics_args> {
+    private static class processWorkerMetrics2_argsTupleScheme extends org.apache.storm.thrift.scheme.TupleScheme<processWorkerMetrics2_args> {
 
       @Override
-      public void write(org.apache.storm.thrift.protocol.TProtocol prot, processWorkerMetrics_args struct) throws org.apache.storm.thrift.TException {
+      public void write(org.apache.storm.thrift.protocol.TProtocol prot, processWorkerMetrics2_args struct) throws org.apache.storm.thrift.TException {
         org.apache.storm.thrift.protocol.TTupleProtocol oprot = (org.apache.storm.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet optionals = new java.util.BitSet();
         if (struct.is_set_metrics()) {
@@ -52041,11 +52041,11 @@ public class Nimbus {
       }
 
       @Override
-      public void read(org.apache.storm.thrift.protocol.TProtocol prot, processWorkerMetrics_args struct) throws org.apache.storm.thrift.TException {
+      public void read(org.apache.storm.thrift.protocol.TProtocol prot, processWorkerMetrics2_args struct) throws org.apache.storm.thrift.TException {
         org.apache.storm.thrift.protocol.TTupleProtocol iprot = (org.apache.storm.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
-          struct.metrics = new WorkerMetrics();
+          struct.metrics = new WorkerMetrics2();
           struct.metrics.read(iprot);
           struct.set_metrics_isSet(true);
         }
@@ -52057,12 +52057,12 @@ public class Nimbus {
     }
   }
 
-  public static class processWorkerMetrics_result implements org.apache.storm.thrift.TBase<processWorkerMetrics_result, processWorkerMetrics_result._Fields>, java.io.Serializable, Cloneable, Comparable<processWorkerMetrics_result>   {
-    private static final org.apache.storm.thrift.protocol.TStruct STRUCT_DESC = new org.apache.storm.thrift.protocol.TStruct("processWorkerMetrics_result");
+  public static class processWorkerMetrics2_result implements org.apache.storm.thrift.TBase<processWorkerMetrics2_result, processWorkerMetrics2_result._Fields>, java.io.Serializable, Cloneable, Comparable<processWorkerMetrics2_result>   {
+    private static final org.apache.storm.thrift.protocol.TStruct STRUCT_DESC = new org.apache.storm.thrift.protocol.TStruct("processWorkerMetrics2_result");
 
 
-    private static final org.apache.storm.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new processWorkerMetrics_resultStandardSchemeFactory();
-    private static final org.apache.storm.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new processWorkerMetrics_resultTupleSchemeFactory();
+    private static final org.apache.storm.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new processWorkerMetrics2_resultStandardSchemeFactory();
+    private static final org.apache.storm.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new processWorkerMetrics2_resultTupleSchemeFactory();
 
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -52126,20 +52126,20 @@ public class Nimbus {
     static {
       java.util.Map<_Fields, org.apache.storm.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.storm.thrift.meta_data.FieldMetaData>(_Fields.class);
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-      org.apache.storm.thrift.meta_data.FieldMetaData.addStructMetaDataMap(processWorkerMetrics_result.class, metaDataMap);
+      org.apache.storm.thrift.meta_data.FieldMetaData.addStructMetaDataMap(processWorkerMetrics2_result.class, metaDataMap);
     }
 
-    public processWorkerMetrics_result() {
+    public processWorkerMetrics2_result() {
     }
 
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public processWorkerMetrics_result(processWorkerMetrics_result other) {
+    public processWorkerMetrics2_result(processWorkerMetrics2_result other) {
     }
 
-    public processWorkerMetrics_result deepCopy() {
-      return new processWorkerMetrics_result(this);
+    public processWorkerMetrics2_result deepCopy() {
+      return new processWorkerMetrics2_result(this);
     }
 
     @Override
@@ -52173,12 +52173,12 @@ public class Nimbus {
     public boolean equals(java.lang.Object that) {
       if (that == null)
         return false;
-      if (that instanceof processWorkerMetrics_result)
-        return this.equals((processWorkerMetrics_result)that);
+      if (that instanceof processWorkerMetrics2_result)
+        return this.equals((processWorkerMetrics2_result)that);
       return false;
     }
 
-    public boolean equals(processWorkerMetrics_result that) {
+    public boolean equals(processWorkerMetrics2_result that) {
       if (that == null)
         return false;
       if (this == that)
@@ -52195,7 +52195,7 @@ public class Nimbus {
     }
 
     @Override
-    public int compareTo(processWorkerMetrics_result other) {
+    public int compareTo(processWorkerMetrics2_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
@@ -52220,7 +52220,7 @@ public class Nimbus {
 
     @Override
     public java.lang.String toString() {
-      java.lang.StringBuilder sb = new java.lang.StringBuilder("processWorkerMetrics_result(");
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("processWorkerMetrics2_result(");
       boolean first = true;
 
       sb.append(")");
@@ -52248,15 +52248,15 @@ public class Nimbus {
       }
     }
 
-    private static class processWorkerMetrics_resultStandardSchemeFactory implements org.apache.storm.thrift.scheme.SchemeFactory {
-      public processWorkerMetrics_resultStandardScheme getScheme() {
-        return new processWorkerMetrics_resultStandardScheme();
+    private static class processWorkerMetrics2_resultStandardSchemeFactory implements org.apache.storm.thrift.scheme.SchemeFactory {
+      public processWorkerMetrics2_resultStandardScheme getScheme() {
+        return new processWorkerMetrics2_resultStandardScheme();
       }
     }
 
-    private static class processWorkerMetrics_resultStandardScheme extends org.apache.storm.thrift.scheme.StandardScheme<processWorkerMetrics_result> {
+    private static class processWorkerMetrics2_resultStandardScheme extends org.apache.storm.thrift.scheme.StandardScheme<processWorkerMetrics2_result> {
 
-      public void read(org.apache.storm.thrift.protocol.TProtocol iprot, processWorkerMetrics_result struct) throws org.apache.storm.thrift.TException {
+      public void read(org.apache.storm.thrift.protocol.TProtocol iprot, processWorkerMetrics2_result struct) throws org.apache.storm.thrift.TException {
         org.apache.storm.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -52275,7 +52275,7 @@ public class Nimbus {
         struct.validate();
       }
 
-      public void write(org.apache.storm.thrift.protocol.TProtocol oprot, processWorkerMetrics_result struct) throws org.apache.storm.thrift.TException {
+      public void write(org.apache.storm.thrift.protocol.TProtocol oprot, processWorkerMetrics2_result struct) throws org.apache.storm.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -52285,21 +52285,21 @@ public class Nimbus {
 
     }
 
-    private static class processWorkerMetrics_resultTupleSchemeFactory implements org.apache.storm.thrift.scheme.SchemeFactory {
-      public processWorkerMetrics_resultTupleScheme getScheme() {
-        return new processWorkerMetrics_resultTupleScheme();
+    private static class processWorkerMetrics2_resultTupleSchemeFactory implements org.apache.storm.thrift.scheme.SchemeFactory {
+      public processWorkerMetrics2_resultTupleScheme getScheme() {
+        return new processWorkerMetrics2_resultTupleScheme();
       }
     }
 
-    private static class processWorkerMetrics_resultTupleScheme extends org.apache.storm.thrift.scheme.TupleScheme<processWorkerMetrics_result> {
+    private static class processWorkerMetrics2_resultTupleScheme extends org.apache.storm.thrift.scheme.TupleScheme<processWorkerMetrics2_result> {
 
       @Override
-      public void write(org.apache.storm.thrift.protocol.TProtocol prot, processWorkerMetrics_result struct) throws org.apache.storm.thrift.TException {
+      public void write(org.apache.storm.thrift.protocol.TProtocol prot, processWorkerMetrics2_result struct) throws org.apache.storm.thrift.TException {
         org.apache.storm.thrift.protocol.TTupleProtocol oprot = (org.apache.storm.thrift.protocol.TTupleProtocol) prot;
       }
 
       @Override
-      public void read(org.apache.storm.thrift.protocol.TProtocol prot, processWorkerMetrics_result struct) throws org.apache.storm.thrift.TException {
+      public void read(org.apache.storm.thrift.protocol.TProtocol prot, processWorkerMetrics2_result struct) throws org.apache.storm.thrift.TException {
         org.apache.storm.thrift.protocol.TTupleProtocol iprot = (org.apache.storm.thrift.protocol.TTupleProtocol) prot;
       }
     }

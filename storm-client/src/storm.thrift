@@ -692,24 +692,24 @@ struct SupervisorAssignments {
   1: optional map<string, Assignment> storm_assignment = {}
 }
 
-struct WorkerMetricPoint {
+struct WorkerMetricPoint2 {
   1: required string metricName;
-  2: required i64 timestamp;
   3: required double metricValue;
+}
+
+struct WorkerMetricList2 {
+  1: list<WorkerMetricPoint2> metrics;
+  2: required i64 timestamp;
   4: required string componentId;
   5: required string executorId;
   6: required string streamId;
 }
 
-struct WorkerMetricList {
-  1: list<WorkerMetricPoint> metrics;
-}
-
-struct WorkerMetrics {
+struct WorkerMetrics2 {
   1: required string topologyId;
   2: required i32 port;
   3: required string hostname;
-  4: required WorkerMetricList metricList;
+  4: required list<WorkerMetricList2> metricLists;
 }
 
 service Nimbus {
@@ -801,7 +801,7 @@ service Nimbus {
    * Send supervisor local worker heartbeat when a supervisor is unreachable
    */
   void sendSupervisorWorkerHeartbeat(1: SupervisorWorkerHeartbeat heatbeat) throws (1: AuthorizationException aze, 2: NotAliveException e);
-  void processWorkerMetrics(1: WorkerMetrics metrics);
+  void processWorkerMetrics2(1: WorkerMetrics2 metrics);
   /**
    * Decide if the blob is removed from cluster.
    */

@@ -447,7 +447,7 @@ class Iface(object):
         """
         pass
 
-    def processWorkerMetrics(self, metrics):
+    def processWorkerMetrics2(self, metrics):
         """
         Parameters:
          - metrics
@@ -2165,24 +2165,24 @@ class Client(Iface):
             raise result.e
         return
 
-    def processWorkerMetrics(self, metrics):
+    def processWorkerMetrics2(self, metrics):
         """
         Parameters:
          - metrics
 
         """
-        self.send_processWorkerMetrics(metrics)
-        self.recv_processWorkerMetrics()
+        self.send_processWorkerMetrics2(metrics)
+        self.recv_processWorkerMetrics2()
 
-    def send_processWorkerMetrics(self, metrics):
-        self._oprot.writeMessageBegin('processWorkerMetrics', TMessageType.CALL, self._seqid)
-        args = processWorkerMetrics_args()
+    def send_processWorkerMetrics2(self, metrics):
+        self._oprot.writeMessageBegin('processWorkerMetrics2', TMessageType.CALL, self._seqid)
+        args = processWorkerMetrics2_args()
         args.metrics = metrics
         args.write(self._oprot)
         self._oprot.writeMessageEnd()
         self._oprot.trans.flush()
 
-    def recv_processWorkerMetrics(self):
+    def recv_processWorkerMetrics2(self):
         iprot = self._iprot
         (fname, mtype, rseqid) = iprot.readMessageBegin()
         if mtype == TMessageType.EXCEPTION:
@@ -2190,7 +2190,7 @@ class Client(Iface):
             x.read(iprot)
             iprot.readMessageEnd()
             raise x
-        result = processWorkerMetrics_result()
+        result = processWorkerMetrics2_result()
         result.read(iprot)
         iprot.readMessageEnd()
         return
@@ -2284,7 +2284,7 @@ class Processor(Iface, TProcessor):
         self._processMap["getSupervisorAssignments"] = Processor.process_getSupervisorAssignments
         self._processMap["sendSupervisorWorkerHeartbeats"] = Processor.process_sendSupervisorWorkerHeartbeats
         self._processMap["sendSupervisorWorkerHeartbeat"] = Processor.process_sendSupervisorWorkerHeartbeat
-        self._processMap["processWorkerMetrics"] = Processor.process_processWorkerMetrics
+        self._processMap["processWorkerMetrics2"] = Processor.process_processWorkerMetrics2
         self._processMap["isRemoteBlobExists"] = Processor.process_isRemoteBlobExists
 
     def process(self, iprot, oprot):
@@ -3625,13 +3625,13 @@ class Processor(Iface, TProcessor):
         oprot.writeMessageEnd()
         oprot.trans.flush()
 
-    def process_processWorkerMetrics(self, seqid, iprot, oprot):
-        args = processWorkerMetrics_args()
+    def process_processWorkerMetrics2(self, seqid, iprot, oprot):
+        args = processWorkerMetrics2_args()
         args.read(iprot)
         iprot.readMessageEnd()
-        result = processWorkerMetrics_result()
+        result = processWorkerMetrics2_result()
         try:
-            self._handler.processWorkerMetrics(args.metrics)
+            self._handler.processWorkerMetrics2(args.metrics)
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
@@ -3643,7 +3643,7 @@ class Processor(Iface, TProcessor):
             logging.exception('Unexpected exception in handler')
             msg_type = TMessageType.EXCEPTION
             result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
-        oprot.writeMessageBegin("processWorkerMetrics", msg_type, seqid)
+        oprot.writeMessageBegin("processWorkerMetrics2", msg_type, seqid)
         result.write(oprot)
         oprot.writeMessageEnd()
         oprot.trans.flush()
@@ -5438,11 +5438,11 @@ class getComponentPendingProfileActions_result(object):
             if fid == 0:
                 if ftype == TType.LIST:
                     self.success = []
-                    (_etype824, _size821) = iprot.readListBegin()
-                    for _i825 in range(_size821):
-                        _elem826 = ProfileRequest()
-                        _elem826.read(iprot)
-                        self.success.append(_elem826)
+                    (_etype831, _size828) = iprot.readListBegin()
+                    for _i832 in range(_size828):
+                        _elem833 = ProfileRequest()
+                        _elem833.read(iprot)
+                        self.success.append(_elem833)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -5459,8 +5459,8 @@ class getComponentPendingProfileActions_result(object):
         if self.success is not None:
             oprot.writeFieldBegin('success', TType.LIST, 0)
             oprot.writeListBegin(TType.STRUCT, len(self.success))
-            for iter827 in self.success:
-                iter827.write(oprot)
+            for iter834 in self.success:
+                iter834.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -10148,11 +10148,11 @@ class getOwnerResourceSummaries_result(object):
             if fid == 0:
                 if ftype == TType.LIST:
                     self.success = []
-                    (_etype831, _size828) = iprot.readListBegin()
-                    for _i832 in range(_size828):
-                        _elem833 = OwnerResourceSummary()
-                        _elem833.read(iprot)
-                        self.success.append(_elem833)
+                    (_etype838, _size835) = iprot.readListBegin()
+                    for _i839 in range(_size835):
+                        _elem840 = OwnerResourceSummary()
+                        _elem840.read(iprot)
+                        self.success.append(_elem840)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -10175,8 +10175,8 @@ class getOwnerResourceSummaries_result(object):
         if self.success is not None:
             oprot.writeFieldBegin('success', TType.LIST, 0)
             oprot.writeListBegin(TType.STRUCT, len(self.success))
-            for iter834 in self.success:
-                iter834.write(oprot)
+            for iter841 in self.success:
+                iter841.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.aze is not None:
@@ -10608,7 +10608,7 @@ sendSupervisorWorkerHeartbeat_result.thrift_spec = (
 )
 
 
-class processWorkerMetrics_args(object):
+class processWorkerMetrics2_args(object):
     """
     Attributes:
      - metrics
@@ -10630,7 +10630,7 @@ class processWorkerMetrics_args(object):
                 break
             if fid == 1:
                 if ftype == TType.STRUCT:
-                    self.metrics = WorkerMetrics()
+                    self.metrics = WorkerMetrics2()
                     self.metrics.read(iprot)
                 else:
                     iprot.skip(ftype)
@@ -10643,7 +10643,7 @@ class processWorkerMetrics_args(object):
         if oprot._fast_encode is not None and self.thrift_spec is not None:
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
-        oprot.writeStructBegin('processWorkerMetrics_args')
+        oprot.writeStructBegin('processWorkerMetrics2_args')
         if self.metrics is not None:
             oprot.writeFieldBegin('metrics', TType.STRUCT, 1)
             self.metrics.write(oprot)
@@ -10664,14 +10664,14 @@ class processWorkerMetrics_args(object):
 
     def __ne__(self, other):
         return not (self == other)
-all_structs.append(processWorkerMetrics_args)
-processWorkerMetrics_args.thrift_spec = (
+all_structs.append(processWorkerMetrics2_args)
+processWorkerMetrics2_args.thrift_spec = (
     None,  # 0
-    (1, TType.STRUCT, 'metrics', [WorkerMetrics, None], None, ),  # 1
+    (1, TType.STRUCT, 'metrics', [WorkerMetrics2, None], None, ),  # 1
 )
 
 
-class processWorkerMetrics_result(object):
+class processWorkerMetrics2_result(object):
 
 
     def read(self, iprot):
@@ -10692,7 +10692,7 @@ class processWorkerMetrics_result(object):
         if oprot._fast_encode is not None and self.thrift_spec is not None:
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
-        oprot.writeStructBegin('processWorkerMetrics_result')
+        oprot.writeStructBegin('processWorkerMetrics2_result')
         oprot.writeFieldStop()
         oprot.writeStructEnd()
 
@@ -10709,8 +10709,8 @@ class processWorkerMetrics_result(object):
 
     def __ne__(self, other):
         return not (self == other)
-all_structs.append(processWorkerMetrics_result)
-processWorkerMetrics_result.thrift_spec = (
+all_structs.append(processWorkerMetrics2_result)
+processWorkerMetrics2_result.thrift_spec = (
 )
 
 

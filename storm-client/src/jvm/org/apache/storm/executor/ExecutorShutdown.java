@@ -19,6 +19,7 @@ import org.apache.storm.daemon.Shutdownable;
 import org.apache.storm.daemon.Task;
 import org.apache.storm.generated.Credentials;
 import org.apache.storm.generated.ExecutorStats;
+import org.apache.storm.generated.WorkerMetricList;
 import org.apache.storm.grouping.LoadMapping;
 import org.apache.storm.hooks.ITaskHook;
 import org.apache.storm.spout.ISpout;
@@ -51,6 +52,11 @@ public class ExecutorShutdown implements Shutdownable, IRunningExecutor {
     @Override
     public ExecutorStats renderStats() {
         return executor.getStats().renderStats();
+    }
+
+    @Override
+    public List<WorkerMetricList> renderStats2() {
+        return executor.getStats().renderStats2();
     }
 
     @Override

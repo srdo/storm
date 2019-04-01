@@ -443,7 +443,7 @@ public class StormApiResource {
         logConfigRequestMeter.mark();
         try (NimbusClient nimbusClient = NimbusClient.getConfiguredClient(config)) {
             return UIHelpers.makeStandardResponse(
-                    UIHelpers.getTopolgoyLogConfig(nimbusClient.getClient().getLogConfig(id)),
+                    UIHelpers.getTopologyLogConfig(nimbusClient.getClient().getLogConfig(id)),
                     callback
             );
         }

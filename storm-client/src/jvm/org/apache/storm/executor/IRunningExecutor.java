@@ -15,12 +15,15 @@ package org.apache.storm.executor;
 import java.util.List;
 import org.apache.storm.generated.Credentials;
 import org.apache.storm.generated.ExecutorStats;
+import org.apache.storm.generated.WorkerMetricList;
 import org.apache.storm.grouping.LoadMapping;
 import org.apache.storm.utils.JCQueue;
 
 public interface IRunningExecutor {
 
     ExecutorStats renderStats();
+    
+    List<WorkerMetricList> renderStats2();
 
     List<Long> getExecutorId();
 

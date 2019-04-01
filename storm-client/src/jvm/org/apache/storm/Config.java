@@ -1616,6 +1616,16 @@ public class Config extends HashMap<String, Object> {
     @isPositiveNumber
     public static final String WORKER_BLOB_UPDATE_POLL_INTERVAL_SECS = "worker.blob.update.poll.interval.secs";
     /**
+     * Class implementing WorkerMetricsProcessor. Used by supervisors and workers to send worker metrics to the metrics store. This setting
+     * is used in conjunction with storm.metricstore.class to define how Storm internally stores metrics, e.g. for use in Storm UI.
+     *
+     * Users are unlikely to need to override this. If you need to send metrics to your own metrics system, use
+     * {@link #STORM_METRICS_REPORTERS} instead.
+     */
+    @NotNull
+    @isString
+    public static final String STORM_METRIC_PROCESSOR_CLASS = "storm.metricprocessor.class";
+    /**
      * A specify Locale for daemon metrics reporter plugin. Use the specified IETF BCP 47 language tag string for a Locale.
      */
     @isString

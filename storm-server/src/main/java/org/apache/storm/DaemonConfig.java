@@ -979,12 +979,6 @@ public class DaemonConfig implements Validated {
     // and log an error message, so just validating this as a String for now.
     public static final String STORM_METRIC_STORE_CLASS = "storm.metricstore.class";
     /**
-     * Class implementing WorkerMetricsProcessor.  Runs on Supervisors.
-     */
-    @NotNull
-    @isString
-    public static final String STORM_METRIC_PROCESSOR_CLASS = "storm.metricprocessor.class";
-    /**
      * RocksDB file location. This setting is specific to the org.apache.storm.metricstore.rocksdb.RocksDbStore implementation for the
      * storm.metricstore.class.
      */

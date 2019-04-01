@@ -96,6 +96,16 @@ public class MultiCountStatAndMetric<T> implements IMetric {
         }
         return ret;
     }
+    
+    public Map<T, Map<String, Long>> getKeyToTimeToValue() {
+        Map<T, Map<String, Long>> ret = new HashMap<>();
+        for (Map.Entry<T, CountStatAndMetric> entry : _counts.entrySet()) {
+            T key = entry.getKey();
+            Map<String, Long> toFlip = entry.getValue().getTimeCounts();
+            ret.put(key, toFlip);
+        }
+        return ret;
+    }
 
     public void close() {
         for (CountStatAndMetric cc : _counts.values()) {

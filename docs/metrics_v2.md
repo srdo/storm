@@ -47,7 +47,7 @@ The additional information allows for the unique identification of metrics for c
 
 *Important Note:* In order to ensure metric names can be reliably parsed, any `.` characters in name components will
 be replaced with an underscore (`_`) character. For example, the hostname `storm.example.com` will appear as
-`storm_example_com` in the metric name. This character substitution *is not applied to the user-supplied `name` parameter.
+`storm_example_com` in the metric name. This character substitution is not applied to the user-supplied `name` parameter.
 
 ### Example: Tuple Counter Bolt
 The following example is a simple bolt implementation that will report the running total up tuples received by a bolt:
