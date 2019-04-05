@@ -9082,20 +9082,20 @@ class WorkerMetricList2(object):
     """
     Attributes:
      - metrics
-     - timestamp
+     - timestampMs
      - componentId
      - executorId
-     - streamId
+     - extraContextJson
 
     """
 
 
-    def __init__(self, metrics=None, timestamp=None, componentId=None, executorId=None, streamId=None,):
+    def __init__(self, metrics=None, timestampMs=None, componentId=None, executorId=None, extraContextJson=None,):
         self.metrics = metrics
-        self.timestamp = timestamp
+        self.timestampMs = timestampMs
         self.componentId = componentId
         self.executorId = executorId
-        self.streamId = streamId
+        self.extraContextJson = extraContextJson
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -9119,7 +9119,7 @@ class WorkerMetricList2(object):
                     iprot.skip(ftype)
             elif fid == 2:
                 if ftype == TType.I64:
-                    self.timestamp = iprot.readI64()
+                    self.timestampMs = iprot.readI64()
                 else:
                     iprot.skip(ftype)
             elif fid == 4:
@@ -9134,7 +9134,7 @@ class WorkerMetricList2(object):
                     iprot.skip(ftype)
             elif fid == 6:
                 if ftype == TType.STRING:
-                    self.streamId = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
+                    self.extraContextJson = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
             else:
@@ -9154,9 +9154,9 @@ class WorkerMetricList2(object):
                 iter806.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
-        if self.timestamp is not None:
-            oprot.writeFieldBegin('timestamp', TType.I64, 2)
-            oprot.writeI64(self.timestamp)
+        if self.timestampMs is not None:
+            oprot.writeFieldBegin('timestampMs', TType.I64, 2)
+            oprot.writeI64(self.timestampMs)
             oprot.writeFieldEnd()
         if self.componentId is not None:
             oprot.writeFieldBegin('componentId', TType.STRING, 4)
@@ -9166,22 +9166,20 @@ class WorkerMetricList2(object):
             oprot.writeFieldBegin('executorId', TType.STRING, 5)
             oprot.writeString(self.executorId.encode('utf-8') if sys.version_info[0] == 2 else self.executorId)
             oprot.writeFieldEnd()
-        if self.streamId is not None:
-            oprot.writeFieldBegin('streamId', TType.STRING, 6)
-            oprot.writeString(self.streamId.encode('utf-8') if sys.version_info[0] == 2 else self.streamId)
+        if self.extraContextJson is not None:
+            oprot.writeFieldBegin('extraContextJson', TType.STRING, 6)
+            oprot.writeString(self.extraContextJson.encode('utf-8') if sys.version_info[0] == 2 else self.extraContextJson)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
 
     def validate(self):
-        if self.timestamp is None:
-            raise TProtocolException(message='Required field timestamp is unset!')
+        if self.timestampMs is None:
+            raise TProtocolException(message='Required field timestampMs is unset!')
         if self.componentId is None:
             raise TProtocolException(message='Required field componentId is unset!')
         if self.executorId is None:
             raise TProtocolException(message='Required field executorId is unset!')
-        if self.streamId is None:
-            raise TProtocolException(message='Required field streamId is unset!')
         return
 
     def __repr__(self):
@@ -9200,16 +9198,16 @@ class WorkerMetrics2(object):
     """
     Attributes:
      - topologyId
-     - port
+     - workerPort
      - hostname
      - metricLists
 
     """
 
 
-    def __init__(self, topologyId=None, port=None, hostname=None, metricLists=None,):
+    def __init__(self, topologyId=None, workerPort=None, hostname=None, metricLists=None,):
         self.topologyId = topologyId
-        self.port = port
+        self.workerPort = workerPort
         self.hostname = hostname
         self.metricLists = metricLists
 
@@ -9229,7 +9227,7 @@ class WorkerMetrics2(object):
                     iprot.skip(ftype)
             elif fid == 2:
                 if ftype == TType.I32:
-                    self.port = iprot.readI32()
+                    self.workerPort = iprot.readI32()
                 else:
                     iprot.skip(ftype)
             elif fid == 3:
@@ -9262,9 +9260,9 @@ class WorkerMetrics2(object):
             oprot.writeFieldBegin('topologyId', TType.STRING, 1)
             oprot.writeString(self.topologyId.encode('utf-8') if sys.version_info[0] == 2 else self.topologyId)
             oprot.writeFieldEnd()
-        if self.port is not None:
-            oprot.writeFieldBegin('port', TType.I32, 2)
-            oprot.writeI32(self.port)
+        if self.workerPort is not None:
+            oprot.writeFieldBegin('workerPort', TType.I32, 2)
+            oprot.writeI32(self.workerPort)
             oprot.writeFieldEnd()
         if self.hostname is not None:
             oprot.writeFieldBegin('hostname', TType.STRING, 3)
@@ -9283,8 +9281,8 @@ class WorkerMetrics2(object):
     def validate(self):
         if self.topologyId is None:
             raise TProtocolException(message='Required field topologyId is unset!')
-        if self.port is None:
-            raise TProtocolException(message='Required field port is unset!')
+        if self.workerPort is None:
+            raise TProtocolException(message='Required field workerPort is unset!')
         if self.hostname is None:
             raise TProtocolException(message='Required field hostname is unset!')
         if self.metricLists is None:
@@ -12948,17 +12946,17 @@ all_structs.append(WorkerMetricList2)
 WorkerMetricList2.thrift_spec = (
     None,  # 0
     (1, TType.LIST, 'metrics', (TType.STRUCT, [WorkerMetricPoint2, None], False), None, ),  # 1
-    (2, TType.I64, 'timestamp', None, None, ),  # 2
+    (2, TType.I64, 'timestampMs', None, None, ),  # 2
     None,  # 3
     (4, TType.STRING, 'componentId', 'UTF8', None, ),  # 4
     (5, TType.STRING, 'executorId', 'UTF8', None, ),  # 5
-    (6, TType.STRING, 'streamId', 'UTF8', None, ),  # 6
+    (6, TType.STRING, 'extraContextJson', 'UTF8', None, ),  # 6
 )
 all_structs.append(WorkerMetrics2)
 WorkerMetrics2.thrift_spec = (
     None,  # 0
     (1, TType.STRING, 'topologyId', 'UTF8', None, ),  # 1
-    (2, TType.I32, 'port', None, None, ),  # 2
+    (2, TType.I32, 'workerPort', None, None, ),  # 2
     (3, TType.STRING, 'hostname', 'UTF8', None, ),  # 3
     (4, TType.LIST, 'metricLists', (TType.STRUCT, [WorkerMetricList2, None], False), None, ),  # 4
 )

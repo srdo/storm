@@ -29,7 +29,7 @@ public class WorkerMetrics2 implements org.apache.storm.thrift.TBase<WorkerMetri
   private static final org.apache.storm.thrift.protocol.TStruct STRUCT_DESC = new org.apache.storm.thrift.protocol.TStruct("WorkerMetrics2");
 
   private static final org.apache.storm.thrift.protocol.TField TOPOLOGY_ID_FIELD_DESC = new org.apache.storm.thrift.protocol.TField("topologyId", org.apache.storm.thrift.protocol.TType.STRING, (short)1);
-  private static final org.apache.storm.thrift.protocol.TField PORT_FIELD_DESC = new org.apache.storm.thrift.protocol.TField("port", org.apache.storm.thrift.protocol.TType.I32, (short)2);
+  private static final org.apache.storm.thrift.protocol.TField WORKER_PORT_FIELD_DESC = new org.apache.storm.thrift.protocol.TField("workerPort", org.apache.storm.thrift.protocol.TType.I32, (short)2);
   private static final org.apache.storm.thrift.protocol.TField HOSTNAME_FIELD_DESC = new org.apache.storm.thrift.protocol.TField("hostname", org.apache.storm.thrift.protocol.TType.STRING, (short)3);
   private static final org.apache.storm.thrift.protocol.TField METRIC_LISTS_FIELD_DESC = new org.apache.storm.thrift.protocol.TField("metricLists", org.apache.storm.thrift.protocol.TType.LIST, (short)4);
 
@@ -37,14 +37,14 @@ public class WorkerMetrics2 implements org.apache.storm.thrift.TBase<WorkerMetri
   private static final org.apache.storm.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new WorkerMetrics2TupleSchemeFactory();
 
   private @org.apache.storm.thrift.annotation.Nullable java.lang.String topologyId; // required
-  private int port; // required
+  private int workerPort; // required
   private @org.apache.storm.thrift.annotation.Nullable java.lang.String hostname; // required
   private @org.apache.storm.thrift.annotation.Nullable java.util.List<WorkerMetricList2> metricLists; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.storm.thrift.TFieldIdEnum {
     TOPOLOGY_ID((short)1, "topologyId"),
-    PORT((short)2, "port"),
+    WORKER_PORT((short)2, "workerPort"),
     HOSTNAME((short)3, "hostname"),
     METRIC_LISTS((short)4, "metricLists");
 
@@ -64,8 +64,8 @@ public class WorkerMetrics2 implements org.apache.storm.thrift.TBase<WorkerMetri
       switch(fieldId) {
         case 1: // TOPOLOGY_ID
           return TOPOLOGY_ID;
-        case 2: // PORT
-          return PORT;
+        case 2: // WORKER_PORT
+          return WORKER_PORT;
         case 3: // HOSTNAME
           return HOSTNAME;
         case 4: // METRIC_LISTS
@@ -111,14 +111,14 @@ public class WorkerMetrics2 implements org.apache.storm.thrift.TBase<WorkerMetri
   }
 
   // isset id assignments
-  private static final int __PORT_ISSET_ID = 0;
+  private static final int __WORKERPORT_ISSET_ID = 0;
   private byte __isset_bitfield = 0;
   public static final java.util.Map<_Fields, org.apache.storm.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     java.util.Map<_Fields, org.apache.storm.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.storm.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.TOPOLOGY_ID, new org.apache.storm.thrift.meta_data.FieldMetaData("topologyId", org.apache.storm.thrift.TFieldRequirementType.REQUIRED, 
         new org.apache.storm.thrift.meta_data.FieldValueMetaData(org.apache.storm.thrift.protocol.TType.STRING)));
-    tmpMap.put(_Fields.PORT, new org.apache.storm.thrift.meta_data.FieldMetaData("port", org.apache.storm.thrift.TFieldRequirementType.REQUIRED, 
+    tmpMap.put(_Fields.WORKER_PORT, new org.apache.storm.thrift.meta_data.FieldMetaData("workerPort", org.apache.storm.thrift.TFieldRequirementType.REQUIRED, 
         new org.apache.storm.thrift.meta_data.FieldValueMetaData(org.apache.storm.thrift.protocol.TType.I32)));
     tmpMap.put(_Fields.HOSTNAME, new org.apache.storm.thrift.meta_data.FieldMetaData("hostname", org.apache.storm.thrift.TFieldRequirementType.REQUIRED, 
         new org.apache.storm.thrift.meta_data.FieldValueMetaData(org.apache.storm.thrift.protocol.TType.STRING)));
@@ -134,14 +134,14 @@ public class WorkerMetrics2 implements org.apache.storm.thrift.TBase<WorkerMetri
 
   public WorkerMetrics2(
     java.lang.String topologyId,
-    int port,
+    int workerPort,
     java.lang.String hostname,
     java.util.List<WorkerMetricList2> metricLists)
   {
     this();
     this.topologyId = topologyId;
-    this.port = port;
-    set_port_isSet(true);
+    this.workerPort = workerPort;
+    set_workerPort_isSet(true);
     this.hostname = hostname;
     this.metricLists = metricLists;
   }
@@ -154,7 +154,7 @@ public class WorkerMetrics2 implements org.apache.storm.thrift.TBase<WorkerMetri
     if (other.is_set_topologyId()) {
       this.topologyId = other.topologyId;
     }
-    this.port = other.port;
+    this.workerPort = other.workerPort;
     if (other.is_set_hostname()) {
       this.hostname = other.hostname;
     }
@@ -174,8 +174,8 @@ public class WorkerMetrics2 implements org.apache.storm.thrift.TBase<WorkerMetri
   @Override
   public void clear() {
     this.topologyId = null;
-    set_port_isSet(false);
-    this.port = 0;
+    set_workerPort_isSet(false);
+    this.workerPort = 0;
     this.hostname = null;
     this.metricLists = null;
   }
@@ -204,26 +204,26 @@ public class WorkerMetrics2 implements org.apache.storm.thrift.TBase<WorkerMetri
     }
   }
 
-  public int get_port() {
-    return this.port;
+  public int get_workerPort() {
+    return this.workerPort;
   }
 
-  public void set_port(int port) {
-    this.port = port;
-    set_port_isSet(true);
+  public void set_workerPort(int workerPort) {
+    this.workerPort = workerPort;
+    set_workerPort_isSet(true);
   }
 
-  public void unset_port() {
-    __isset_bitfield = org.apache.storm.thrift.EncodingUtils.clearBit(__isset_bitfield, __PORT_ISSET_ID);
+  public void unset_workerPort() {
+    __isset_bitfield = org.apache.storm.thrift.EncodingUtils.clearBit(__isset_bitfield, __WORKERPORT_ISSET_ID);
   }
 
-  /** Returns true if field port is set (has been assigned a value) and false otherwise */
-  public boolean is_set_port() {
-    return org.apache.storm.thrift.EncodingUtils.testBit(__isset_bitfield, __PORT_ISSET_ID);
+  /** Returns true if field workerPort is set (has been assigned a value) and false otherwise */
+  public boolean is_set_workerPort() {
+    return org.apache.storm.thrift.EncodingUtils.testBit(__isset_bitfield, __WORKERPORT_ISSET_ID);
   }
 
-  public void set_port_isSet(boolean value) {
-    __isset_bitfield = org.apache.storm.thrift.EncodingUtils.setBit(__isset_bitfield, __PORT_ISSET_ID, value);
+  public void set_workerPort_isSet(boolean value) {
+    __isset_bitfield = org.apache.storm.thrift.EncodingUtils.setBit(__isset_bitfield, __WORKERPORT_ISSET_ID, value);
   }
 
   @org.apache.storm.thrift.annotation.Nullable
@@ -300,11 +300,11 @@ public class WorkerMetrics2 implements org.apache.storm.thrift.TBase<WorkerMetri
       }
       break;
 
-    case PORT:
+    case WORKER_PORT:
       if (value == null) {
-        unset_port();
+        unset_workerPort();
       } else {
-        set_port((java.lang.Integer)value);
+        set_workerPort((java.lang.Integer)value);
       }
       break;
 
@@ -333,8 +333,8 @@ public class WorkerMetrics2 implements org.apache.storm.thrift.TBase<WorkerMetri
     case TOPOLOGY_ID:
       return get_topologyId();
 
-    case PORT:
-      return get_port();
+    case WORKER_PORT:
+      return get_workerPort();
 
     case HOSTNAME:
       return get_hostname();
@@ -355,8 +355,8 @@ public class WorkerMetrics2 implements org.apache.storm.thrift.TBase<WorkerMetri
     switch (field) {
     case TOPOLOGY_ID:
       return is_set_topologyId();
-    case PORT:
-      return is_set_port();
+    case WORKER_PORT:
+      return is_set_workerPort();
     case HOSTNAME:
       return is_set_hostname();
     case METRIC_LISTS:
@@ -389,12 +389,12 @@ public class WorkerMetrics2 implements org.apache.storm.thrift.TBase<WorkerMetri
         return false;
     }
 
-    boolean this_present_port = true;
-    boolean that_present_port = true;
-    if (this_present_port || that_present_port) {
-      if (!(this_present_port && that_present_port))
+    boolean this_present_workerPort = true;
+    boolean that_present_workerPort = true;
+    if (this_present_workerPort || that_present_workerPort) {
+      if (!(this_present_workerPort && that_present_workerPort))
         return false;
-      if (this.port != that.port)
+      if (this.workerPort != that.workerPort)
         return false;
     }
 
@@ -427,7 +427,7 @@ public class WorkerMetrics2 implements org.apache.storm.thrift.TBase<WorkerMetri
     if (is_set_topologyId())
       hashCode = hashCode * 8191 + topologyId.hashCode();
 
-    hashCode = hashCode * 8191 + port;
+    hashCode = hashCode * 8191 + workerPort;
 
     hashCode = hashCode * 8191 + ((is_set_hostname()) ? 131071 : 524287);
     if (is_set_hostname())
@@ -458,12 +458,12 @@ public class WorkerMetrics2 implements org.apache.storm.thrift.TBase<WorkerMetri
         return lastComparison;
       }
     }
-    lastComparison = java.lang.Boolean.valueOf(is_set_port()).compareTo(other.is_set_port());
+    lastComparison = java.lang.Boolean.valueOf(is_set_workerPort()).compareTo(other.is_set_workerPort());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (is_set_port()) {
-      lastComparison = org.apache.storm.thrift.TBaseHelper.compareTo(this.port, other.port);
+    if (is_set_workerPort()) {
+      lastComparison = org.apache.storm.thrift.TBaseHelper.compareTo(this.workerPort, other.workerPort);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -517,8 +517,8 @@ public class WorkerMetrics2 implements org.apache.storm.thrift.TBase<WorkerMetri
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("port:");
-    sb.append(this.port);
+    sb.append("workerPort:");
+    sb.append(this.workerPort);
     first = false;
     if (!first) sb.append(", ");
     sb.append("hostname:");
@@ -546,8 +546,8 @@ public class WorkerMetrics2 implements org.apache.storm.thrift.TBase<WorkerMetri
       throw new org.apache.storm.thrift.protocol.TProtocolException("Required field 'topologyId' is unset! Struct:" + toString());
     }
 
-    if (!is_set_port()) {
-      throw new org.apache.storm.thrift.protocol.TProtocolException("Required field 'port' is unset! Struct:" + toString());
+    if (!is_set_workerPort()) {
+      throw new org.apache.storm.thrift.protocol.TProtocolException("Required field 'workerPort' is unset! Struct:" + toString());
     }
 
     if (!is_set_hostname()) {
@@ -605,10 +605,10 @@ public class WorkerMetrics2 implements org.apache.storm.thrift.TBase<WorkerMetri
               org.apache.storm.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 2: // PORT
+          case 2: // WORKER_PORT
             if (schemeField.type == org.apache.storm.thrift.protocol.TType.I32) {
-              struct.port = iprot.readI32();
-              struct.set_port_isSet(true);
+              struct.workerPort = iprot.readI32();
+              struct.set_workerPort_isSet(true);
             } else { 
               org.apache.storm.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -658,8 +658,8 @@ public class WorkerMetrics2 implements org.apache.storm.thrift.TBase<WorkerMetri
         oprot.writeString(struct.topologyId);
         oprot.writeFieldEnd();
       }
-      oprot.writeFieldBegin(PORT_FIELD_DESC);
-      oprot.writeI32(struct.port);
+      oprot.writeFieldBegin(WORKER_PORT_FIELD_DESC);
+      oprot.writeI32(struct.workerPort);
       oprot.writeFieldEnd();
       if (struct.hostname != null) {
         oprot.writeFieldBegin(HOSTNAME_FIELD_DESC);
@@ -696,7 +696,7 @@ public class WorkerMetrics2 implements org.apache.storm.thrift.TBase<WorkerMetri
     public void write(org.apache.storm.thrift.protocol.TProtocol prot, WorkerMetrics2 struct) throws org.apache.storm.thrift.TException {
       org.apache.storm.thrift.protocol.TTupleProtocol oprot = (org.apache.storm.thrift.protocol.TTupleProtocol) prot;
       oprot.writeString(struct.topologyId);
-      oprot.writeI32(struct.port);
+      oprot.writeI32(struct.workerPort);
       oprot.writeString(struct.hostname);
       {
         oprot.writeI32(struct.metricLists.size());
@@ -712,8 +712,8 @@ public class WorkerMetrics2 implements org.apache.storm.thrift.TBase<WorkerMetri
       org.apache.storm.thrift.protocol.TTupleProtocol iprot = (org.apache.storm.thrift.protocol.TTupleProtocol) prot;
       struct.topologyId = iprot.readString();
       struct.set_topologyId_isSet(true);
-      struct.port = iprot.readI32();
-      struct.set_port_isSet(true);
+      struct.workerPort = iprot.readI32();
+      struct.set_workerPort_isSet(true);
       struct.hostname = iprot.readString();
       struct.set_hostname_isSet(true);
       {

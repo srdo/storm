@@ -702,7 +702,8 @@ struct WorkerMetricList2 {
   2: required i64 timestampMs;
   4: required string componentId;
   5: required string executorId;
-  6: required string streamId;
+  //Catch-all field for any sometimes useful context, e.g. streamId.
+  6: optional string extraContextJson;
 }
 
 struct WorkerMetrics2 {

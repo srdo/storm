@@ -29,6 +29,7 @@ import org.apache.storm.generated.WorkerMetricPoint2;
 import org.apache.storm.metric.internal.MultiLatencyStatAndMetric;
 import org.apache.storm.metrics2.MetricPointForNimbus;
 import org.apache.storm.metrics2.StormMetricRegistry;
+import org.apache.storm.metricstore.NimbusWorkerMetricReporter;
 import org.apache.storm.utils.Time;
 
 @SuppressWarnings("unchecked")
@@ -87,21 +88,17 @@ public class SpoutExecutorStats extends CommonStats {
 
     private static class MetricRegistrar {
         private final long timestampMs;
-        private final String topologyId;
-        private final int workerPort;
         private final String componentId;
         private final int taskId;
 
-        public MetricRegistrar(long timestampMs, String topologyId, int workerPort, String componentId, int taskId) {
+        public MetricRegistrar(long timestampMs, String componentId, int taskId) {
             this.timestampMs = timestampMs;
-            this.topologyId = topologyId;
-            this.workerPort = workerPort;
             this.componentId = componentId;
             this.taskId = taskId;
         }
         
         private MetricPointForNimbus createMetricPoint(String streamId, String metricName, double metricValue) {
-            return new MetricPointForNimbus(timestampMs, topologyId, workerPort, componentId, taskId, streamId, metricName, metricValue);
+            return new MetricPointForNimbus(timestampMs, componentId, taskId, streamId, metricName, metricValue);
         }
         
         private <T extends Number> List<MetricPointForNimbus> flattenMetrics(String metricName,
@@ -122,7 +119,9 @@ public class SpoutExecutorStats extends CommonStats {
         
         private <T extends Number> void registerMetric(StormMetricRegistry registry, String metricName,
             Supplier<Map<String, Map<String, T>>> metricSupplier) {
-            registry.registry().gauge(registry.metricName(metricName, topologyId, componentId, taskId, workerPort), () -> {
+            String reportedMetricName = NimbusWorkerMetricReporter.UI_METRIC_PREFIX
+                + registry.metricName(metricName, componentId, taskId);
+            registry.registry().gauge(reportedMetricName, () -> {
                 return () -> {
                     return flattenMetrics(metricName, metricSupplier.get());
                 };
@@ -132,22 +131,20 @@ public class SpoutExecutorStats extends CommonStats {
 
     public void registerMetrics(StormMetricRegistry registry) {
         long timestamp = Time.currentTimeMillis();
-        String topologyId = "TEMP";
-        int workerPort = 0;
         String componentId = "TEMP";
         int taskId = 0;
         
-        MetricRegistrar metricRegistrar = new MetricRegistrar(timestamp, topologyId, workerPort, componentId, taskId);
+        MetricRegistrar metricRegistrar = new MetricRegistrar(timestamp, componentId, taskId);
         
         metricRegistrar.registerMetric(registry, EMITTED, () -> getEmitted().getKeyToTimeToValue());
         metricRegistrar.registerMetric(registry, TRANSFERRED, () -> getTransferred().getKeyToTimeToValue());
         metricRegistrar.registerMetric(registry, ACKED, () -> getAcked().getKeyToTimeToValue());
         metricRegistrar.registerMetric(registry, FAILED, () -> getFailed().getKeyToTimeToValue());
         metricRegistrar.registerMetric(registry, COMPLETE_LATENCY, () -> getCompleteLatencies().getKeyToTimeToValue());
-        registry.registry().gauge(registry.metricName(RATE, topologyId, componentId, taskId, workerPort), () -> {
+        registry.registry().gauge(registry.metricName(RATE, componentId, taskId), () -> {
             return () -> {
-                return Collections.singletonList(new MetricPointForNimbus(timestamp, topologyId, workerPort,
-                    componentId, taskId, DUMMY_STREAM_ID, RATE, this.rate));
+                return Collections.singletonList(new MetricPointForNimbus(timestamp,
+                    componentId, taskId, RATE, this.rate));
             };
         });
         
