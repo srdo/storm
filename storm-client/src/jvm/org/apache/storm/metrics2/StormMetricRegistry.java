@@ -110,7 +110,7 @@ public class StormMetricRegistry {
         }
     }
 
-    private String metricName(String name, String stormId, String componentId, String streamId, Integer taskId, Integer workerPort) {
+    public String metricName(String name, String stormId, String componentId, String streamId, Integer taskId, Integer workerPort) {
         StringBuilder sb = new StringBuilder("storm.worker.");
         sb.append(stormId);
         sb.append(".");
@@ -128,7 +128,7 @@ public class StormMetricRegistry {
         return sb.toString();
     }
 
-    private String metricName(String name, String stormId, String componentId, Integer taskId, Integer workerPort) {
+    public String metricName(String name, String stormId, String componentId, Integer taskId, Integer workerPort) {
         StringBuilder sb = new StringBuilder("storm.worker.");
         sb.append(stormId);
         sb.append(".");

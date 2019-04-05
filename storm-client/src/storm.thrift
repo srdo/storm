@@ -699,7 +699,7 @@ struct WorkerMetricPoint2 {
 
 struct WorkerMetricList2 {
   1: list<WorkerMetricPoint2> metrics;
-  2: required i64 timestamp;
+  2: required i64 timestampMs;
   4: required string componentId;
   5: required string executorId;
   6: required string streamId;
@@ -707,7 +707,7 @@ struct WorkerMetricList2 {
 
 struct WorkerMetrics2 {
   1: required string topologyId;
-  2: required i32 port;
+  2: required i32 workerPort;
   3: required string hostname;
   4: required list<WorkerMetricList2> metricLists;
 }
