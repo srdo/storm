@@ -9011,13 +9011,15 @@ class WorkerMetricPoint2(object):
     Attributes:
      - metricName
      - metricValue
+     - timestampMs
 
     """
 
 
-    def __init__(self, metricName=None, metricValue=None,):
+    def __init__(self, metricName=None, metricValue=None, timestampMs=None,):
         self.metricName = metricName
         self.metricValue = metricValue
+        self.timestampMs = timestampMs
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -9033,9 +9035,14 @@ class WorkerMetricPoint2(object):
                     self.metricName = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
-            elif fid == 3:
+            elif fid == 2:
                 if ftype == TType.DOUBLE:
                     self.metricValue = iprot.readDouble()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 3:
+                if ftype == TType.I64:
+                    self.timestampMs = iprot.readI64()
                 else:
                     iprot.skip(ftype)
             else:
@@ -9053,8 +9060,12 @@ class WorkerMetricPoint2(object):
             oprot.writeString(self.metricName.encode('utf-8') if sys.version_info[0] == 2 else self.metricName)
             oprot.writeFieldEnd()
         if self.metricValue is not None:
-            oprot.writeFieldBegin('metricValue', TType.DOUBLE, 3)
+            oprot.writeFieldBegin('metricValue', TType.DOUBLE, 2)
             oprot.writeDouble(self.metricValue)
+            oprot.writeFieldEnd()
+        if self.timestampMs is not None:
+            oprot.writeFieldBegin('timestampMs', TType.I64, 3)
+            oprot.writeI64(self.timestampMs)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -9064,6 +9075,8 @@ class WorkerMetricPoint2(object):
             raise TProtocolException(message='Required field metricName is unset!')
         if self.metricValue is None:
             raise TProtocolException(message='Required field metricValue is unset!')
+        if self.timestampMs is None:
+            raise TProtocolException(message='Required field timestampMs is unset!')
         return
 
     def __repr__(self):
@@ -9082,20 +9095,18 @@ class WorkerMetricList2(object):
     """
     Attributes:
      - metrics
-     - timestampMs
      - componentId
-     - executorId
-     - extraContextJson
+     - taskId
+     - extraContextNameToValue
 
     """
 
 
-    def __init__(self, metrics=None, timestampMs=None, componentId=None, executorId=None, extraContextJson=None,):
+    def __init__(self, metrics=None, componentId=None, taskId=None, extraContextNameToValue=None,):
         self.metrics = metrics
-        self.timestampMs = timestampMs
         self.componentId = componentId
-        self.executorId = executorId
-        self.extraContextJson = extraContextJson
+        self.taskId = taskId
+        self.extraContextNameToValue = extraContextNameToValue
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -9118,23 +9129,24 @@ class WorkerMetricList2(object):
                 else:
                     iprot.skip(ftype)
             elif fid == 2:
-                if ftype == TType.I64:
-                    self.timestampMs = iprot.readI64()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 4:
                 if ftype == TType.STRING:
                     self.componentId = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
-            elif fid == 5:
-                if ftype == TType.STRING:
-                    self.executorId = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
+            elif fid == 3:
+                if ftype == TType.I32:
+                    self.taskId = iprot.readI32()
                 else:
                     iprot.skip(ftype)
-            elif fid == 6:
-                if ftype == TType.STRING:
-                    self.extraContextJson = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
+            elif fid == 4:
+                if ftype == TType.MAP:
+                    self.extraContextNameToValue = {}
+                    (_ktype807, _vtype808, _size806) = iprot.readMapBegin()
+                    for _i810 in range(_size806):
+                        _key811 = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
+                        _val812 = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
+                        self.extraContextNameToValue[_key811] = _val812
+                    iprot.readMapEnd()
                 else:
                     iprot.skip(ftype)
             else:
@@ -9150,36 +9162,34 @@ class WorkerMetricList2(object):
         if self.metrics is not None:
             oprot.writeFieldBegin('metrics', TType.LIST, 1)
             oprot.writeListBegin(TType.STRUCT, len(self.metrics))
-            for iter806 in self.metrics:
-                iter806.write(oprot)
+            for iter813 in self.metrics:
+                iter813.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
-        if self.timestampMs is not None:
-            oprot.writeFieldBegin('timestampMs', TType.I64, 2)
-            oprot.writeI64(self.timestampMs)
-            oprot.writeFieldEnd()
         if self.componentId is not None:
-            oprot.writeFieldBegin('componentId', TType.STRING, 4)
+            oprot.writeFieldBegin('componentId', TType.STRING, 2)
             oprot.writeString(self.componentId.encode('utf-8') if sys.version_info[0] == 2 else self.componentId)
             oprot.writeFieldEnd()
-        if self.executorId is not None:
-            oprot.writeFieldBegin('executorId', TType.STRING, 5)
-            oprot.writeString(self.executorId.encode('utf-8') if sys.version_info[0] == 2 else self.executorId)
+        if self.taskId is not None:
+            oprot.writeFieldBegin('taskId', TType.I32, 3)
+            oprot.writeI32(self.taskId)
             oprot.writeFieldEnd()
-        if self.extraContextJson is not None:
-            oprot.writeFieldBegin('extraContextJson', TType.STRING, 6)
-            oprot.writeString(self.extraContextJson.encode('utf-8') if sys.version_info[0] == 2 else self.extraContextJson)
+        if self.extraContextNameToValue is not None:
+            oprot.writeFieldBegin('extraContextNameToValue', TType.MAP, 4)
+            oprot.writeMapBegin(TType.STRING, TType.STRING, len(self.extraContextNameToValue))
+            for kiter814, viter815 in self.extraContextNameToValue.items():
+                oprot.writeString(kiter814.encode('utf-8') if sys.version_info[0] == 2 else kiter814)
+                oprot.writeString(viter815.encode('utf-8') if sys.version_info[0] == 2 else viter815)
+            oprot.writeMapEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
 
     def validate(self):
-        if self.timestampMs is None:
-            raise TProtocolException(message='Required field timestampMs is unset!')
         if self.componentId is None:
             raise TProtocolException(message='Required field componentId is unset!')
-        if self.executorId is None:
-            raise TProtocolException(message='Required field executorId is unset!')
+        if self.taskId is None:
+            raise TProtocolException(message='Required field taskId is unset!')
         return
 
     def __repr__(self):
@@ -9238,11 +9248,11 @@ class WorkerMetrics2(object):
             elif fid == 4:
                 if ftype == TType.LIST:
                     self.metricLists = []
-                    (_etype810, _size807) = iprot.readListBegin()
-                    for _i811 in range(_size807):
-                        _elem812 = WorkerMetricList2()
-                        _elem812.read(iprot)
-                        self.metricLists.append(_elem812)
+                    (_etype819, _size816) = iprot.readListBegin()
+                    for _i820 in range(_size816):
+                        _elem821 = WorkerMetricList2()
+                        _elem821.read(iprot)
+                        self.metricLists.append(_elem821)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -9271,8 +9281,8 @@ class WorkerMetrics2(object):
         if self.metricLists is not None:
             oprot.writeFieldBegin('metricLists', TType.LIST, 4)
             oprot.writeListBegin(TType.STRUCT, len(self.metricLists))
-            for iter813 in self.metricLists:
-                iter813.write(oprot)
+            for iter822 in self.metricLists:
+                iter822.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -9539,11 +9549,11 @@ class HBRecords(object):
             if fid == 1:
                 if ftype == TType.LIST:
                     self.pulses = []
-                    (_etype817, _size814) = iprot.readListBegin()
-                    for _i818 in range(_size814):
-                        _elem819 = HBPulse()
-                        _elem819.read(iprot)
-                        self.pulses.append(_elem819)
+                    (_etype826, _size823) = iprot.readListBegin()
+                    for _i827 in range(_size823):
+                        _elem828 = HBPulse()
+                        _elem828.read(iprot)
+                        self.pulses.append(_elem828)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -9560,8 +9570,8 @@ class HBRecords(object):
         if self.pulses is not None:
             oprot.writeFieldBegin('pulses', TType.LIST, 1)
             oprot.writeListBegin(TType.STRUCT, len(self.pulses))
-            for iter820 in self.pulses:
-                iter820.write(oprot)
+            for iter829 in self.pulses:
+                iter829.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -9605,10 +9615,10 @@ class HBNodes(object):
             if fid == 1:
                 if ftype == TType.LIST:
                     self.pulseIds = []
-                    (_etype824, _size821) = iprot.readListBegin()
-                    for _i825 in range(_size821):
-                        _elem826 = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
-                        self.pulseIds.append(_elem826)
+                    (_etype833, _size830) = iprot.readListBegin()
+                    for _i834 in range(_size830):
+                        _elem835 = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
+                        self.pulseIds.append(_elem835)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -9625,8 +9635,8 @@ class HBNodes(object):
         if self.pulseIds is not None:
             oprot.writeFieldBegin('pulseIds', TType.LIST, 1)
             oprot.writeListBegin(TType.STRING, len(self.pulseIds))
-            for iter827 in self.pulseIds:
-                oprot.writeString(iter827.encode('utf-8') if sys.version_info[0] == 2 else iter827)
+            for iter836 in self.pulseIds:
+                oprot.writeString(iter836.encode('utf-8') if sys.version_info[0] == 2 else iter836)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -12939,18 +12949,16 @@ all_structs.append(WorkerMetricPoint2)
 WorkerMetricPoint2.thrift_spec = (
     None,  # 0
     (1, TType.STRING, 'metricName', 'UTF8', None, ),  # 1
-    None,  # 2
-    (3, TType.DOUBLE, 'metricValue', None, None, ),  # 3
+    (2, TType.DOUBLE, 'metricValue', None, None, ),  # 2
+    (3, TType.I64, 'timestampMs', None, None, ),  # 3
 )
 all_structs.append(WorkerMetricList2)
 WorkerMetricList2.thrift_spec = (
     None,  # 0
     (1, TType.LIST, 'metrics', (TType.STRUCT, [WorkerMetricPoint2, None], False), None, ),  # 1
-    (2, TType.I64, 'timestampMs', None, None, ),  # 2
-    None,  # 3
-    (4, TType.STRING, 'componentId', 'UTF8', None, ),  # 4
-    (5, TType.STRING, 'executorId', 'UTF8', None, ),  # 5
-    (6, TType.STRING, 'extraContextJson', 'UTF8', None, ),  # 6
+    (2, TType.STRING, 'componentId', 'UTF8', None, ),  # 2
+    (3, TType.I32, 'taskId', None, None, ),  # 3
+    (4, TType.MAP, 'extraContextNameToValue', (TType.STRING, 'UTF8', TType.STRING, 'UTF8', False), None, ),  # 4
 )
 all_structs.append(WorkerMetrics2)
 WorkerMetrics2.thrift_spec = (

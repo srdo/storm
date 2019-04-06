@@ -11,18 +11,21 @@
 
 package org.apache.storm.metricstore;
 
+import java.util.List;
 import java.util.Map;
-import org.apache.storm.generated.WorkerMetrics;
+import org.apache.storm.metrics2.MetricPointForStormUi;
 
 public interface WorkerMetricsProcessor {
 
     /**
-     * Process insertion of worker metrics.  The implementation should be thread-safe.
-     * @param conf the supervisor config
+     * Process insertion of worker metrics. The implementation should be thread-safe.
      * @param metrics  the metrics to process
+     * @param topologyId The topology id
+     * @param workerPort The worker port
      * @throws MetricException  on error
      */
-    void processWorkerMetrics(Map<String, Object> conf, WorkerMetrics metrics) throws MetricException;
+    void processWorkerMetrics(List<MetricPointForStormUi> metrics,
+        String topologyId, int workerPort) throws MetricException;
 
     /**
      * Prepares the metric processor.

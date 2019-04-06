@@ -29,18 +29,21 @@ public class WorkerMetricPoint2 implements org.apache.storm.thrift.TBase<WorkerM
   private static final org.apache.storm.thrift.protocol.TStruct STRUCT_DESC = new org.apache.storm.thrift.protocol.TStruct("WorkerMetricPoint2");
 
   private static final org.apache.storm.thrift.protocol.TField METRIC_NAME_FIELD_DESC = new org.apache.storm.thrift.protocol.TField("metricName", org.apache.storm.thrift.protocol.TType.STRING, (short)1);
-  private static final org.apache.storm.thrift.protocol.TField METRIC_VALUE_FIELD_DESC = new org.apache.storm.thrift.protocol.TField("metricValue", org.apache.storm.thrift.protocol.TType.DOUBLE, (short)3);
+  private static final org.apache.storm.thrift.protocol.TField METRIC_VALUE_FIELD_DESC = new org.apache.storm.thrift.protocol.TField("metricValue", org.apache.storm.thrift.protocol.TType.DOUBLE, (short)2);
+  private static final org.apache.storm.thrift.protocol.TField TIMESTAMP_MS_FIELD_DESC = new org.apache.storm.thrift.protocol.TField("timestampMs", org.apache.storm.thrift.protocol.TType.I64, (short)3);
 
   private static final org.apache.storm.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new WorkerMetricPoint2StandardSchemeFactory();
   private static final org.apache.storm.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new WorkerMetricPoint2TupleSchemeFactory();
 
   private @org.apache.storm.thrift.annotation.Nullable java.lang.String metricName; // required
   private double metricValue; // required
+  private long timestampMs; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.storm.thrift.TFieldIdEnum {
     METRIC_NAME((short)1, "metricName"),
-    METRIC_VALUE((short)3, "metricValue");
+    METRIC_VALUE((short)2, "metricValue"),
+    TIMESTAMP_MS((short)3, "timestampMs");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -58,8 +61,10 @@ public class WorkerMetricPoint2 implements org.apache.storm.thrift.TBase<WorkerM
       switch(fieldId) {
         case 1: // METRIC_NAME
           return METRIC_NAME;
-        case 3: // METRIC_VALUE
+        case 2: // METRIC_VALUE
           return METRIC_VALUE;
+        case 3: // TIMESTAMP_MS
+          return TIMESTAMP_MS;
         default:
           return null;
       }
@@ -102,6 +107,7 @@ public class WorkerMetricPoint2 implements org.apache.storm.thrift.TBase<WorkerM
 
   // isset id assignments
   private static final int __METRICVALUE_ISSET_ID = 0;
+  private static final int __TIMESTAMPMS_ISSET_ID = 1;
   private byte __isset_bitfield = 0;
   public static final java.util.Map<_Fields, org.apache.storm.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
@@ -110,6 +116,8 @@ public class WorkerMetricPoint2 implements org.apache.storm.thrift.TBase<WorkerM
         new org.apache.storm.thrift.meta_data.FieldValueMetaData(org.apache.storm.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.METRIC_VALUE, new org.apache.storm.thrift.meta_data.FieldMetaData("metricValue", org.apache.storm.thrift.TFieldRequirementType.REQUIRED, 
         new org.apache.storm.thrift.meta_data.FieldValueMetaData(org.apache.storm.thrift.protocol.TType.DOUBLE)));
+    tmpMap.put(_Fields.TIMESTAMP_MS, new org.apache.storm.thrift.meta_data.FieldMetaData("timestampMs", org.apache.storm.thrift.TFieldRequirementType.REQUIRED, 
+        new org.apache.storm.thrift.meta_data.FieldValueMetaData(org.apache.storm.thrift.protocol.TType.I64)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.storm.thrift.meta_data.FieldMetaData.addStructMetaDataMap(WorkerMetricPoint2.class, metaDataMap);
   }
@@ -119,12 +127,15 @@ public class WorkerMetricPoint2 implements org.apache.storm.thrift.TBase<WorkerM
 
   public WorkerMetricPoint2(
     java.lang.String metricName,
-    double metricValue)
+    double metricValue,
+    long timestampMs)
   {
     this();
     this.metricName = metricName;
     this.metricValue = metricValue;
     set_metricValue_isSet(true);
+    this.timestampMs = timestampMs;
+    set_timestampMs_isSet(true);
   }
 
   /**
@@ -136,6 +147,7 @@ public class WorkerMetricPoint2 implements org.apache.storm.thrift.TBase<WorkerM
       this.metricName = other.metricName;
     }
     this.metricValue = other.metricValue;
+    this.timestampMs = other.timestampMs;
   }
 
   public WorkerMetricPoint2 deepCopy() {
@@ -147,6 +159,8 @@ public class WorkerMetricPoint2 implements org.apache.storm.thrift.TBase<WorkerM
     this.metricName = null;
     set_metricValue_isSet(false);
     this.metricValue = 0.0;
+    set_timestampMs_isSet(false);
+    this.timestampMs = 0;
   }
 
   @org.apache.storm.thrift.annotation.Nullable
@@ -195,6 +209,28 @@ public class WorkerMetricPoint2 implements org.apache.storm.thrift.TBase<WorkerM
     __isset_bitfield = org.apache.storm.thrift.EncodingUtils.setBit(__isset_bitfield, __METRICVALUE_ISSET_ID, value);
   }
 
+  public long get_timestampMs() {
+    return this.timestampMs;
+  }
+
+  public void set_timestampMs(long timestampMs) {
+    this.timestampMs = timestampMs;
+    set_timestampMs_isSet(true);
+  }
+
+  public void unset_timestampMs() {
+    __isset_bitfield = org.apache.storm.thrift.EncodingUtils.clearBit(__isset_bitfield, __TIMESTAMPMS_ISSET_ID);
+  }
+
+  /** Returns true if field timestampMs is set (has been assigned a value) and false otherwise */
+  public boolean is_set_timestampMs() {
+    return org.apache.storm.thrift.EncodingUtils.testBit(__isset_bitfield, __TIMESTAMPMS_ISSET_ID);
+  }
+
+  public void set_timestampMs_isSet(boolean value) {
+    __isset_bitfield = org.apache.storm.thrift.EncodingUtils.setBit(__isset_bitfield, __TIMESTAMPMS_ISSET_ID, value);
+  }
+
   public void setFieldValue(_Fields field, @org.apache.storm.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
     case METRIC_NAME:
@@ -213,6 +249,14 @@ public class WorkerMetricPoint2 implements org.apache.storm.thrift.TBase<WorkerM
       }
       break;
 
+    case TIMESTAMP_MS:
+      if (value == null) {
+        unset_timestampMs();
+      } else {
+        set_timestampMs((java.lang.Long)value);
+      }
+      break;
+
     }
   }
 
@@ -224,6 +268,9 @@ public class WorkerMetricPoint2 implements org.apache.storm.thrift.TBase<WorkerM
 
     case METRIC_VALUE:
       return get_metricValue();
+
+    case TIMESTAMP_MS:
+      return get_timestampMs();
 
     }
     throw new java.lang.IllegalStateException();
@@ -240,6 +287,8 @@ public class WorkerMetricPoint2 implements org.apache.storm.thrift.TBase<WorkerM
       return is_set_metricName();
     case METRIC_VALUE:
       return is_set_metricValue();
+    case TIMESTAMP_MS:
+      return is_set_timestampMs();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -277,6 +326,15 @@ public class WorkerMetricPoint2 implements org.apache.storm.thrift.TBase<WorkerM
         return false;
     }
 
+    boolean this_present_timestampMs = true;
+    boolean that_present_timestampMs = true;
+    if (this_present_timestampMs || that_present_timestampMs) {
+      if (!(this_present_timestampMs && that_present_timestampMs))
+        return false;
+      if (this.timestampMs != that.timestampMs)
+        return false;
+    }
+
     return true;
   }
 
@@ -289,6 +347,8 @@ public class WorkerMetricPoint2 implements org.apache.storm.thrift.TBase<WorkerM
       hashCode = hashCode * 8191 + metricName.hashCode();
 
     hashCode = hashCode * 8191 + org.apache.storm.thrift.TBaseHelper.hashCode(metricValue);
+
+    hashCode = hashCode * 8191 + org.apache.storm.thrift.TBaseHelper.hashCode(timestampMs);
 
     return hashCode;
   }
@@ -317,6 +377,16 @@ public class WorkerMetricPoint2 implements org.apache.storm.thrift.TBase<WorkerM
     }
     if (is_set_metricValue()) {
       lastComparison = org.apache.storm.thrift.TBaseHelper.compareTo(this.metricValue, other.metricValue);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = java.lang.Boolean.valueOf(is_set_timestampMs()).compareTo(other.is_set_timestampMs());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_timestampMs()) {
+      lastComparison = org.apache.storm.thrift.TBaseHelper.compareTo(this.timestampMs, other.timestampMs);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -353,6 +423,10 @@ public class WorkerMetricPoint2 implements org.apache.storm.thrift.TBase<WorkerM
     sb.append("metricValue:");
     sb.append(this.metricValue);
     first = false;
+    if (!first) sb.append(", ");
+    sb.append("timestampMs:");
+    sb.append(this.timestampMs);
+    first = false;
     sb.append(")");
     return sb.toString();
   }
@@ -365,6 +439,10 @@ public class WorkerMetricPoint2 implements org.apache.storm.thrift.TBase<WorkerM
 
     if (!is_set_metricValue()) {
       throw new org.apache.storm.thrift.protocol.TProtocolException("Required field 'metricValue' is unset! Struct:" + toString());
+    }
+
+    if (!is_set_timestampMs()) {
+      throw new org.apache.storm.thrift.protocol.TProtocolException("Required field 'timestampMs' is unset! Struct:" + toString());
     }
 
     // check for sub-struct validity
@@ -414,10 +492,18 @@ public class WorkerMetricPoint2 implements org.apache.storm.thrift.TBase<WorkerM
               org.apache.storm.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 3: // METRIC_VALUE
+          case 2: // METRIC_VALUE
             if (schemeField.type == org.apache.storm.thrift.protocol.TType.DOUBLE) {
               struct.metricValue = iprot.readDouble();
               struct.set_metricValue_isSet(true);
+            } else { 
+              org.apache.storm.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 3: // TIMESTAMP_MS
+            if (schemeField.type == org.apache.storm.thrift.protocol.TType.I64) {
+              struct.timestampMs = iprot.readI64();
+              struct.set_timestampMs_isSet(true);
             } else { 
               org.apache.storm.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -443,6 +529,9 @@ public class WorkerMetricPoint2 implements org.apache.storm.thrift.TBase<WorkerM
       oprot.writeFieldBegin(METRIC_VALUE_FIELD_DESC);
       oprot.writeDouble(struct.metricValue);
       oprot.writeFieldEnd();
+      oprot.writeFieldBegin(TIMESTAMP_MS_FIELD_DESC);
+      oprot.writeI64(struct.timestampMs);
+      oprot.writeFieldEnd();
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -462,6 +551,7 @@ public class WorkerMetricPoint2 implements org.apache.storm.thrift.TBase<WorkerM
       org.apache.storm.thrift.protocol.TTupleProtocol oprot = (org.apache.storm.thrift.protocol.TTupleProtocol) prot;
       oprot.writeString(struct.metricName);
       oprot.writeDouble(struct.metricValue);
+      oprot.writeI64(struct.timestampMs);
     }
 
     @Override
@@ -471,6 +561,8 @@ public class WorkerMetricPoint2 implements org.apache.storm.thrift.TBase<WorkerM
       struct.set_metricName_isSet(true);
       struct.metricValue = iprot.readDouble();
       struct.set_metricValue_isSet(true);
+      struct.timestampMs = iprot.readI64();
+      struct.set_timestampMs_isSet(true);
     }
   }
 

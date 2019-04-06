@@ -22,6 +22,7 @@ import java.util.Map;
 import org.apache.storm.Config;
 import org.apache.storm.cluster.DaemonType;
 import org.apache.storm.metrics2.reporters.StormReporter;
+import org.apache.storm.metricstore.UiWorkerMetricReporter;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.task.WorkerTopologyContext;
 import org.apache.storm.utils.ReflectionUtils;
@@ -158,6 +159,20 @@ public class StormMetricRegistry {
         sb.append("-");
         sb.append(name);
         return sb.toString();
+    }
+    
+    /**
+     * Metric names for worker metrics that should be delivered to Nimbus/UI.
+     * 
+     * See {@link UiWorkerMetricReporter}
+     */
+    public String metricNameForNimbus(String name, String componentId, Integer taskId) {
+        return new StringBuilder(UiWorkerMetricReporter.UI_METRIC_PREFIX)
+            .append("storm.worker.to.nimbus")
+            .append(".").append(componentId)
+            .append(".").append(taskId)
+            .append(name)
+            .toString();
     }
 
     private String dotToUnderScore(String str) {

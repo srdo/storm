@@ -341,13 +341,13 @@ public class HBNodes implements org.apache.storm.thrift.TBase<HBNodes, HBNodes._
           case 1: // PULSE_IDS
             if (schemeField.type == org.apache.storm.thrift.protocol.TType.LIST) {
               {
-                org.apache.storm.thrift.protocol.TList _list920 = iprot.readListBegin();
-                struct.pulseIds = new java.util.ArrayList<java.lang.String>(_list920.size);
-                @org.apache.storm.thrift.annotation.Nullable java.lang.String _elem921;
-                for (int _i922 = 0; _i922 < _list920.size; ++_i922)
+                org.apache.storm.thrift.protocol.TList _list930 = iprot.readListBegin();
+                struct.pulseIds = new java.util.ArrayList<java.lang.String>(_list930.size);
+                @org.apache.storm.thrift.annotation.Nullable java.lang.String _elem931;
+                for (int _i932 = 0; _i932 < _list930.size; ++_i932)
                 {
-                  _elem921 = iprot.readString();
-                  struct.pulseIds.add(_elem921);
+                  _elem931 = iprot.readString();
+                  struct.pulseIds.add(_elem931);
                 }
                 iprot.readListEnd();
               }
@@ -373,9 +373,9 @@ public class HBNodes implements org.apache.storm.thrift.TBase<HBNodes, HBNodes._
         oprot.writeFieldBegin(PULSE_IDS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.storm.thrift.protocol.TList(org.apache.storm.thrift.protocol.TType.STRING, struct.pulseIds.size()));
-          for (java.lang.String _iter923 : struct.pulseIds)
+          for (java.lang.String _iter933 : struct.pulseIds)
           {
-            oprot.writeString(_iter923);
+            oprot.writeString(_iter933);
           }
           oprot.writeListEnd();
         }
@@ -406,9 +406,9 @@ public class HBNodes implements org.apache.storm.thrift.TBase<HBNodes, HBNodes._
       if (struct.is_set_pulseIds()) {
         {
           oprot.writeI32(struct.pulseIds.size());
-          for (java.lang.String _iter924 : struct.pulseIds)
+          for (java.lang.String _iter934 : struct.pulseIds)
           {
-            oprot.writeString(_iter924);
+            oprot.writeString(_iter934);
           }
         }
       }
@@ -420,13 +420,13 @@ public class HBNodes implements org.apache.storm.thrift.TBase<HBNodes, HBNodes._
       java.util.BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.storm.thrift.protocol.TList _list925 = new org.apache.storm.thrift.protocol.TList(org.apache.storm.thrift.protocol.TType.STRING, iprot.readI32());
-          struct.pulseIds = new java.util.ArrayList<java.lang.String>(_list925.size);
-          @org.apache.storm.thrift.annotation.Nullable java.lang.String _elem926;
-          for (int _i927 = 0; _i927 < _list925.size; ++_i927)
+          org.apache.storm.thrift.protocol.TList _list935 = new org.apache.storm.thrift.protocol.TList(org.apache.storm.thrift.protocol.TType.STRING, iprot.readI32());
+          struct.pulseIds = new java.util.ArrayList<java.lang.String>(_list935.size);
+          @org.apache.storm.thrift.annotation.Nullable java.lang.String _elem936;
+          for (int _i937 = 0; _i937 < _list935.size; ++_i937)
           {
-            _elem926 = iprot.readString();
-            struct.pulseIds.add(_elem926);
+            _elem936 = iprot.readString();
+            struct.pulseIds.add(_elem936);
           }
         }
         struct.set_pulseIds_isSet(true);

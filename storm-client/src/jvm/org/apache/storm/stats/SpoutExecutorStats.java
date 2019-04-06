@@ -13,10 +13,8 @@
 package org.apache.storm.stats;
 
 import com.codahale.metrics.Counter;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -24,12 +22,10 @@ import java.util.stream.Collectors;
 import org.apache.storm.generated.ExecutorSpecificStats;
 import org.apache.storm.generated.ExecutorStats;
 import org.apache.storm.generated.SpoutStats;
-import org.apache.storm.generated.WorkerMetricList2;
-import org.apache.storm.generated.WorkerMetricPoint2;
 import org.apache.storm.metric.internal.MultiLatencyStatAndMetric;
-import org.apache.storm.metrics2.MetricPointForNimbus;
+import org.apache.storm.metrics2.MetricPointForStormUi;
 import org.apache.storm.metrics2.StormMetricRegistry;
-import org.apache.storm.metricstore.NimbusWorkerMetricReporter;
+import org.apache.storm.metricstore.UiWorkerMetricReporter;
 import org.apache.storm.utils.Time;
 
 @SuppressWarnings("unchecked")
@@ -84,7 +80,6 @@ public class SpoutExecutorStats extends CommonStats {
     private static final String FAILED = "failed";
     private static final String RATE = "rate";
     private static final String COMPLETE_LATENCY = "complete-latency";
-    private static final String DUMMY_STREAM_ID = "None";
 
     private static class MetricRegistrar {
         private final long timestampMs;
@@ -97,11 +92,11 @@ public class SpoutExecutorStats extends CommonStats {
             this.taskId = taskId;
         }
         
-        private MetricPointForNimbus createMetricPoint(String streamId, String metricName, double metricValue) {
-            return new MetricPointForNimbus(timestampMs, componentId, taskId, streamId, metricName, metricValue);
+        private MetricPointForStormUi createMetricPoint(String streamId, String metricName, double metricValue) {
+            return new MetricPointForStormUi(timestampMs, componentId, taskId, streamId, metricName, metricValue);
         }
         
-        private <T extends Number> List<MetricPointForNimbus> flattenMetrics(String metricName,
+        private <T extends Number> List<MetricPointForStormUi> flattenMetrics(String metricName,
             Map<String, Map<String, T>> streamToTimeToMetricValue) {
             return streamToTimeToMetricValue.entrySet().stream()
                 .flatMap(entry -> {
@@ -119,8 +114,8 @@ public class SpoutExecutorStats extends CommonStats {
         
         private <T extends Number> void registerMetric(StormMetricRegistry registry, String metricName,
             Supplier<Map<String, Map<String, T>>> metricSupplier) {
-            String reportedMetricName = NimbusWorkerMetricReporter.UI_METRIC_PREFIX
-                + registry.metricName(metricName, componentId, taskId);
+            String reportedMetricName = UiWorkerMetricReporter.UI_METRIC_PREFIX
+                + registry.metricNameForNimbus(metricName, componentId, taskId);
             registry.registry().gauge(reportedMetricName, () -> {
                 return () -> {
                     return flattenMetrics(metricName, metricSupplier.get());
@@ -141,9 +136,9 @@ public class SpoutExecutorStats extends CommonStats {
         metricRegistrar.registerMetric(registry, ACKED, () -> getAcked().getKeyToTimeToValue());
         metricRegistrar.registerMetric(registry, FAILED, () -> getFailed().getKeyToTimeToValue());
         metricRegistrar.registerMetric(registry, COMPLETE_LATENCY, () -> getCompleteLatencies().getKeyToTimeToValue());
-        registry.registry().gauge(registry.metricName(RATE, componentId, taskId), () -> {
+        registry.registry().gauge(registry.metricNameForNimbus(RATE, componentId, taskId), () -> {
             return () -> {
-                return Collections.singletonList(new MetricPointForNimbus(timestamp,
+                return Collections.singletonList(new MetricPointForStormUi(timestamp,
                     componentId, taskId, RATE, this.rate));
             };
         });

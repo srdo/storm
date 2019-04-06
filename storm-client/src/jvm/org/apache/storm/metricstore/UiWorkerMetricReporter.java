@@ -14,45 +14,48 @@ import java.util.List;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import org.apache.storm.generated.WorkerMetrics2;
-import org.apache.storm.metrics2.MetricPointForNimbus;
+import org.apache.storm.metrics2.MetricPointForStormUi;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class NimbusWorkerMetricReporter extends ScheduledReporter {
+public class UiWorkerMetricReporter extends ScheduledReporter {
     
+    private static final Logger LOG = LoggerFactory.getLogger(UiWorkerMetricReporter.class);
     //STORM-3367: Upgrade to Dropwizard 5 and replace this with a tag
     public static final String UI_METRIC_PREFIX = "nimbus-ui-";
     
     private final String topologyId;
-    private final String workerId;
-    private final String hostName;
+    private final int workerId;
+    private final WorkerMetricsProcessor workerMetricsProcessor;
     
-    public static NimbusWorkerMetricReporter create(String topologyId, String workerId, String hostName, 
+    public static UiWorkerMetricReporter create(String topologyId, int workerId, WorkerMetricsProcessor workerMetricsProcessor,
         MetricRegistry registry, String name, TimeUnit rateUnit, TimeUnit durationUnit) {
-        return new NimbusWorkerMetricReporter(topologyId, workerId, hostName, registry, name, new OnlyUiGaugesMetricFilter(),
+        return new UiWorkerMetricReporter(topologyId, workerId, workerMetricsProcessor, registry, name, new OnlyUiGaugesMetricFilter(),
             rateUnit, durationUnit);
     }
 
-    private NimbusWorkerMetricReporter(String topologyId, String workerId, String hostName, 
+    private UiWorkerMetricReporter(String topologyId, int workerId, WorkerMetricsProcessor workerMetricsProcessor,
         MetricRegistry registry, String name, MetricFilter filter, TimeUnit rateUnit, TimeUnit durationUnit) {
         super(registry, name, filter, rateUnit, durationUnit);
         this.topologyId = topologyId;
         this.workerId = workerId;
-        this.hostName = hostName;
+        this.workerMetricsProcessor = workerMetricsProcessor;
     }
     
     @Override
     public void report(SortedMap<String, Gauge> gauges, SortedMap<String, Counter> counters, SortedMap<String, Histogram> histograms,
         SortedMap<String, Meter> meters, SortedMap<String, Timer> timers) {
-        
-        WorkerMetrics2 workerMetrics = new WorkerMetrics2();
-        
-        List<MetricPointForNimbus> metricPoints = gauges.values().stream()
-            .map(gauge -> (Gauge<List<MetricPointForNimbus>>)gauge)
+
+        List<MetricPointForStormUi> metricPoints = gauges.values().stream()
+            .map(gauge -> (Gauge<List<MetricPointForStormUi>>) gauge)
             .flatMap(gauge -> gauge.getValue().stream())
             .collect(Collectors.toList());
-        
-        metricPoints.stream()
-            .collect(Collectors.groupingBy(classifier))
+        try {
+            workerMetricsProcessor.processWorkerMetrics(metricPoints, topologyId, workerId);
+        } catch (MetricException e) {
+            //Just log without crashing, the topology can run without delivering metrics.
+            LOG.error("Failed to send metrics to Nimbus", e);
+        }
         
     }
     

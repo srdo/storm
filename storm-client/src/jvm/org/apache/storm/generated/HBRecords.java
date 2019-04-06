@@ -344,14 +344,14 @@ public class HBRecords implements org.apache.storm.thrift.TBase<HBRecords, HBRec
           case 1: // PULSES
             if (schemeField.type == org.apache.storm.thrift.protocol.TType.LIST) {
               {
-                org.apache.storm.thrift.protocol.TList _list912 = iprot.readListBegin();
-                struct.pulses = new java.util.ArrayList<HBPulse>(_list912.size);
-                @org.apache.storm.thrift.annotation.Nullable HBPulse _elem913;
-                for (int _i914 = 0; _i914 < _list912.size; ++_i914)
+                org.apache.storm.thrift.protocol.TList _list922 = iprot.readListBegin();
+                struct.pulses = new java.util.ArrayList<HBPulse>(_list922.size);
+                @org.apache.storm.thrift.annotation.Nullable HBPulse _elem923;
+                for (int _i924 = 0; _i924 < _list922.size; ++_i924)
                 {
-                  _elem913 = new HBPulse();
-                  _elem913.read(iprot);
-                  struct.pulses.add(_elem913);
+                  _elem923 = new HBPulse();
+                  _elem923.read(iprot);
+                  struct.pulses.add(_elem923);
                 }
                 iprot.readListEnd();
               }
@@ -377,9 +377,9 @@ public class HBRecords implements org.apache.storm.thrift.TBase<HBRecords, HBRec
         oprot.writeFieldBegin(PULSES_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.storm.thrift.protocol.TList(org.apache.storm.thrift.protocol.TType.STRUCT, struct.pulses.size()));
-          for (HBPulse _iter915 : struct.pulses)
+          for (HBPulse _iter925 : struct.pulses)
           {
-            _iter915.write(oprot);
+            _iter925.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -410,9 +410,9 @@ public class HBRecords implements org.apache.storm.thrift.TBase<HBRecords, HBRec
       if (struct.is_set_pulses()) {
         {
           oprot.writeI32(struct.pulses.size());
-          for (HBPulse _iter916 : struct.pulses)
+          for (HBPulse _iter926 : struct.pulses)
           {
-            _iter916.write(oprot);
+            _iter926.write(oprot);
           }
         }
       }
@@ -424,14 +424,14 @@ public class HBRecords implements org.apache.storm.thrift.TBase<HBRecords, HBRec
       java.util.BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.storm.thrift.protocol.TList _list917 = new org.apache.storm.thrift.protocol.TList(org.apache.storm.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.pulses = new java.util.ArrayList<HBPulse>(_list917.size);
-          @org.apache.storm.thrift.annotation.Nullable HBPulse _elem918;
-          for (int _i919 = 0; _i919 < _list917.size; ++_i919)
+          org.apache.storm.thrift.protocol.TList _list927 = new org.apache.storm.thrift.protocol.TList(org.apache.storm.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.pulses = new java.util.ArrayList<HBPulse>(_list927.size);
+          @org.apache.storm.thrift.annotation.Nullable HBPulse _elem928;
+          for (int _i929 = 0; _i929 < _list927.size; ++_i929)
           {
-            _elem918 = new HBPulse();
-            _elem918.read(iprot);
-            struct.pulses.add(_elem918);
+            _elem928 = new HBPulse();
+            _elem928.read(iprot);
+            struct.pulses.add(_elem928);
           }
         }
         struct.set_pulses_isSet(true);

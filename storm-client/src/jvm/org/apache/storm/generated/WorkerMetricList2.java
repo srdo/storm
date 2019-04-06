@@ -29,27 +29,24 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
   private static final org.apache.storm.thrift.protocol.TStruct STRUCT_DESC = new org.apache.storm.thrift.protocol.TStruct("WorkerMetricList2");
 
   private static final org.apache.storm.thrift.protocol.TField METRICS_FIELD_DESC = new org.apache.storm.thrift.protocol.TField("metrics", org.apache.storm.thrift.protocol.TType.LIST, (short)1);
-  private static final org.apache.storm.thrift.protocol.TField TIMESTAMP_MS_FIELD_DESC = new org.apache.storm.thrift.protocol.TField("timestampMs", org.apache.storm.thrift.protocol.TType.I64, (short)2);
-  private static final org.apache.storm.thrift.protocol.TField COMPONENT_ID_FIELD_DESC = new org.apache.storm.thrift.protocol.TField("componentId", org.apache.storm.thrift.protocol.TType.STRING, (short)4);
-  private static final org.apache.storm.thrift.protocol.TField EXECUTOR_ID_FIELD_DESC = new org.apache.storm.thrift.protocol.TField("executorId", org.apache.storm.thrift.protocol.TType.STRING, (short)5);
-  private static final org.apache.storm.thrift.protocol.TField EXTRA_CONTEXT_JSON_FIELD_DESC = new org.apache.storm.thrift.protocol.TField("extraContextJson", org.apache.storm.thrift.protocol.TType.STRING, (short)6);
+  private static final org.apache.storm.thrift.protocol.TField COMPONENT_ID_FIELD_DESC = new org.apache.storm.thrift.protocol.TField("componentId", org.apache.storm.thrift.protocol.TType.STRING, (short)2);
+  private static final org.apache.storm.thrift.protocol.TField TASK_ID_FIELD_DESC = new org.apache.storm.thrift.protocol.TField("taskId", org.apache.storm.thrift.protocol.TType.I32, (short)3);
+  private static final org.apache.storm.thrift.protocol.TField EXTRA_CONTEXT_NAME_TO_VALUE_FIELD_DESC = new org.apache.storm.thrift.protocol.TField("extraContextNameToValue", org.apache.storm.thrift.protocol.TType.MAP, (short)4);
 
   private static final org.apache.storm.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new WorkerMetricList2StandardSchemeFactory();
   private static final org.apache.storm.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new WorkerMetricList2TupleSchemeFactory();
 
   private @org.apache.storm.thrift.annotation.Nullable java.util.List<WorkerMetricPoint2> metrics; // required
-  private long timestampMs; // required
   private @org.apache.storm.thrift.annotation.Nullable java.lang.String componentId; // required
-  private @org.apache.storm.thrift.annotation.Nullable java.lang.String executorId; // required
-  private @org.apache.storm.thrift.annotation.Nullable java.lang.String extraContextJson; // optional
+  private int taskId; // required
+  private @org.apache.storm.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> extraContextNameToValue; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.storm.thrift.TFieldIdEnum {
     METRICS((short)1, "metrics"),
-    TIMESTAMP_MS((short)2, "timestampMs"),
-    COMPONENT_ID((short)4, "componentId"),
-    EXECUTOR_ID((short)5, "executorId"),
-    EXTRA_CONTEXT_JSON((short)6, "extraContextJson");
+    COMPONENT_ID((short)2, "componentId"),
+    TASK_ID((short)3, "taskId"),
+    EXTRA_CONTEXT_NAME_TO_VALUE((short)4, "extraContextNameToValue");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -67,14 +64,12 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
       switch(fieldId) {
         case 1: // METRICS
           return METRICS;
-        case 2: // TIMESTAMP_MS
-          return TIMESTAMP_MS;
-        case 4: // COMPONENT_ID
+        case 2: // COMPONENT_ID
           return COMPONENT_ID;
-        case 5: // EXECUTOR_ID
-          return EXECUTOR_ID;
-        case 6: // EXTRA_CONTEXT_JSON
-          return EXTRA_CONTEXT_JSON;
+        case 3: // TASK_ID
+          return TASK_ID;
+        case 4: // EXTRA_CONTEXT_NAME_TO_VALUE
+          return EXTRA_CONTEXT_NAME_TO_VALUE;
         default:
           return null;
       }
@@ -116,23 +111,23 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
   }
 
   // isset id assignments
-  private static final int __TIMESTAMPMS_ISSET_ID = 0;
+  private static final int __TASKID_ISSET_ID = 0;
   private byte __isset_bitfield = 0;
-  private static final _Fields optionals[] = {_Fields.EXTRA_CONTEXT_JSON};
+  private static final _Fields optionals[] = {_Fields.EXTRA_CONTEXT_NAME_TO_VALUE};
   public static final java.util.Map<_Fields, org.apache.storm.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     java.util.Map<_Fields, org.apache.storm.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.storm.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.METRICS, new org.apache.storm.thrift.meta_data.FieldMetaData("metrics", org.apache.storm.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.storm.thrift.meta_data.ListMetaData(org.apache.storm.thrift.protocol.TType.LIST, 
             new org.apache.storm.thrift.meta_data.StructMetaData(org.apache.storm.thrift.protocol.TType.STRUCT, WorkerMetricPoint2.class))));
-    tmpMap.put(_Fields.TIMESTAMP_MS, new org.apache.storm.thrift.meta_data.FieldMetaData("timestampMs", org.apache.storm.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.storm.thrift.meta_data.FieldValueMetaData(org.apache.storm.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.COMPONENT_ID, new org.apache.storm.thrift.meta_data.FieldMetaData("componentId", org.apache.storm.thrift.TFieldRequirementType.REQUIRED, 
         new org.apache.storm.thrift.meta_data.FieldValueMetaData(org.apache.storm.thrift.protocol.TType.STRING)));
-    tmpMap.put(_Fields.EXECUTOR_ID, new org.apache.storm.thrift.meta_data.FieldMetaData("executorId", org.apache.storm.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.storm.thrift.meta_data.FieldValueMetaData(org.apache.storm.thrift.protocol.TType.STRING)));
-    tmpMap.put(_Fields.EXTRA_CONTEXT_JSON, new org.apache.storm.thrift.meta_data.FieldMetaData("extraContextJson", org.apache.storm.thrift.TFieldRequirementType.OPTIONAL, 
-        new org.apache.storm.thrift.meta_data.FieldValueMetaData(org.apache.storm.thrift.protocol.TType.STRING)));
+    tmpMap.put(_Fields.TASK_ID, new org.apache.storm.thrift.meta_data.FieldMetaData("taskId", org.apache.storm.thrift.TFieldRequirementType.REQUIRED, 
+        new org.apache.storm.thrift.meta_data.FieldValueMetaData(org.apache.storm.thrift.protocol.TType.I32)));
+    tmpMap.put(_Fields.EXTRA_CONTEXT_NAME_TO_VALUE, new org.apache.storm.thrift.meta_data.FieldMetaData("extraContextNameToValue", org.apache.storm.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.storm.thrift.meta_data.MapMetaData(org.apache.storm.thrift.protocol.TType.MAP, 
+            new org.apache.storm.thrift.meta_data.FieldValueMetaData(org.apache.storm.thrift.protocol.TType.STRING), 
+            new org.apache.storm.thrift.meta_data.FieldValueMetaData(org.apache.storm.thrift.protocol.TType.STRING))));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.storm.thrift.meta_data.FieldMetaData.addStructMetaDataMap(WorkerMetricList2.class, metaDataMap);
   }
@@ -142,16 +137,14 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
 
   public WorkerMetricList2(
     java.util.List<WorkerMetricPoint2> metrics,
-    long timestampMs,
     java.lang.String componentId,
-    java.lang.String executorId)
+    int taskId)
   {
     this();
     this.metrics = metrics;
-    this.timestampMs = timestampMs;
-    set_timestampMs_isSet(true);
     this.componentId = componentId;
-    this.executorId = executorId;
+    this.taskId = taskId;
+    set_taskId_isSet(true);
   }
 
   /**
@@ -166,15 +159,13 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
       }
       this.metrics = __this__metrics;
     }
-    this.timestampMs = other.timestampMs;
     if (other.is_set_componentId()) {
       this.componentId = other.componentId;
     }
-    if (other.is_set_executorId()) {
-      this.executorId = other.executorId;
-    }
-    if (other.is_set_extraContextJson()) {
-      this.extraContextJson = other.extraContextJson;
+    this.taskId = other.taskId;
+    if (other.is_set_extraContextNameToValue()) {
+      java.util.Map<java.lang.String,java.lang.String> __this__extraContextNameToValue = new java.util.HashMap<java.lang.String,java.lang.String>(other.extraContextNameToValue);
+      this.extraContextNameToValue = __this__extraContextNameToValue;
     }
   }
 
@@ -185,11 +176,10 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
   @Override
   public void clear() {
     this.metrics = null;
-    set_timestampMs_isSet(false);
-    this.timestampMs = 0;
     this.componentId = null;
-    this.executorId = null;
-    this.extraContextJson = null;
+    set_taskId_isSet(false);
+    this.taskId = 0;
+    this.extraContextNameToValue = null;
   }
 
   public int get_metrics_size() {
@@ -232,28 +222,6 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
     }
   }
 
-  public long get_timestampMs() {
-    return this.timestampMs;
-  }
-
-  public void set_timestampMs(long timestampMs) {
-    this.timestampMs = timestampMs;
-    set_timestampMs_isSet(true);
-  }
-
-  public void unset_timestampMs() {
-    __isset_bitfield = org.apache.storm.thrift.EncodingUtils.clearBit(__isset_bitfield, __TIMESTAMPMS_ISSET_ID);
-  }
-
-  /** Returns true if field timestampMs is set (has been assigned a value) and false otherwise */
-  public boolean is_set_timestampMs() {
-    return org.apache.storm.thrift.EncodingUtils.testBit(__isset_bitfield, __TIMESTAMPMS_ISSET_ID);
-  }
-
-  public void set_timestampMs_isSet(boolean value) {
-    __isset_bitfield = org.apache.storm.thrift.EncodingUtils.setBit(__isset_bitfield, __TIMESTAMPMS_ISSET_ID, value);
-  }
-
   @org.apache.storm.thrift.annotation.Nullable
   public java.lang.String get_componentId() {
     return this.componentId;
@@ -278,51 +246,60 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
     }
   }
 
-  @org.apache.storm.thrift.annotation.Nullable
-  public java.lang.String get_executorId() {
-    return this.executorId;
+  public int get_taskId() {
+    return this.taskId;
   }
 
-  public void set_executorId(@org.apache.storm.thrift.annotation.Nullable java.lang.String executorId) {
-    this.executorId = executorId;
+  public void set_taskId(int taskId) {
+    this.taskId = taskId;
+    set_taskId_isSet(true);
   }
 
-  public void unset_executorId() {
-    this.executorId = null;
+  public void unset_taskId() {
+    __isset_bitfield = org.apache.storm.thrift.EncodingUtils.clearBit(__isset_bitfield, __TASKID_ISSET_ID);
   }
 
-  /** Returns true if field executorId is set (has been assigned a value) and false otherwise */
-  public boolean is_set_executorId() {
-    return this.executorId != null;
+  /** Returns true if field taskId is set (has been assigned a value) and false otherwise */
+  public boolean is_set_taskId() {
+    return org.apache.storm.thrift.EncodingUtils.testBit(__isset_bitfield, __TASKID_ISSET_ID);
   }
 
-  public void set_executorId_isSet(boolean value) {
-    if (!value) {
-      this.executorId = null;
+  public void set_taskId_isSet(boolean value) {
+    __isset_bitfield = org.apache.storm.thrift.EncodingUtils.setBit(__isset_bitfield, __TASKID_ISSET_ID, value);
+  }
+
+  public int get_extraContextNameToValue_size() {
+    return (this.extraContextNameToValue == null) ? 0 : this.extraContextNameToValue.size();
+  }
+
+  public void put_to_extraContextNameToValue(java.lang.String key, java.lang.String val) {
+    if (this.extraContextNameToValue == null) {
+      this.extraContextNameToValue = new java.util.HashMap<java.lang.String,java.lang.String>();
     }
+    this.extraContextNameToValue.put(key, val);
   }
 
   @org.apache.storm.thrift.annotation.Nullable
-  public java.lang.String get_extraContextJson() {
-    return this.extraContextJson;
+  public java.util.Map<java.lang.String,java.lang.String> get_extraContextNameToValue() {
+    return this.extraContextNameToValue;
   }
 
-  public void set_extraContextJson(@org.apache.storm.thrift.annotation.Nullable java.lang.String extraContextJson) {
-    this.extraContextJson = extraContextJson;
+  public void set_extraContextNameToValue(@org.apache.storm.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> extraContextNameToValue) {
+    this.extraContextNameToValue = extraContextNameToValue;
   }
 
-  public void unset_extraContextJson() {
-    this.extraContextJson = null;
+  public void unset_extraContextNameToValue() {
+    this.extraContextNameToValue = null;
   }
 
-  /** Returns true if field extraContextJson is set (has been assigned a value) and false otherwise */
-  public boolean is_set_extraContextJson() {
-    return this.extraContextJson != null;
+  /** Returns true if field extraContextNameToValue is set (has been assigned a value) and false otherwise */
+  public boolean is_set_extraContextNameToValue() {
+    return this.extraContextNameToValue != null;
   }
 
-  public void set_extraContextJson_isSet(boolean value) {
+  public void set_extraContextNameToValue_isSet(boolean value) {
     if (!value) {
-      this.extraContextJson = null;
+      this.extraContextNameToValue = null;
     }
   }
 
@@ -336,14 +313,6 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
       }
       break;
 
-    case TIMESTAMP_MS:
-      if (value == null) {
-        unset_timestampMs();
-      } else {
-        set_timestampMs((java.lang.Long)value);
-      }
-      break;
-
     case COMPONENT_ID:
       if (value == null) {
         unset_componentId();
@@ -352,19 +321,19 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
       }
       break;
 
-    case EXECUTOR_ID:
+    case TASK_ID:
       if (value == null) {
-        unset_executorId();
+        unset_taskId();
       } else {
-        set_executorId((java.lang.String)value);
+        set_taskId((java.lang.Integer)value);
       }
       break;
 
-    case EXTRA_CONTEXT_JSON:
+    case EXTRA_CONTEXT_NAME_TO_VALUE:
       if (value == null) {
-        unset_extraContextJson();
+        unset_extraContextNameToValue();
       } else {
-        set_extraContextJson((java.lang.String)value);
+        set_extraContextNameToValue((java.util.Map<java.lang.String,java.lang.String>)value);
       }
       break;
 
@@ -377,17 +346,14 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
     case METRICS:
       return get_metrics();
 
-    case TIMESTAMP_MS:
-      return get_timestampMs();
-
     case COMPONENT_ID:
       return get_componentId();
 
-    case EXECUTOR_ID:
-      return get_executorId();
+    case TASK_ID:
+      return get_taskId();
 
-    case EXTRA_CONTEXT_JSON:
-      return get_extraContextJson();
+    case EXTRA_CONTEXT_NAME_TO_VALUE:
+      return get_extraContextNameToValue();
 
     }
     throw new java.lang.IllegalStateException();
@@ -402,14 +368,12 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
     switch (field) {
     case METRICS:
       return is_set_metrics();
-    case TIMESTAMP_MS:
-      return is_set_timestampMs();
     case COMPONENT_ID:
       return is_set_componentId();
-    case EXECUTOR_ID:
-      return is_set_executorId();
-    case EXTRA_CONTEXT_JSON:
-      return is_set_extraContextJson();
+    case TASK_ID:
+      return is_set_taskId();
+    case EXTRA_CONTEXT_NAME_TO_VALUE:
+      return is_set_extraContextNameToValue();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -438,15 +402,6 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
         return false;
     }
 
-    boolean this_present_timestampMs = true;
-    boolean that_present_timestampMs = true;
-    if (this_present_timestampMs || that_present_timestampMs) {
-      if (!(this_present_timestampMs && that_present_timestampMs))
-        return false;
-      if (this.timestampMs != that.timestampMs)
-        return false;
-    }
-
     boolean this_present_componentId = true && this.is_set_componentId();
     boolean that_present_componentId = true && that.is_set_componentId();
     if (this_present_componentId || that_present_componentId) {
@@ -456,21 +411,21 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
         return false;
     }
 
-    boolean this_present_executorId = true && this.is_set_executorId();
-    boolean that_present_executorId = true && that.is_set_executorId();
-    if (this_present_executorId || that_present_executorId) {
-      if (!(this_present_executorId && that_present_executorId))
+    boolean this_present_taskId = true;
+    boolean that_present_taskId = true;
+    if (this_present_taskId || that_present_taskId) {
+      if (!(this_present_taskId && that_present_taskId))
         return false;
-      if (!this.executorId.equals(that.executorId))
+      if (this.taskId != that.taskId)
         return false;
     }
 
-    boolean this_present_extraContextJson = true && this.is_set_extraContextJson();
-    boolean that_present_extraContextJson = true && that.is_set_extraContextJson();
-    if (this_present_extraContextJson || that_present_extraContextJson) {
-      if (!(this_present_extraContextJson && that_present_extraContextJson))
+    boolean this_present_extraContextNameToValue = true && this.is_set_extraContextNameToValue();
+    boolean that_present_extraContextNameToValue = true && that.is_set_extraContextNameToValue();
+    if (this_present_extraContextNameToValue || that_present_extraContextNameToValue) {
+      if (!(this_present_extraContextNameToValue && that_present_extraContextNameToValue))
         return false;
-      if (!this.extraContextJson.equals(that.extraContextJson))
+      if (!this.extraContextNameToValue.equals(that.extraContextNameToValue))
         return false;
     }
 
@@ -485,19 +440,15 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
     if (is_set_metrics())
       hashCode = hashCode * 8191 + metrics.hashCode();
 
-    hashCode = hashCode * 8191 + org.apache.storm.thrift.TBaseHelper.hashCode(timestampMs);
-
     hashCode = hashCode * 8191 + ((is_set_componentId()) ? 131071 : 524287);
     if (is_set_componentId())
       hashCode = hashCode * 8191 + componentId.hashCode();
 
-    hashCode = hashCode * 8191 + ((is_set_executorId()) ? 131071 : 524287);
-    if (is_set_executorId())
-      hashCode = hashCode * 8191 + executorId.hashCode();
+    hashCode = hashCode * 8191 + taskId;
 
-    hashCode = hashCode * 8191 + ((is_set_extraContextJson()) ? 131071 : 524287);
-    if (is_set_extraContextJson())
-      hashCode = hashCode * 8191 + extraContextJson.hashCode();
+    hashCode = hashCode * 8191 + ((is_set_extraContextNameToValue()) ? 131071 : 524287);
+    if (is_set_extraContextNameToValue())
+      hashCode = hashCode * 8191 + extraContextNameToValue.hashCode();
 
     return hashCode;
   }
@@ -520,16 +471,6 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
         return lastComparison;
       }
     }
-    lastComparison = java.lang.Boolean.valueOf(is_set_timestampMs()).compareTo(other.is_set_timestampMs());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (is_set_timestampMs()) {
-      lastComparison = org.apache.storm.thrift.TBaseHelper.compareTo(this.timestampMs, other.timestampMs);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
     lastComparison = java.lang.Boolean.valueOf(is_set_componentId()).compareTo(other.is_set_componentId());
     if (lastComparison != 0) {
       return lastComparison;
@@ -540,22 +481,22 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
         return lastComparison;
       }
     }
-    lastComparison = java.lang.Boolean.valueOf(is_set_executorId()).compareTo(other.is_set_executorId());
+    lastComparison = java.lang.Boolean.valueOf(is_set_taskId()).compareTo(other.is_set_taskId());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (is_set_executorId()) {
-      lastComparison = org.apache.storm.thrift.TBaseHelper.compareTo(this.executorId, other.executorId);
+    if (is_set_taskId()) {
+      lastComparison = org.apache.storm.thrift.TBaseHelper.compareTo(this.taskId, other.taskId);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
-    lastComparison = java.lang.Boolean.valueOf(is_set_extraContextJson()).compareTo(other.is_set_extraContextJson());
+    lastComparison = java.lang.Boolean.valueOf(is_set_extraContextNameToValue()).compareTo(other.is_set_extraContextNameToValue());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (is_set_extraContextJson()) {
-      lastComparison = org.apache.storm.thrift.TBaseHelper.compareTo(this.extraContextJson, other.extraContextJson);
+    if (is_set_extraContextNameToValue()) {
+      lastComparison = org.apache.storm.thrift.TBaseHelper.compareTo(this.extraContextNameToValue, other.extraContextNameToValue);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -589,10 +530,6 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("timestampMs:");
-    sb.append(this.timestampMs);
-    first = false;
-    if (!first) sb.append(", ");
     sb.append("componentId:");
     if (this.componentId == null) {
       sb.append("null");
@@ -601,20 +538,16 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("executorId:");
-    if (this.executorId == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.executorId);
-    }
+    sb.append("taskId:");
+    sb.append(this.taskId);
     first = false;
-    if (is_set_extraContextJson()) {
+    if (is_set_extraContextNameToValue()) {
       if (!first) sb.append(", ");
-      sb.append("extraContextJson:");
-      if (this.extraContextJson == null) {
+      sb.append("extraContextNameToValue:");
+      if (this.extraContextNameToValue == null) {
         sb.append("null");
       } else {
-        sb.append(this.extraContextJson);
+        sb.append(this.extraContextNameToValue);
       }
       first = false;
     }
@@ -624,16 +557,12 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
 
   public void validate() throws org.apache.storm.thrift.TException {
     // check for required fields
-    if (!is_set_timestampMs()) {
-      throw new org.apache.storm.thrift.protocol.TProtocolException("Required field 'timestampMs' is unset! Struct:" + toString());
-    }
-
     if (!is_set_componentId()) {
       throw new org.apache.storm.thrift.protocol.TProtocolException("Required field 'componentId' is unset! Struct:" + toString());
     }
 
-    if (!is_set_executorId()) {
-      throw new org.apache.storm.thrift.protocol.TProtocolException("Required field 'executorId' is unset! Struct:" + toString());
+    if (!is_set_taskId()) {
+      throw new org.apache.storm.thrift.protocol.TProtocolException("Required field 'taskId' is unset! Struct:" + toString());
     }
 
     // check for sub-struct validity
@@ -694,15 +623,7 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
               org.apache.storm.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 2: // TIMESTAMP_MS
-            if (schemeField.type == org.apache.storm.thrift.protocol.TType.I64) {
-              struct.timestampMs = iprot.readI64();
-              struct.set_timestampMs_isSet(true);
-            } else { 
-              org.apache.storm.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-            }
-            break;
-          case 4: // COMPONENT_ID
+          case 2: // COMPONENT_ID
             if (schemeField.type == org.apache.storm.thrift.protocol.TType.STRING) {
               struct.componentId = iprot.readString();
               struct.set_componentId_isSet(true);
@@ -710,18 +631,30 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
               org.apache.storm.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 5: // EXECUTOR_ID
-            if (schemeField.type == org.apache.storm.thrift.protocol.TType.STRING) {
-              struct.executorId = iprot.readString();
-              struct.set_executorId_isSet(true);
+          case 3: // TASK_ID
+            if (schemeField.type == org.apache.storm.thrift.protocol.TType.I32) {
+              struct.taskId = iprot.readI32();
+              struct.set_taskId_isSet(true);
             } else { 
               org.apache.storm.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 6: // EXTRA_CONTEXT_JSON
-            if (schemeField.type == org.apache.storm.thrift.protocol.TType.STRING) {
-              struct.extraContextJson = iprot.readString();
-              struct.set_extraContextJson_isSet(true);
+          case 4: // EXTRA_CONTEXT_NAME_TO_VALUE
+            if (schemeField.type == org.apache.storm.thrift.protocol.TType.MAP) {
+              {
+                org.apache.storm.thrift.protocol.TMap _map899 = iprot.readMapBegin();
+                struct.extraContextNameToValue = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map899.size);
+                @org.apache.storm.thrift.annotation.Nullable java.lang.String _key900;
+                @org.apache.storm.thrift.annotation.Nullable java.lang.String _val901;
+                for (int _i902 = 0; _i902 < _map899.size; ++_i902)
+                {
+                  _key900 = iprot.readString();
+                  _val901 = iprot.readString();
+                  struct.extraContextNameToValue.put(_key900, _val901);
+                }
+                iprot.readMapEnd();
+              }
+              struct.set_extraContextNameToValue_isSet(true);
             } else { 
               org.apache.storm.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -743,31 +676,34 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
         oprot.writeFieldBegin(METRICS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.storm.thrift.protocol.TList(org.apache.storm.thrift.protocol.TType.STRUCT, struct.metrics.size()));
-          for (WorkerMetricPoint2 _iter899 : struct.metrics)
+          for (WorkerMetricPoint2 _iter903 : struct.metrics)
           {
-            _iter899.write(oprot);
+            _iter903.write(oprot);
           }
           oprot.writeListEnd();
         }
         oprot.writeFieldEnd();
       }
-      oprot.writeFieldBegin(TIMESTAMP_MS_FIELD_DESC);
-      oprot.writeI64(struct.timestampMs);
-      oprot.writeFieldEnd();
       if (struct.componentId != null) {
         oprot.writeFieldBegin(COMPONENT_ID_FIELD_DESC);
         oprot.writeString(struct.componentId);
         oprot.writeFieldEnd();
       }
-      if (struct.executorId != null) {
-        oprot.writeFieldBegin(EXECUTOR_ID_FIELD_DESC);
-        oprot.writeString(struct.executorId);
-        oprot.writeFieldEnd();
-      }
-      if (struct.extraContextJson != null) {
-        if (struct.is_set_extraContextJson()) {
-          oprot.writeFieldBegin(EXTRA_CONTEXT_JSON_FIELD_DESC);
-          oprot.writeString(struct.extraContextJson);
+      oprot.writeFieldBegin(TASK_ID_FIELD_DESC);
+      oprot.writeI32(struct.taskId);
+      oprot.writeFieldEnd();
+      if (struct.extraContextNameToValue != null) {
+        if (struct.is_set_extraContextNameToValue()) {
+          oprot.writeFieldBegin(EXTRA_CONTEXT_NAME_TO_VALUE_FIELD_DESC);
+          {
+            oprot.writeMapBegin(new org.apache.storm.thrift.protocol.TMap(org.apache.storm.thrift.protocol.TType.STRING, org.apache.storm.thrift.protocol.TType.STRING, struct.extraContextNameToValue.size()));
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter904 : struct.extraContextNameToValue.entrySet())
+            {
+              oprot.writeString(_iter904.getKey());
+              oprot.writeString(_iter904.getValue());
+            }
+            oprot.writeMapEnd();
+          }
           oprot.writeFieldEnd();
         }
       }
@@ -788,58 +724,73 @@ public class WorkerMetricList2 implements org.apache.storm.thrift.TBase<WorkerMe
     @Override
     public void write(org.apache.storm.thrift.protocol.TProtocol prot, WorkerMetricList2 struct) throws org.apache.storm.thrift.TException {
       org.apache.storm.thrift.protocol.TTupleProtocol oprot = (org.apache.storm.thrift.protocol.TTupleProtocol) prot;
-      oprot.writeI64(struct.timestampMs);
       oprot.writeString(struct.componentId);
-      oprot.writeString(struct.executorId);
+      oprot.writeI32(struct.taskId);
       java.util.BitSet optionals = new java.util.BitSet();
       if (struct.is_set_metrics()) {
         optionals.set(0);
       }
-      if (struct.is_set_extraContextJson()) {
+      if (struct.is_set_extraContextNameToValue()) {
         optionals.set(1);
       }
       oprot.writeBitSet(optionals, 2);
       if (struct.is_set_metrics()) {
         {
           oprot.writeI32(struct.metrics.size());
-          for (WorkerMetricPoint2 _iter900 : struct.metrics)
+          for (WorkerMetricPoint2 _iter905 : struct.metrics)
           {
-            _iter900.write(oprot);
+            _iter905.write(oprot);
           }
         }
       }
-      if (struct.is_set_extraContextJson()) {
-        oprot.writeString(struct.extraContextJson);
+      if (struct.is_set_extraContextNameToValue()) {
+        {
+          oprot.writeI32(struct.extraContextNameToValue.size());
+          for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter906 : struct.extraContextNameToValue.entrySet())
+          {
+            oprot.writeString(_iter906.getKey());
+            oprot.writeString(_iter906.getValue());
+          }
+        }
       }
     }
 
     @Override
     public void read(org.apache.storm.thrift.protocol.TProtocol prot, WorkerMetricList2 struct) throws org.apache.storm.thrift.TException {
       org.apache.storm.thrift.protocol.TTupleProtocol iprot = (org.apache.storm.thrift.protocol.TTupleProtocol) prot;
-      struct.timestampMs = iprot.readI64();
-      struct.set_timestampMs_isSet(true);
       struct.componentId = iprot.readString();
       struct.set_componentId_isSet(true);
-      struct.executorId = iprot.readString();
-      struct.set_executorId_isSet(true);
+      struct.taskId = iprot.readI32();
+      struct.set_taskId_isSet(true);
       java.util.BitSet incoming = iprot.readBitSet(2);
       if (incoming.get(0)) {
         {
-          org.apache.storm.thrift.protocol.TList _list901 = new org.apache.storm.thrift.protocol.TList(org.apache.storm.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.metrics = new java.util.ArrayList<WorkerMetricPoint2>(_list901.size);
-          @org.apache.storm.thrift.annotation.Nullable WorkerMetricPoint2 _elem902;
-          for (int _i903 = 0; _i903 < _list901.size; ++_i903)
+          org.apache.storm.thrift.protocol.TList _list907 = new org.apache.storm.thrift.protocol.TList(org.apache.storm.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.metrics = new java.util.ArrayList<WorkerMetricPoint2>(_list907.size);
+          @org.apache.storm.thrift.annotation.Nullable WorkerMetricPoint2 _elem908;
+          for (int _i909 = 0; _i909 < _list907.size; ++_i909)
           {
-            _elem902 = new WorkerMetricPoint2();
-            _elem902.read(iprot);
-            struct.metrics.add(_elem902);
+            _elem908 = new WorkerMetricPoint2();
+            _elem908.read(iprot);
+            struct.metrics.add(_elem908);
           }
         }
         struct.set_metrics_isSet(true);
       }
       if (incoming.get(1)) {
-        struct.extraContextJson = iprot.readString();
-        struct.set_extraContextJson_isSet(true);
+        {
+          org.apache.storm.thrift.protocol.TMap _map910 = new org.apache.storm.thrift.protocol.TMap(org.apache.storm.thrift.protocol.TType.STRING, org.apache.storm.thrift.protocol.TType.STRING, iprot.readI32());
+          struct.extraContextNameToValue = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map910.size);
+          @org.apache.storm.thrift.annotation.Nullable java.lang.String _key911;
+          @org.apache.storm.thrift.annotation.Nullable java.lang.String _val912;
+          for (int _i913 = 0; _i913 < _map910.size; ++_i913)
+          {
+            _key911 = iprot.readString();
+            _val912 = iprot.readString();
+            struct.extraContextNameToValue.put(_key911, _val912);
+          }
+        }
+        struct.set_extraContextNameToValue_isSet(true);
       }
     }
   }

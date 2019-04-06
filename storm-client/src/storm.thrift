@@ -694,16 +694,16 @@ struct SupervisorAssignments {
 
 struct WorkerMetricPoint2 {
   1: required string metricName;
-  3: required double metricValue;
+  2: required double metricValue;
+  3: required i64 timestampMs;
 }
 
 struct WorkerMetricList2 {
   1: list<WorkerMetricPoint2> metrics;
-  2: required i64 timestampMs;
-  4: required string componentId;
-  5: required string executorId;
+  2: required string componentId;
+  3: required i32 taskId;
   //Catch-all field for any sometimes useful context, e.g. streamId.
-  6: optional string extraContextJson;
+  4: optional map<string, string> extraContextNameToValue;
 }
 
 struct WorkerMetrics2 {
