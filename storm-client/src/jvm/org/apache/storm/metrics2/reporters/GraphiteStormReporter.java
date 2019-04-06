@@ -63,10 +63,7 @@ public class GraphiteStormReporter extends ScheduledStormReporter {
             builder.convertRatesTo(rateUnit);
         }
 
-        StormMetricsFilter filter = getMetricsFilter(reporterConf);
-        if (filter != null) {
-            builder.filter(filter);
-        }
+        builder.filter(getMetricsFilter(reporterConf));
         String prefix = getMetricsPrefixedWith(reporterConf);
         if (prefix != null) {
             builder.prefixedWith(prefix);

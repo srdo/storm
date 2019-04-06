@@ -11,10 +11,12 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ScheduledReporter;
 import com.codahale.metrics.Timer;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.storm.metrics2.MetricPointForStormUi;
+import org.apache.storm.metrics2.filters.StormMetricsFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,5 +68,29 @@ public class UiWorkerMetricReporter extends ScheduledReporter {
             return metric instanceof Gauge && name.startsWith(UI_METRIC_PREFIX);
         }
         
+    }
+    
+    /**
+     * Wraps another StormMetricFilter (may be null), while filtering out the UI gauges accepted by this reporter.
+     */
+    public static class DiscardUiGaugesMetricFilter implements StormMetricsFilter {
+        private final StormMetricsFilter delegate;
+        private final MetricFilter onlyUiGaugesFilter = new OnlyUiGaugesMetricFilter();
+
+        public DiscardUiGaugesMetricFilter(StormMetricsFilter delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public boolean matches(String name, Metric metric) {
+            return !onlyUiGaugesFilter.matches(name, metric) && delegate == null ? true : delegate.matches(name, metric);
+        }
+
+        @Override
+        public void prepare(Map<String, Object> config) {
+            if (delegate != null) {
+                delegate.prepare(config);
+            }
+        }
     }
 }

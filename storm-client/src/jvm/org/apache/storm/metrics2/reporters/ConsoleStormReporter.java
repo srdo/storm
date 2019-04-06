@@ -46,10 +46,7 @@ public class ConsoleStormReporter extends ScheduledStormReporter {
             builder.convertDurationsTo(durationUnit);
         }
 
-        StormMetricsFilter filter = getMetricsFilter(reporterConf);
-        if (filter != null) {
-            builder.filter(filter);
-        }
+        builder.filter(getMetricsFilter(reporterConf));
 
         //defaults to 10
         reportingPeriod = getReportPeriod(reporterConf);

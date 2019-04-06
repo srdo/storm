@@ -16,6 +16,7 @@ import com.codahale.metrics.ScheduledReporter;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.apache.storm.metrics2.filters.StormMetricsFilter;
+import org.apache.storm.metricstore.UiWorkerMetricReporter;
 import org.apache.storm.utils.ObjectReader;
 import org.apache.storm.utils.ReflectionUtils;
 import org.slf4j.Logger;
@@ -54,7 +55,7 @@ public abstract class ScheduledStormReporter implements StormReporter {
                 filter.prepare(filterConf);
             }
         }
-        return filter;
+        return new UiWorkerMetricReporter.DiscardUiGaugesMetricFilter(filter);
     }
 
     @Override

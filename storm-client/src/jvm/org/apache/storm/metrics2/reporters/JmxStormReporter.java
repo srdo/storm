@@ -12,6 +12,8 @@
 
 package org.apache.storm.metrics2.reporters;
 
+import static org.apache.storm.metrics2.reporters.ScheduledStormReporter.getMetricsFilter;
+
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
 import java.util.Map;
@@ -51,10 +53,7 @@ public class JmxStormReporter implements StormReporter {
             builder.inDomain(domain);
         }
 
-        StormMetricsFilter filter = ScheduledStormReporter.getMetricsFilter(reporterConf);
-        if (filter != null) {
-            builder.filter(filter);
-        }
+        builder.filter(getMetricsFilter(reporterConf));
         // other builder functions not exposed:
         //  * createsObjectNamesWith(ObjectNameFactory onFactory)
         //  * registerWith (MBeanServer)
