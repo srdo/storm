@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.storm.metric.api.IStatefulObject;
 import org.apache.storm.metric.internal.RateTracker;
 import org.apache.storm.metrics2.JcMetrics;
-import org.apache.storm.metrics2.StormMetricRegistry;
+import org.apache.storm.metrics2.StormWorkerMetricRegistry;
 import org.apache.storm.policy.IWaitStrategy;
 import org.apache.storm.shade.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.storm.shade.org.jctools.queues.MessagePassingQueue;
@@ -60,7 +60,7 @@ public class JCQueue implements IStatefulObject, Closeable {
     private final String queueName;
 
     public JCQueue(String queueName, int size, int overflowLimit, int producerBatchSz, IWaitStrategy backPressureWaitStrategy,
-                   String topologyId, String componentId, Integer taskId, int port, StormMetricRegistry metricRegistry) {
+                   String topologyId, String componentId, Integer taskId, int port, StormWorkerMetricRegistry metricRegistry) {
         this.queueName = queueName;
         this.overflowLimit = overflowLimit;
         this.recvQueue = new MpscArrayQueue<>(size);

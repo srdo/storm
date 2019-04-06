@@ -12,11 +12,26 @@
 
 package org.apache.storm.metrics2.filters;
 
+import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricFilter;
 import java.util.Map;
 
 public interface StormMetricsFilter extends MetricFilter {
 
+    /**
+     * Matches all metrics.
+     */
+    public static StormMetricsFilter ALL = new StormMetricsFilter() {
+        @Override
+        public void prepare(Map<String, Object> config) {
+        }
+
+        @Override
+        public boolean matches(String name, Metric metric) {
+            return true;
+        }
+    };
+    
     /**
      * Called after the filter is instantiated.
      *

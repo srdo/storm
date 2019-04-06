@@ -23,24 +23,23 @@ import org.slf4j.LoggerFactory;
 public class UiWorkerMetricReporter extends ScheduledReporter {
     
     private static final Logger LOG = LoggerFactory.getLogger(UiWorkerMetricReporter.class);
-    //STORM-3367: Upgrade to Dropwizard 5 and replace this with a tag
-    public static final String UI_METRIC_PREFIX = "nimbus-ui-";
+    private static final String REPORTER_NAME = "UiWorkerMetricReporter";
     
     private final String topologyId;
-    private final int workerId;
+    private final int workerPort;
     private final WorkerMetricsProcessor workerMetricsProcessor;
     
-    public static UiWorkerMetricReporter create(String topologyId, int workerId, WorkerMetricsProcessor workerMetricsProcessor,
-        MetricRegistry registry, String name, TimeUnit rateUnit, TimeUnit durationUnit) {
-        return new UiWorkerMetricReporter(topologyId, workerId, workerMetricsProcessor, registry, name, new OnlyUiGaugesMetricFilter(),
+    public static UiWorkerMetricReporter create(String topologyId, int workerPort, WorkerMetricsProcessor workerMetricsProcessor,
+        MetricRegistry registry, TimeUnit rateUnit, TimeUnit durationUnit) {
+        return new UiWorkerMetricReporter(topologyId, workerPort, workerMetricsProcessor, registry, MetricFilter.ALL,
             rateUnit, durationUnit);
     }
 
-    private UiWorkerMetricReporter(String topologyId, int workerId, WorkerMetricsProcessor workerMetricsProcessor,
-        MetricRegistry registry, String name, MetricFilter filter, TimeUnit rateUnit, TimeUnit durationUnit) {
-        super(registry, name, filter, rateUnit, durationUnit);
+    private UiWorkerMetricReporter(String topologyId, int workerPort, WorkerMetricsProcessor workerMetricsProcessor,
+        MetricRegistry registry, MetricFilter filter, TimeUnit rateUnit, TimeUnit durationUnit) {
+        super(registry, REPORTER_NAME, filter, rateUnit, durationUnit);
         this.topologyId = topologyId;
-        this.workerId = workerId;
+        this.workerPort = workerPort;
         this.workerMetricsProcessor = workerMetricsProcessor;
     }
     
@@ -53,44 +52,11 @@ public class UiWorkerMetricReporter extends ScheduledReporter {
             .flatMap(gauge -> gauge.getValue().stream())
             .collect(Collectors.toList());
         try {
-            workerMetricsProcessor.processWorkerMetrics(metricPoints, topologyId, workerId);
+            workerMetricsProcessor.processWorkerMetrics(metricPoints, topologyId, workerPort);
         } catch (MetricException e) {
             //Just log without crashing, the topology can run without delivering metrics.
             LOG.error("Failed to send metrics to Nimbus", e);
         }
         
-    }
-    
-    private static class OnlyUiGaugesMetricFilter implements MetricFilter {
-
-        @Override
-        public boolean matches(String name, Metric metric) {
-            return metric instanceof Gauge && name.startsWith(UI_METRIC_PREFIX);
-        }
-        
-    }
-    
-    /**
-     * Wraps another StormMetricFilter (may be null), while filtering out the UI gauges accepted by this reporter.
-     */
-    public static class DiscardUiGaugesMetricFilter implements StormMetricsFilter {
-        private final StormMetricsFilter delegate;
-        private final MetricFilter onlyUiGaugesFilter = new OnlyUiGaugesMetricFilter();
-
-        public DiscardUiGaugesMetricFilter(StormMetricsFilter delegate) {
-            this.delegate = delegate;
-        }
-
-        @Override
-        public boolean matches(String name, Metric metric) {
-            return !onlyUiGaugesFilter.matches(name, metric) && delegate == null ? true : delegate.matches(name, metric);
-        }
-
-        @Override
-        public void prepare(Map<String, Object> config) {
-            if (delegate != null) {
-                delegate.prepare(config);
-            }
-        }
     }
 }

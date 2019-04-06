@@ -51,7 +51,7 @@ import org.apache.storm.generated.WorkerMetricPoint;
 import org.apache.storm.generated.WorkerMetrics;
 import org.apache.storm.messaging.IConnection;
 import org.apache.storm.messaging.IContext;
-import org.apache.storm.metrics2.StormMetricRegistry;
+import org.apache.storm.metrics2.StormWorkerMetricRegistry;
 import org.apache.storm.metricstore.MetricException;
 import org.apache.storm.metricstore.MetricProcessorConfig;
 import org.apache.storm.metricstore.WorkerMetricsProcessor;
@@ -84,7 +84,7 @@ public class Worker implements Shutdownable, DaemonCommon {
     private final int port;
     private final String workerId;
     private final LogConfigManager logConfigManager;
-    private final StormMetricRegistry metricRegistry;
+    private final StormWorkerMetricRegistry metricRegistry;
 
     private WorkerState workerState;
     private AtomicReference<List<IRunningExecutor>> executorsAtom;
@@ -118,7 +118,7 @@ public class Worker implements Shutdownable, DaemonCommon {
         this.port = port;
         this.workerId = workerId;
         this.logConfigManager = new LogConfigManager();
-        this.metricRegistry = new StormMetricRegistry();
+        this.metricRegistry = new StormWorkerMetricRegistry();
     }
 
     public static void main(String[] args) throws Exception {
@@ -159,7 +159,7 @@ public class Worker implements Shutdownable, DaemonCommon {
         IStateStorage stateStorage = ClusterUtils.mkStateStorage(conf, topologyConf, csContext);
         IStormClusterState stormClusterState = ClusterUtils.mkStormClusterState(stateStorage, null, csContext);
 
-        metricRegistry.start(conf, DaemonType.WORKER);
+        metricRegistry.start(conf);
 
         Credentials initialCredentials = stormClusterState.credentials(topologyId, null);
         Map<String, String> initCreds = new HashMap<>();

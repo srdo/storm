@@ -55,7 +55,7 @@ public abstract class ScheduledStormReporter implements StormReporter {
                 filter.prepare(filterConf);
             }
         }
-        return new UiWorkerMetricReporter.DiscardUiGaugesMetricFilter(filter);
+        return filter != null ? filter : StormMetricsFilter.ALL;
     }
 
     @Override

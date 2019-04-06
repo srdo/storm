@@ -24,7 +24,7 @@ import org.apache.storm.generated.ExecutorStats;
 import org.apache.storm.generated.SpoutStats;
 import org.apache.storm.metric.internal.MultiLatencyStatAndMetric;
 import org.apache.storm.metrics2.MetricPointForStormUi;
-import org.apache.storm.metrics2.StormMetricRegistry;
+import org.apache.storm.metrics2.StormWorkerMetricRegistry;
 import org.apache.storm.metricstore.UiWorkerMetricReporter;
 import org.apache.storm.utils.Time;
 
@@ -112,7 +112,7 @@ public class SpoutExecutorStats extends CommonStats {
                 .collect(Collectors.toList());
         }
         
-        private <T extends Number> void registerMetric(StormMetricRegistry registry, String metricName,
+        private <T extends Number> void registerMetric(StormWorkerMetricRegistry registry, String metricName,
             Supplier<Map<String, Map<String, T>>> metricSupplier) {
             String reportedMetricName = UiWorkerMetricReporter.UI_METRIC_PREFIX
                 + registry.metricNameForNimbus(metricName, componentId, taskId);
@@ -124,7 +124,7 @@ public class SpoutExecutorStats extends CommonStats {
         }
     }
 
-    public void registerMetrics(StormMetricRegistry registry) {
+    public void registerMetrics(StormWorkerMetricRegistry registry) {
         long timestamp = Time.currentTimeMillis();
         String componentId = "TEMP";
         int taskId = 0;

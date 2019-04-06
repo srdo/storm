@@ -33,7 +33,7 @@ import org.apache.storm.metric.api.ICombiner;
 import org.apache.storm.metric.api.IMetric;
 import org.apache.storm.metric.api.IReducer;
 import org.apache.storm.metric.api.ReducedMetric;
-import org.apache.storm.metrics2.StormMetricRegistry;
+import org.apache.storm.metrics2.StormWorkerMetricRegistry;
 import org.apache.storm.shade.org.apache.commons.lang.NotImplementedException;
 import org.apache.storm.shade.org.json.simple.JSONValue;
 import org.apache.storm.state.ISubscribedState;
@@ -54,7 +54,7 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
     private final Map<String, Object> _executorData;
     private final Map<Integer, Map<Integer, Map<String, IMetric>>> _registeredMetrics;
     private final AtomicBoolean _openOrPrepareWasCalled;
-    private final StormMetricRegistry metricRegistry;
+    private final StormWorkerMetricRegistry metricRegistry;
     // This is updated by the Worker and the topology has shared access to it
     private final Map<String, Long> blobToLastKnownVersion;
 
@@ -75,7 +75,7 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
                            Map<String, Object> executorData,
                            Map<Integer, Map<Integer, Map<String, IMetric>>> registeredMetrics,
                            AtomicBoolean openOrPrepareWasCalled,
-                           StormMetricRegistry metricRegistry) {
+                           StormWorkerMetricRegistry metricRegistry) {
         super(topology, topoConf, taskToComponent, componentToSortedTasks,
               componentToStreamToFields, stormId, codeDir, pidDir,
               workerPort, workerTasks, defaultResources, userResources);

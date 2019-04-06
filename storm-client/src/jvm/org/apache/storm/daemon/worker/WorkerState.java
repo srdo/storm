@@ -60,7 +60,7 @@ import org.apache.storm.messaging.IConnection;
 import org.apache.storm.messaging.IContext;
 import org.apache.storm.messaging.TransportFactory;
 import org.apache.storm.messaging.netty.BackPressureStatus;
-import org.apache.storm.metrics2.StormMetricRegistry;
+import org.apache.storm.metrics2.StormWorkerMetricRegistry;
 import org.apache.storm.policy.IWaitStrategy;
 import org.apache.storm.security.auth.IAutoCredentials;
 import org.apache.storm.serialization.ITupleSerializer;
@@ -146,12 +146,12 @@ public class WorkerState {
     private final AtomicLong nextLoadUpdate = new AtomicLong(0);
     private final boolean trySerializeLocal;
     private final Collection<IAutoCredentials> autoCredentials;
-    private final StormMetricRegistry metricRegistry;
+    private final StormWorkerMetricRegistry metricRegistry;
 
     public WorkerState(Map<String, Object> conf, IContext mqContext, String topologyId, String assignmentId,
                        int supervisorPort, int port, String workerId, Map<String, Object> topologyConf, IStateStorage stateStorage,
                        IStormClusterState stormClusterState, Collection<IAutoCredentials> autoCredentials,
-                       StormMetricRegistry metricRegistry) throws IOException,
+                       StormWorkerMetricRegistry metricRegistry) throws IOException,
         InvalidTopologyException {
         this.metricRegistry = metricRegistry;
         this.autoCredentials = autoCredentials;
@@ -759,7 +759,7 @@ public class WorkerState {
         return workerTransfer.getTransferQueue();
     }
 
-    public StormMetricRegistry getMetricRegistry() {
+    public StormWorkerMetricRegistry getMetricRegistry() {
         return metricRegistry;
     }
 

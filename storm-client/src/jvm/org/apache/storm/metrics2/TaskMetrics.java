@@ -32,9 +32,9 @@ public class TaskMetrics {
     private final String componentId;
     private final Integer taskId;
     private final Integer workerPort;
-    private final StormMetricRegistry metricRegistry;
+    private final StormWorkerMetricRegistry metricRegistry;
 
-    public TaskMetrics(WorkerTopologyContext context, String componentId, Integer taskid, StormMetricRegistry metricRegistry) {
+    public TaskMetrics(WorkerTopologyContext context, String componentId, Integer taskid, StormWorkerMetricRegistry metricRegistry) {
         this.metricRegistry = metricRegistry;
         this.topologyId = context.getStormId();
         this.componentId = componentId;
