@@ -17,38 +17,40 @@
 
 package org.apache.storm.st.utils;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 
 public class TimeUtil {
-    private static Logger log = LoggerFactory.getLogger(TimeUtil.class);
+    private static final Logger LOG = LoggerFactory.getLogger(TimeUtil.class);
 
     public static void sleepSec(int sec) {
         try {
             TimeUnit.SECONDS.sleep(sec);
         } catch (InterruptedException e) {
-            log.warn("Caught exception: " + ExceptionUtils.getFullStackTrace(e));
+            LOG.warn("Caught exception: " + ExceptionUtils.getFullStackTrace(e));
         }
     }
     public static void sleepMilliSec(int milliSec) {
         try {
             TimeUnit.MILLISECONDS.sleep(milliSec);
         } catch (InterruptedException e) {
-            log.warn("Caught exception: " + ExceptionUtils.getFullStackTrace(e));
+            LOG.warn("Caught exception: " + ExceptionUtils.getFullStackTrace(e));
         }
     }
 
-    public static DateTime floor(DateTime dateTime, int sec) {
-        long modValue = dateTime.getMillis() % (1000 * sec);
-        return dateTime.minus(modValue);
+    public static LocalDateTime floor(LocalDateTime dateTime, int sec) {
+        long modValue = dateTime.toInstant(ZoneOffset.UTC).toEpochMilli() % (1000 * sec);
+        return dateTime.minus(modValue, ChronoUnit.MILLIS);
     }
 
-    public static DateTime ceil(DateTime dateTime, int sec) {
-        long modValue = dateTime.getMillis() % (1000 * sec);
-        return dateTime.minus(modValue).plusSeconds(sec);
+    public static LocalDateTime ceil(LocalDateTime dateTime, int sec) {
+        long modValue = dateTime.toInstant(ZoneOffset.UTC).toEpochMilli() % (1000 * sec);
+        return dateTime.minus(modValue, ChronoUnit.MILLIS).plusSeconds(sec);
     }
 }

@@ -35,9 +35,9 @@ import org.apache.storm.st.utils.AssertUtil;
 import org.apache.storm.thrift.TException;
 import org.apache.storm.utils.NimbusClient;
 import org.apache.storm.utils.Utils;
+import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.Assert;
 
 public class StormCluster {
     private static Logger log = LoggerFactory.getLogger(StormCluster.class);
@@ -103,7 +103,7 @@ public class StormCluster {
     public TopologySummary getOneActive() throws TException {
         List<TopologySummary> topoSummaries = getActive();
         AssertUtil.nonEmpty(topoSummaries, "Expecting one active topology.");
-        Assert.assertEquals(topoSummaries.size(), 1, "Expected one topology to be running, found: " + topoSummaries);
+        Assert.assertEquals("Expected one topology to be running, found: " + topoSummaries, 1, topoSummaries.size());
         return topoSummaries.get(0);
     }
 

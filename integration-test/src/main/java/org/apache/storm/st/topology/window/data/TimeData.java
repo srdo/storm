@@ -19,12 +19,12 @@ package org.apache.storm.st.topology.window.data;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import java.time.Instant;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
 import java.util.Collection;
-import java.util.Date;
 
 public class TimeData implements Comparable<TimeData> {
     public static final TimeData CLS = new TimeData(-1);
@@ -33,17 +33,15 @@ public class TimeData implements Comparable<TimeData> {
     private static final String TIMESTAMP_FIELD_NAME = "date";
     static final Gson GSON = new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").create();
     private final int num;
-    private final Date now;
-    private final long timestamp;
+    private final Instant now;
 
     private TimeData(int num) {
-        this(num, new Date());
+        this(num, Instant.now());
     }
 
-    private TimeData(int num, Date date) {
+    private TimeData(int num, Instant date) {
         this.num = num;
         this.now = date;
-        this.timestamp = date.getTime();
     }
 
     public static TimeData newData(int num) {
@@ -51,7 +49,7 @@ public class TimeData implements Comparable<TimeData> {
     }
 
     public static TimeData fromTuple(Tuple tuple) {
-        return new TimeData(tuple.getIntegerByField(NUMBER_FIELD_NAME), new Date(tuple.getLongByField(TIMESTAMP_FIELD_NAME)));
+        return new TimeData(tuple.getIntegerByField(NUMBER_FIELD_NAME), Instant.ofEpochMilli(tuple.getLongByField(TIMESTAMP_FIELD_NAME)));
     }
 
     public static TimeData fromJson(String jsonStr) {
@@ -68,14 +66,14 @@ public class TimeData implements Comparable<TimeData> {
     }
 
     public Values getValues() {
-        return new Values(num, now.toString(), timestamp);
+        return new Values(num, now.toString(), now.toEpochMilli());
     }
 
     public static String getTimestampFieldName() {
         return TIMESTAMP_FIELD_NAME;
     }
 
-    public Date getDate() {
+    public Instant getDate() {
         return now;
     }
 
@@ -91,7 +89,6 @@ public class TimeData implements Comparable<TimeData> {
         TimeData data = (TimeData) o;
 
         if (num != data.num) return false;
-        if (timestamp != data.timestamp) return false;
         return now.equals(data.now);
 
     }
@@ -100,12 +97,11 @@ public class TimeData implements Comparable<TimeData> {
     public int hashCode() {
         int result = num;
         result = 31 * result + now.hashCode();
-        result = 31 * result + (int) (timestamp ^ (timestamp >>> 32));
         return result;
     }
 
     @Override
     public int compareTo(TimeData o) {
-        return Long.compare(timestamp, o.timestamp);
+        return Long.compare(now.toEpochMilli(), o.now.toEpochMilli());
     }
 }

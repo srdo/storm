@@ -20,31 +20,31 @@ package org.apache.storm.st.utils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.Assert;
 
 import java.io.File;
 import java.util.Collection;
 import java.util.List;
+import org.junit.Assert;
 
 public class AssertUtil {
     private static Logger log = LoggerFactory.getLogger(AssertUtil.class);
 
     public static void empty(Collection<?> collection) {
-        Assert.assertTrue(collection == null || collection.size() == 0, "Expected collection to be non-null, found: " + collection);
+        Assert.assertTrue("Expected collection to be non-null, found: " + collection, collection == null || collection.isEmpty());
     }
 
     public static void nonEmpty(Collection<?> collection, String message) {
-        Assert.assertNotNull(collection, message + " Expected collection to be non-null, found: " + collection);
+        Assert.assertNotNull(message + " Expected collection to be non-null, found: " + collection, collection);
         greater(collection.size(), 0, message + " Expected collection to be non-empty, found: " + collection);
     }
 
     public static void greater(int actual, int expected, String message) {
-        Assert.assertTrue(actual > expected, message);
+        Assert.assertTrue(message, actual > expected);
     }
 
     public static void exists(File path) {
-        Assert.assertNotNull(path, "Supplied path was expected to be non null, found: " + path);
-        Assert.assertTrue(path.exists(), "Supplied path was expected to be non null, found: " + path);
+        Assert.assertNotNull("Supplied path was expected to be non null, found: " + path, path);
+        Assert.assertTrue("Supplied path was expected to be non null, found: " + path, path.exists());
     }
 
     public static void assertOneElement(Collection<?> collection) {
@@ -53,7 +53,7 @@ public class AssertUtil {
 
     public static void assertNElements(Collection<?> collection, int expectedCount) {
         String message = "Unexpected number of elements in the collection: " + collection;
-        Assert.assertEquals(collection.size(), expectedCount, message);
+        Assert.assertEquals(message, expectedCount, collection.size());
     }
 
     public static void assertTwoElements(Collection<?> collection) {
@@ -64,8 +64,8 @@ public class AssertUtil {
         for (String oneExpectedOutput : expectedOutput) {
             final int matchCount = StringUtils.countMatches(actualOutput, oneExpectedOutput);
             log.info("In output, found " + matchCount + " occurrences of: " + oneExpectedOutput);
-            Assert.assertTrue(matchCount > requiredMatchCount,
-                    "Found " + matchCount + "occurrence of " + oneExpectedOutput + " in urls, expected" + requiredMatchCount);
+            Assert.assertTrue("Found " + matchCount + "occurrence of " + oneExpectedOutput + " in urls, expected" + requiredMatchCount,
+                matchCount > requiredMatchCount);
         }
     }
 }

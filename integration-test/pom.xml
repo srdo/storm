@@ -54,14 +54,14 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-            <version>6.8.5</version>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>joda-time</groupId>
-            <artifactId>joda-time</artifactId>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-launcher</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.storm</groupId>
@@ -107,17 +107,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <!-- TestNG provider does not understand the JUnit 5 groups syntax used in the rest of the project, make sure to override it -->
-                    <excludedGroups>none</excludedGroups>
                     <skipTests>${skipTests}</skipTests>
                     <redirectTestOutputToFile>${redirectTestOutputToFile}</redirectTestOutputToFile>
                     <argLine>-Xmx1024m</argLine>
-                    <properties>
-                        <property>
-                            <name>listener</name>
-                            <value>org.apache.storm.st.meta.TestngListener</value>
-                        </property>
-                    </properties>
                     <reuseForks>true</reuseForks>
                     <forkCount>1</forkCount>
                     <systemPropertyVariables>
