@@ -21,19 +21,26 @@ import org.apache.storm.st.helper.AbstractTest;
 import org.apache.storm.st.topology.window.SlidingTimeCorrectness;
 import org.apache.storm.st.topology.window.SlidingWindowCorrectness;
 import org.apache.storm.st.wrapper.TopoWrap;
+import org.junit.Assert;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.Assert;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
 
 public final class SlidingWindowTest extends AbstractTest {
     private static final Logger LOG = LoggerFactory.getLogger(SlidingWindowTest.class);
     private final WindowVerifier windowVerifier = new WindowVerifier();
     private TopoWrap topo;
 
-    @DataProvider
+    @AfterEach
+    public void cleanup() throws Exception {
+        if (topo != null) {
+            topo.killOrThrow();
+            topo = null;
+        }
+    }
+    
     public static Object[][] generateCountWindows() {
         final Object[][] objects = new Object[][]{
                 {-1, 10},
@@ -53,7 +60,8 @@ public final class SlidingWindowTest extends AbstractTest {
         return objects;
     }
 
-    @Test(dataProvider = "generateCountWindows")
+    @ParameterizedTest
+    @MethodSource(value = "generateCountWindows")
     public void testWindowCount(int windowSize, int slideSize) throws Exception {
         final SlidingWindowCorrectness testable = new SlidingWindowCorrectness(windowSize, slideSize);
         final String topologyName = this.getClass().getSimpleName() + "-size-window" + windowSize + "-slide" + slideSize;
@@ -69,7 +77,6 @@ public final class SlidingWindowTest extends AbstractTest {
         windowVerifier.runAndVerifyCount(windowSize, slideSize, testable, topo);
     }
 
-    @DataProvider
     public static Object[][] generateTimeWindows() {
         final Object[][] objects = new Object[][]{
                 {-1, 10},
@@ -87,7 +94,8 @@ public final class SlidingWindowTest extends AbstractTest {
         return objects;
     }
 
-    @Test(dataProvider = "generateTimeWindows")
+    @ParameterizedTest
+    @MethodSource(value = "generateTimeWindows")
     public void testTimeWindow(int windowSec, int slideSec) throws Exception {
         final SlidingTimeCorrectness testable = new SlidingTimeCorrectness(windowSec, slideSec);
         final String topologyName = this.getClass().getSimpleName() + "-sec-window" + windowSec + "-slide" + slideSec;
@@ -101,13 +109,5 @@ public final class SlidingWindowTest extends AbstractTest {
         }
         topo = new TopoWrap(cluster, topologyName, testable.newTopology());
         windowVerifier.runAndVerifyTime(windowSec, slideSec, testable, topo);
-    }
-
-    @AfterMethod
-    public void cleanup() throws Exception {
-        if (topo != null) {
-            topo.killOrThrow();
-            topo = null;
-        }
     }
 }

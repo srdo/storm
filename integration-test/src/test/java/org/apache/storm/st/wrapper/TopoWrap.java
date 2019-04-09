@@ -62,9 +62,9 @@ import org.apache.storm.st.utils.StringDecorator;
 import org.apache.storm.st.utils.TimeUtil;
 import org.apache.storm.thrift.TException;
 import org.apache.storm.utils.Utils;
+import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.Assert;
 
 public class TopoWrap {
     private static final Logger LOG = LoggerFactory.getLogger(TopoWrap.class);
@@ -105,7 +105,7 @@ public class TopoWrap {
     private static String getJarPath() {
         final String USER_DIR = "user.dir";
         String userDirVal = System.getProperty(USER_DIR);
-        Assert.assertNotNull(userDirVal, "property " + USER_DIR + " was not set.");
+        Assert.assertNotNull("property " + USER_DIR + " was not set.", userDirVal);
         File projectDir = new File(userDirVal);
         AssertUtil.exists(projectDir);
         
@@ -125,7 +125,7 @@ public class TopoWrap {
                 break;
             }
         }
-        Assert.assertNotNull(jarFile, "Couldn't detect a suitable jar file for uploading.");
+        Assert.assertNotNull("Couldn't detect a suitable jar file for uploading.", jarFile);
         LOG.info("jarFile = " + jarFile);
         return jarFile;
     }
@@ -133,7 +133,7 @@ public class TopoWrap {
     public void submitSuccessfully(ImmutableMap<String, Object> topoConf) throws TException {
         submit(topoConf);
         TopologySummary topologySummary = getSummary();
-        Assert.assertEquals(topologySummary.get_status().toLowerCase(), "active", "Topology must be active.");
+        Assert.assertEquals("Topology must be active.", "active", topologySummary.get_status().toLowerCase());
         id = topologySummary.get_id();
     }
 
@@ -221,7 +221,7 @@ public class TopoWrap {
     public void assertProgress(int minEmits, int expectedExecutors, String componentName, int maxWaitSec) throws TException {
         waitForProgress(minEmits, expectedExecutors, componentName, maxWaitSec);
         long emitCount = getAllTimeEmittedCount(componentName);
-        Assert.assertTrue(emitCount >= minEmits, "Emit count for component '" + componentName + "' is " + emitCount + ", min is " + minEmits);
+        Assert.assertTrue("Emit count for component '" + componentName + "' is " + emitCount + ", min is " + minEmits, emitCount >= minEmits);
         long executorCount = getComponentExecutorCount(componentName);
         assertThat(executorCount, is((long)expectedExecutors));
     }

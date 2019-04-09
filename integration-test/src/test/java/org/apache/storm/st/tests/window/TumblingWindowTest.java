@@ -21,32 +21,28 @@ import org.apache.storm.st.helper.AbstractTest;
 import org.apache.storm.st.wrapper.TopoWrap;
 import org.apache.storm.st.topology.window.TumblingTimeCorrectness;
 import org.apache.storm.st.topology.window.TumblingWindowCorrectness;
+import org.junit.Assert;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.Assert;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
 
 public final class TumblingWindowTest extends AbstractTest {
     private static final Logger LOG = LoggerFactory.getLogger(TumblingWindowTest.class);
     private final WindowVerifier windowVerifier = new WindowVerifier();
     private TopoWrap topo;
 
-    @DataProvider
-    public static Object[][] generateWindows() {
-        final Object[][] objects = new Object[][]{
-                {-1},
-                {0},
-                {1},
-                {10},
-                {250},
-                {500},
-        };
-        return objects;
+    @AfterEach
+    public void cleanup() throws Exception {
+        if (topo != null) {
+            topo.killOrThrow();
+            topo = null;
+        }
     }
-
-    @Test(dataProvider = "generateWindows")
+    
+    @ParameterizedTest
+    @ValueSource(ints = {-1, 0, 1, 10, 250, 500})
     public void testTumbleCount(int tumbleSize) throws Exception {
         final TumblingWindowCorrectness testable = new TumblingWindowCorrectness(tumbleSize);
         final String topologyName = this.getClass().getSimpleName() + "-size" + tumbleSize;
@@ -62,20 +58,8 @@ public final class TumblingWindowTest extends AbstractTest {
         windowVerifier.runAndVerifyCount(tumbleSize, tumbleSize, testable, topo);
     }
 
-    @DataProvider
-    public static Object[][] generateTumbleTimes() {
-        final Object[][] objects = new Object[][]{
-                {-1},
-                {0},
-                {1},
-                {2},
-                {5},
-                {10},
-        };
-        return objects;
-    }
-
-    @Test(dataProvider = "generateTumbleTimes")
+    @ParameterizedTest
+    @ValueSource(ints = {-1, 0, 1, 2, 5, 10})
     public void testTumbleTime(int tumbleSec) throws Exception {
         final TumblingTimeCorrectness testable = new TumblingTimeCorrectness(tumbleSec);
         final String topologyName = this.getClass().getSimpleName() + "-sec" + tumbleSec;
@@ -89,13 +73,5 @@ public final class TumblingWindowTest extends AbstractTest {
         }
         topo = new TopoWrap(cluster, topologyName, testable.newTopology());
         windowVerifier.runAndVerifyTime(tumbleSec, tumbleSec, testable, topo);
-    }
-
-    @AfterMethod
-    public void cleanup() throws Exception {
-        if (topo != null) {
-            topo.killOrThrow();
-            topo = null;
-        }
     }
 }

@@ -20,17 +20,15 @@ package org.apache.storm.st;
 import org.apache.storm.st.helper.AbstractTest;
 import org.apache.storm.st.wrapper.TopoWrap;
 import org.apache.storm.ExclamationTopology;
-import org.apache.storm.generated.TopologyInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.Assert;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.Test;
-import org.apache.storm.st.utils.TimeUtil;
 
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.junit.Assert;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 public final class DemoTest extends AbstractTest {
     private static final Logger log = LoggerFactory.getLogger(DemoTest.class);
@@ -40,6 +38,14 @@ public final class DemoTest extends AbstractTest {
     protected final String topologyName = this.getClass().getSimpleName();
     private TopoWrap topo;
 
+    @AfterEach
+    public void cleanup() throws Exception {
+        if (topo != null) {
+            topo.killOrThrow();
+            topo = null;
+        }
+    }
+    
     @Test
     public void testExclamationTopology() throws Exception {
         topo = new TopoWrap(cluster, topologyName, ExclamationTopology.getStormTopology());
@@ -52,15 +58,7 @@ public final class DemoTest extends AbstractTest {
         log.info(boltUrls.toString());
         final String actualOutput = topo.getLogs(ExclamationTopology.EXCLAIM_2);
         for (String oneExpectedOutput : exclaim2Output) {
-            Assert.assertTrue(actualOutput.contains(oneExpectedOutput), "Couldn't find " + oneExpectedOutput + " in urls");
-        }
-    }
-
-    @AfterMethod
-    public void cleanup() throws Exception {
-        if (topo != null) {
-            topo.killOrThrow();
-            topo = null;
+            Assert.assertTrue("Couldn't find " + oneExpectedOutput + " in urls", actualOutput.contains(oneExpectedOutput));
         }
     }
 }
