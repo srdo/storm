@@ -27,6 +27,7 @@ import filecmp
 import shutil
 import re
 import itertools
+import argparse
 
 project_root = Path(__file__).resolve().parent.parent
 update_dependency_licenses_cmd = ('mvn license:aggregate-add-third-party@generate-and-check-licenses' +
@@ -42,10 +43,9 @@ def cd(newdir):
     finally:
         os.chdir(prevdir)
 
-# Generates DEPENDENCY-LICENSES in target. The committed DEPENDENCY-LICENSES is not modified.
-
 
 def generate_dependency_licenses():
+    """Generates DEPENDENCY-LICENSES in target. The committed DEPENDENCY-LICENSES is not modified."""
     print('Generating DEPENDENCY-LICENSES')
     update_dependency_licenses_output_to_target_cmd = (update_dependency_licenses_cmd +
                                                        ' -Dlicense.thirdPartyFilename=DEPENDENCY-LICENSES' +
@@ -53,10 +53,9 @@ def generate_dependency_licenses():
     subprocess.check_call(shlex.split(
         update_dependency_licenses_output_to_target_cmd))
 
-# Regenerates DEPENDENCY-LICENSES, and verifies that it didn't change
-
 
 def check_dependency_licenses():
+    """Regenerates DEPENDENCY-LICENSES, and verifies that it didn't change"""
     print('Checking DEPENDENCY-LICENSES')
     if (not filecmp.cmp(Path('DEPENDENCY-LICENSES'), Path('target') / 'DEPENDENCY-LICENSES', shallow=False)):
         print(
@@ -78,10 +77,9 @@ def extract_license_report_maven_coordinates(lines):
         r'\s+\*.*\((?P<gav>.*) \- .*\).*', line), lines)
     return set(map(lambda match: match.group('gav'), filter(lambda match: match != None, matches)))
 
-# Gets the dependencies listed in LICENSE-binary
-
 
 def parse_license_binary_dependencies_coordinate_set():
+    """Gets the dependencies listed in LICENSE-binary"""
     license_binary_begin_binary_section = '----------------------------END OF SOURCE NOTICES -------------------------------------------'
     license_binary_lines = read_lines(project_root / 'LICENSE-binary')
     return extract_license_report_maven_coordinates(
@@ -99,10 +97,9 @@ def read_lines(path):
     with open(path) as f:
         return f.readlines()
 
-# Gets the dependencies for storm-dist/binary, plus the ones in storm-shaded-deps
-
 
 def generate_storm_dist_dependencies_coordinate_set():
+    """Gets the dependencies for storm-dist/binary, plus the ones in storm-shaded-deps"""
     generated_coordinate_set = extract_license_report_maven_coordinates(read_lines(
         project_root / 'storm-dist' / 'binary' / 'target' / 'generated-sources' / 'license' / 'THIRD-PARTY.txt'))
 
@@ -118,15 +115,15 @@ def generate_storm_dist_dependencies_coordinate_set():
 
     return set(filter(lambda coordinate: 'org.apache.storm:' not in coordinate, generated_coordinate_set))
 
-# Checks that the dependencies in the storm-dist/binary report are mentioned in LICENSE-binary, and vice versa
-
-
-def check_license_binary():
-    print('Checking LICENSE-binary')
+def generate_storm_dist_license_report():
     with cd(project_root / 'storm-dist' / 'binary'):
         print('')
         subprocess.check_call(shlex.split(
             'mvn license:aggregate-add-third-party@generate-and-check-licenses -Dlicense.skipAggregateAddThirdParty=false'))
+
+def check_license_binary():
+    """Checks that the dependencies in the storm-dist/binary report are mentioned in LICENSE-binary, and vice versa"""
+    print('Checking LICENSE-binary')
 
     license_binary_coordinate_set = parse_license_binary_dependencies_coordinate_set()
     generated_coordinate_set = generate_storm_dist_dependencies_coordinate_set()
@@ -148,11 +145,17 @@ def check_license_binary():
 
 
 with cd(project_root):
+    parser = argparse.ArgumentParser(description='Validate Storm license files are up to date (excluding NOTICE-binary and the licenses/ directory)')
+    parser.add_argument('--skip-build-storm', action='store_true', help='set to skip building Storm')
+    args = parser.parse_args()
     success = True
-    # build_storm()
+
+    if not args.skip_build_storm:
+        build_storm()
     generate_dependency_licenses()
-    success = success and check_dependency_licenses()
-    success = success and check_license_binary()
+    generate_storm_dist_license_report()
+    success = check_dependency_licenses() and success
+    success = check_license_binary() and success
     if not success:
         exit(1)
     exit(0)
