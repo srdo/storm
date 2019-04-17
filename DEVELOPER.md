@@ -310,7 +310,7 @@ By default integration tests are not run in the test phase. To run Java and Cloj
  
 ## Listing dependency licenses
 
-You can generate a list of dependencies and their licenses by running `mvn generate-resources -Dlicense.skipAggregateAddThirdParty=false` in the project root.
+You can generate a list of dependencies and their licenses by running `mvn license:aggregate-add-third-party@generate-and-check-licenses -Dlicense.skipAggregateAddThirdParty=false` in the project root.
 The list will be put in DEPENDENCY_LICENSES.
 
 The license aggregation plugin will use the license listed in a dependency's POM. If the license is missing, or incomplete (e.g. due to multiple licenses), you can override the license by describing the dependency in the THIRD-PARTY.properties file in the project root.
@@ -322,7 +322,7 @@ When auditing the binary LICENSE-binary and NOTICE-binary, there are a couple of
 
 `list_jars` can list the jars in an extracted binary distribution. Note that while listing all the jars in the binary distribution is helpful, special attention must be paid to shaded jars, as they may contain shaded dependencies that must be listed in LICENSE-binary separately.
 
-The license plugin can generate a list of dependencies with licenses for the binary distribution with the following command: `mvn generate-resources -Dlicense.skipAggregateAddThirdParty=false` in the storm-dist/binary directory. 
+The license plugin can generate a list of dependencies with licenses for the binary distribution with the following command: `mvn license:aggregate-add-third-party@generate-and-check-licenses -Dlicense.skipAggregateAddThirdParty=false` in the storm-dist/binary directory. 
 
 The generated list in target/generated-sources/license/THIRD-PARTY.txt is mostly complete, and a good input to the LICENSE-binary file. The major omission in it is the storm-shaded-deps dependencies, as they are shaded. These dependencies can be manually listed with `mvn dependency:list` in the storm-shaded-deps project, and then manually added. 
 

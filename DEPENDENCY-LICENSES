@@ -804,6 +804,10 @@ List of third-party dependencies grouped by their license type.
         * Checker Qual (org.checkerframework:checker-compat-qual:2.0.0 - http://checkerframework.org)
         * Checker Qual (org.checkerframework:checker-qual:2.0.0 - http://checkerframework.org)
 
+    GNU LESSER GENERAL PUBLIC LICENSE, Version 2.1
+
+        * SpotBugs Annotations (com.github.spotbugs:spotbugs-annotations:3.1.9 - https://spotbugs.github.io/)
+
     MIT License
 
         * Animal Sniffer Annotations (org.codehaus.mojo:animal-sniffer-annotations:1.14 - http://mojo.codehaus.org/animal-sniffer/animal-sniffer-annotations)
