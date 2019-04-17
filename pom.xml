@@ -254,8 +254,11 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <test.extra.args>-Djava.net.preferIPv4Stack=true</test.extra.args>
+        <!-- license-maven-plugin that needs to be overridable from command line -->
         <license.skipAggregateAddThirdParty>true</license.skipAggregateAddThirdParty>
         <license.skipAggregateDownloadLicenses>true</license.skipAggregateDownloadLicenses>
+        <license.thirdPartyFilename>DEPENDENCY-LICENSES</license.thirdPartyFilename>
+        <license.outputDirectory>${project.basedir}</license.outputDirectory>
 
         <!-- dependency versions -->
         <clojure.version>1.10.0</clojure.version>
@@ -1454,8 +1457,6 @@
                 <artifactId>license-maven-plugin</artifactId>
                 <inherited>false</inherited>
                 <configuration>
-                    <thirdPartyFilename>DEPENDENCY-LICENSES</thirdPartyFilename>
-                    <outputDirectory>${project.basedir}</outputDirectory>
                     <missingFile>${project.basedir}/THIRD-PARTY.properties</missingFile>
                     <aggregateMissingLicensesFile>${project.basedir}/THIRD-PARTY.properties</aggregateMissingLicensesFile>
                 </configuration>
