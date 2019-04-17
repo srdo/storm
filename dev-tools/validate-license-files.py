@@ -109,7 +109,7 @@ def generate_storm_dist_dependencies_coordinate_set():
             'mvn dependency:list -DoutputFile=target/deps-list -Dmdep.outputScope=false -DincludeScope=compile'))
     shaded_dep_coordinates = extract_dependency_list_maven_coordinates(
         read_lines(project_root / 'storm-shaded-deps' / 'target' / 'deps-list'))
-    print('Adding storm-shaded-deps dependencies ' + str(shaded_dep_coordinates))
+    print('The storm-shaded-deps dependencies that will be considered part of storm-dist/binary are ' + str(shaded_dep_coordinates))
     print('')
     generated_coordinate_set.update(shaded_dep_coordinates)
 
