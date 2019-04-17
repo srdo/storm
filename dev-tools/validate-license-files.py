@@ -133,12 +133,12 @@ def check_license_binary():
         license_binary_coordinate_set)
     if superfluous_coordinates_in_license:
         print('Dependencies in LICENSE-binary that appear unused: ')
-        for coord in superfluous_coordinates_in_license:
+        for coord in sorted(superfluous_coordinates_in_license):
             print(coord)
     print('')
     if coordinates_missing_in_license:
         print('Dependencies missing from LICENSE-binary: ')
-        for coord in coordinates_missing_in_license:
+        for coord in sorted(coordinates_missing_in_license):
             print(coord)
         return False
     return not coordinates_missing_in_license and not superfluous_coordinates_in_license

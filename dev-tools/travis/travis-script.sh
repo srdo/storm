@@ -27,6 +27,9 @@ cd ${STORM_SRC_ROOT_DIR}
 if [ "$2" == "Integration-Test" ]
   then
   exec ./integration-test/run-it.sh
+if [ "$2" == "Check-Updated-License-Files"]
+  then
+  exec ./dev-tools/validate-license-files.py
 elif [ "$2" == "Client" ]
 then
   TEST_MODULES=storm-client
