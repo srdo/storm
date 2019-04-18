@@ -29,7 +29,7 @@ if [ "$2" == "Integration-Test" ]
   exec ./integration-test/run-it.sh
 elif [ "$2" == "Check-Updated-License-Files" ]
   then
-  exec ./dev-tools/validate-license-files.py --skip-build-storm
+  exec python3.6 dev-tools/validate-license-files.py --skip-build-storm
 elif [ "$2" == "Client" ]
 then
   TEST_MODULES=storm-client

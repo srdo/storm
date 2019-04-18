@@ -34,11 +34,11 @@ before_install:
   - nvm install 8.9.3
   - nvm use 8.9.3
   - sudo apt-get update
+  - sudo apt-get install python3
+  - sudo apt-get install python3-pip
   - sudo add-apt-repository ppa:jonathonf/python-3.6 -y
   - sudo apt-get update
   - sudo apt-get install python3.6
-  - sudo apt-get install python3-pip
-  - python3 --version
 install: /bin/bash ./dev-tools/travis/travis-install.sh `pwd`
 script:
   - /bin/bash ./dev-tools/travis/travis-script.sh `pwd` $MODULES
