@@ -14,11 +14,11 @@ addons:
     - node1
 
 env:
-  - MODULES=Client
-  - MODULES=Server
-  - MODULES=Core
-  - MODULES=External
-  - MODULES=Integration-Test
+#  - MODULES=Client
+#  - MODULES=Server
+#  - MODULES=Core
+#  - MODULES=External
+#  - MODULES=Integration-Test
   - MODULES=Check-Updated-License-Files
 
 dist: trusty
@@ -36,6 +36,7 @@ before_install:
   - sudo apt-get update
   - sudo apt-get install python3
   - sudo apt-get install python3-pip
+  - python3 --version
 install: /bin/bash ./dev-tools/travis/travis-install.sh `pwd`
 script:
   - /bin/bash ./dev-tools/travis/travis-script.sh `pwd` $MODULES
