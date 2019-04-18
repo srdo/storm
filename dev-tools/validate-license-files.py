@@ -59,7 +59,7 @@ def check_dependency_licenses():
     print('Checking DEPENDENCY-LICENSES')
     if (not filecmp.cmp(Path('DEPENDENCY-LICENSES'), Path('target') / 'DEPENDENCY-LICENSES', shallow=False)):
         print(
-            "DEPENDENCY-LICENSES and target/DEPENDENCY-LICENSES are different. Please update DEPENDENCY-LICENSES by running '{}' in the project root".format(update_dependency_licenses_cmd))
+            f"DEPENDENCY-LICENSES and target/DEPENDENCY-LICENSES are different. Please update DEPENDENCY-LICENSES by running '{update_dependency_licenses_cmd}' in the project root")
         return False
     return True
 
