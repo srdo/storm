@@ -118,8 +118,7 @@ def generate_storm_dist_dependencies_coordinate_set():
 def generate_storm_dist_license_report():
     with cd(project_root / 'storm-dist' / 'binary'):
         print('')
-        subprocess.check_call(shlex.split(
-            'mvn license:aggregate-add-third-party@generate-and-check-licenses -Dlicense.skipAggregateAddThirdParty=false'))
+        subprocess.check_call(shlex.split(update_dependency_licenses_cmd))
 
 def check_license_binary():
     """Checks that the dependencies in the storm-dist/binary report are mentioned in LICENSE-binary, and vice versa"""
