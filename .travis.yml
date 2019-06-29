@@ -20,7 +20,7 @@ env:
   - MODULES=External
   - MODULES=Integration-Test
 
-dist: trusty
+dist: bionic
 sudo: required
 
 before_cache:
